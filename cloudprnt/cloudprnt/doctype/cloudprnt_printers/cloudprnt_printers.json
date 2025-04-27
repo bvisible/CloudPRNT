@@ -1,0 +1,195 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2024-07-09 16:06:23.253231",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "mac_address",
+  "label",
+  "ip_address",
+  "status",
+  "status_code",
+  "poll_interval",
+  "last_activity",
+  "online",
+  "printing_in_progress",
+  "black_mark_error",
+  "compulsion_switch",
+  "cover_open",
+  "cutter_error",
+  "mechanical_error",
+  "over_temperature",
+  "paper_empty",
+  "paper_low",
+  "presenter_paper_jam",
+  "receive_buffer_overflow",
+  "recoverable",
+  "voltage_error"
+ ],
+ "fields": [
+  {
+   "fieldname": "mac_address",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "MAC Address",
+   "read_only": 1
+  },
+  {
+   "fieldname": "label",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Label",
+   "unique": 1
+  },
+  {
+   "fieldname": "ip_address",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "IP Address",
+   "read_only": 1
+  },
+  {
+   "columns": 1,
+   "default": "0",
+   "fieldname": "online",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Online",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "black_mark_error",
+   "fieldtype": "Check",
+   "label": "Black Mark Error",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "compulsion_switch",
+   "fieldtype": "Check",
+   "label": "Compulsion Switch",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "cover_open",
+   "fieldtype": "Check",
+   "label": "Cover Open",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "cutter_error",
+   "fieldtype": "Check",
+   "label": "Cutter Error",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "mechanical_error",
+   "fieldtype": "Check",
+   "label": "Mechanical Error",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "over_temperature",
+   "fieldtype": "Check",
+   "label": "Over Temperature",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "paper_empty",
+   "fieldtype": "Check",
+   "label": "Paper Empty",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "paper_low",
+   "fieldtype": "Check",
+   "label": "Paper Low",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "presenter_paper_jam",
+   "fieldtype": "Check",
+   "label": "Presenter Paper Jam",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "receive_buffer_overflow",
+   "fieldtype": "Check",
+   "label": "Receive Buffer Overflow",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "recoverable",
+   "fieldtype": "Check",
+   "label": "Recoverable",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "voltage_error",
+   "fieldtype": "Check",
+   "label": "Voltage Error",
+   "read_only": 1
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Data",
+   "label": "Status",
+   "read_only": 1
+  },
+  {
+   "fieldname": "status_code",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Status Code",
+   "read_only": 1
+  },
+  {
+   "columns": 1,
+   "fieldname": "poll_interval",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Poll Interval",
+   "read_only": 1
+  },
+  {
+   "fieldname": "last_activity",
+   "fieldtype": "Float",
+   "label": "Last Activity",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "printing_in_progress",
+   "fieldtype": "Check",
+   "label": "Printing In Progress",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2024-07-10 13:41:24.406013",
+ "modified_by": "Administrator",
+ "module": "CloudPRNT",
+ "name": "CloudPRNT Printers",
+ "owner": "Administrator",
+ "permissions": [],
+ "show_title_field_in_link": 1,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "label"
+}

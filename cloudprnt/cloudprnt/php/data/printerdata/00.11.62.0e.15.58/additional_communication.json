@@ -1,0 +1,12 @@
+{
+    "status": "23 6 0 0 0 0 0 0 0 ",
+    "printerMAC": "00:11:62:0e:15:58",
+    "statusCode": "200%20OK",
+    "printingInProgress": false,
+    "clientAction": [
+        {"request":"GetPollInterval","result":"2"},
+        {"request":"Encodings","result":"image/png; image/jpeg; application/vnd.star.raster; application/vnd.star.line; application/vnd.star.starprntcore; text/plain; application/octet-stream"},
+        {"request":"ClientType","result":"Star Intelligent Interface HE01x/HE02x"},
+        {"request":"ClientVersion","result":"1.9.4"}
+    ]
+}
