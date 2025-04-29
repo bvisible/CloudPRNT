@@ -1,0 +1,1173 @@
+SDK Introduction
+Star CloudPRNT is an openly documented JSON/REST based HTTP protocol, and therefore it is not necessary to have an SDK in order to implement a CloudPRNT compatible service.
+
+CloudPRNT servers can be created using any server side technology that can be used to implement web services. Very many server side technologies are widely used such as PHP, Node.js, ASP.Net, ASP.Net Core, JSP, Python, Lua, and many more.
+
+In order to provide maximum benefit to developers, this SDK is not a CloudPRNT server implementation (although sample servers are included), but a set of helper functions, that can be extended as needed and incorporated into as many server side systems as possible.
+
+SDK Helper features
+This SDK provides functions to assist with:
+
+Status decoding
+Print job media format negotiation
+Print job conversion, so that the server may generate print jobs in a single media format, which will be converted in case that format is not supported by the client device.
+SDK Integration
+For integration purposes, the SDK provides the following:
+
+.Net API A .Net Standard 2.0 compatible library, which can be installed via NuGet into any .Net 4.6 or later, and .Net Core 2.0 or later project. This API provides job format conversion, status decoding, and ready made classes for serializing/de-serializing CloudPRNT JSON messages.
+cputil A stand-alone command line tool that can be integrated with any server-side development system that can invoke local processes. This tool can be provided as native binaries for Linux x86, Linux x64, Linux Arm, Mac OS x64, Windows x86 and Windows x64 servers (it is not necessary to install the .Net Framework or .Net Core runtime). environments in order to use it.
+Sample Projects - TBC Examples of very simple CloudPRNT servers, implemented with a variety of server side technologies. These samples serve as both examples of implementing the CloudPRNT protocol and how to integrate either the API, or cputil in each environment.
+
+CloudPRNT Introduction
+Star CloudPRNT is an HTTP, JSON based protocol which allows web servers to remotely control, and receive events from Star Point Of Sale devices which are CloudPRNT compatible. CloudPRNT enables server side control of document printing, barcode reading, keyboard input, display update, and other peripherals (such as scales) depending on model.
+
+CloudPRNT is suitable for remote printing applications, such as kitchen delivery order printing, warehouse pick ticket printing etc. where low latency is not strictly required. It is also suitable for lower latency applications, such as traditional POS, with full peripheral control.
+
+This can be very useful for web based applications, but can apply to any thin client style environment. CloudPRNT can also simplify the installation, set-up and daily usage, as it eliminates the need to manage IP addresses or custom firewall/tunneling rules at the local site.
+
+In addition to simplifying connectivity, CloudPRNT provides a mechanism to allow client and server to negotiate compatibility and capability information. Such as the printers supported command set and compatible media formats, as well as paper size, print area and output resolution. This allows a server to format it's output appropriately to fit the client device.
+
+At this time, several Star models are available with CloudPRNT compatibility:
+
+Star TSP650II, TSP700II, TSP800II, SP700, with HI0x interface board fitted.
+Star mC-Print2
+Star mC-Print3
+Devices with USB Host support (HI0x interface, all versions of mC-Print3 and mC-Print2 LB version), will also support peripherals, such as barcode scanners, line displays, etc.
+
+.Net API
+The StarMicronics.CloudPRNT-Utility package provides a .NET Standard 2.0 compatible API, which includes utility features for developers implementing a Star CloudPRNT compatible server using a .NET based development environment.
+
+As this is built against the .NET Standard 2.0 specification, it can be freely used in any application based around:
+
+.Net Framework 4.6.1 or later,
+.Net Core 2.0 or later
+It should also be compatible, but is untested with the following .NET implementations:
+
+Mono version 5.4
+Xamarin.iOS Version 10.14
+Xamarin.Mac Version 3.8
+Xamarin.Android Version 8.0
+UWP Version 10.0.16299
+Unity Version 2018.1
+Although intended as a set of utility classes for CloudPRNT server development, the status decoding and document format conversion may be useful for local applications, in particular those which would like to use the Star Document Markup language for printing.
+
+For details of individual classes and types, please refer to the API Reference documentation section. In-line help is also provided when using an IDE such as Visual Studio, or Visual Studio Code.
+
+StarMicronics.CloudPRNT-Utility provides the following facilities to assist CloudPRNT server developers:
+
+.NET classes for de-serializing/serializing CloudPRNT JSON messages
+Star ASB Status decoding, for more detailed device status.
+Document format conversion, The API allows the server to generate jobs using a preferred input format, and can convert those the a supported format for any current Star CloudPRNT device.
+Supported input formats are:
+Images: PNG, JPEG, BMP, GIF
+Text: UTF8 or plain ASCII
+Star Markup Language
+Provides support for the Star Document Markup language, a convenient, flexible and entirely device independent way to generate print jobs.
+Caution
+At this time, the StarMicronics.CloudPRNT-Utility package is considered a sample pre-release and subject to possible API changes between releases. After the initial 1.0 release, and publication to nuget.org, the API will be kept stable through version updates.
+
+Installing to a project
+StarMicronics.CloudPRNT-Utility is provided as a NuGet package, and can be installed via the Visual Studio NuGet UI, the nuget command line utility, or dotnet command line utility.
+
+Warning
+As a sample release, the StarMicronics.CloudPRNT-Utility package is available only through a Star NuGet package feed, and not via nuget.org. It will be necessary to add this feed to your package or development environment before you can install, see instructions below.
+
+Star Package Feed
+At this time, this SDK is a sample release and the API may change. Therefore the package is available via a Star specific package feed instead of nuget.org. Once the API is stable, it will be available through nuget.org, but at this time please add the custom package feed:
+
+http://star.baget.gfdt.ml/v3/index.json
+Installing with Visual Studio
+In the "Solution Explorer" panel, right click on your project, and select "Manage NuGet packages..." to display the NuGet dialog.
+For sample releases versions, please add the Star package feed (if not already added), and select it as the package source.
+Click on "Browse"
+In the Search Area, type "StarMicronics.CloudPRNT-Utility" to locate the package.
+Select the version required (latest is recommended)
+Click "Install"
+This will install the package, and its dependencies to your project. Provided you project meets the compatibility requirements for .NET Standard 2.0 (meaning it must be based on at least .NET Framework 4.6.1, or .NET Core 2.0 or later).
+
+Installing with the dotnet command
+Customers developing a .NET Core server or application may not be running Visual Studio, but have access to project management functions through the dotnet command line utility.
+
+For sample releases, please add the Star package feed to you list of NuGet feeds. The exact method varies between operating systems, on Linux it can be handled by editing the ~/.nuget/NuGet/NuGet.config XML file.
+Open a terminal, and 'cd' into the project folder (the folder in which the .csproj file exists for your project).
+use the dotnet command to add the package:
+dotnet add package StarMicronics.CloudPRNT-Utility
+This will install the API package and dependencies, provided your project is targeting a .NET implementation that is compatible with .NET Standard 2.0.
+
+Using the API
+All elements of the StarMicronics.CloudPRNT-Utility package are available under the StarMicronics.CloudPRNT namespace. At the time, the package provides classes for serialization to/from CloudPRNT JSON messages, a CloudPRNT Status decoder, and a set of classes for handling and converting documents based on images, plain text, or Star Document Markup language.
+
+Where to use
+All CloudPRNT servers will vary depending on the individual requirements of the project, therefore, most details of the server development remain entirely with the developer. In many cases, it is expected that CloudPRNT support will be added as feature extension to existing services.
+
+The provided API classes are expected to be used when handling the CloudPRNT POST and GET requests.
+
+When receiving CloudPRNT Poll by HTTP POST
+Servers can de-serialize the POST JSON body to a StarMicronics.CloudPrnt.CpMessage.PollRequest in order to easily handle the request.
+Servers can create a StarMicronics.CloudPrnt.CpMessage.PollResponse object in order to prepare a response to the poll. This can then be serialized to JSON to create a suitable CloudPRNT poll response.
+When the server requires the client to print a job, it can set the PollResponse.jobReady property to true, and use the StarMicronics.CloudPrnt.Document static methods GetOutputTypesFromType(string) and GetOutputTypesFromFilename(string) to set the PollResponse.mediaTypes property, to let the CloudPRNT client know which print formats are available for it to select.
+When receiving a CloudPRNT job data request by HTTP GET
+Servers can fetch or render a print job using any one of the input data formats supported by the API (PNG, JPEG, BMP, GIF, text, Star Document Markup).
+Servers should prepare a StarMicronics.CloudPrnt.ConversionOptions object to determine how the print job should be prepared (such as whether to use dithering and scaling when printing images).
+Servers can use the StarMicronics.CloudPrnt.Document static helper methods Convert() or ConvertFromFile() to convert the source document into the media format requested by the CloudPRNT client device.
+Serialization Classes
+Under the StarMicronics.CloudPRNT.CpMessage namespace are classes that can be used to serialize/de-serialize CloudPRNT polling JSON messages.
+
+The two primary classes are:
+
+StarMicronics.CloudPrnt.CpMessage.PollRequest - which represents the requests that will be sent regularly from the printer to your server.
+StarMicronics.CloudPrnt.CpMessage.PollResponse - which can be serialized to generate a suitable response.
+A simple CloudPRNT server method to handle CloudPRNT poll requests might look like this (in C#):
+
+string HandleCloudPRNTPoll(string request)
+{
+	PollRequest pollRequest = JsonConvert.DeserializeObject<PollRequest>(request);
+	Console.WriteLine(
+		String.Format("Received CloudPRNT request from {0}, status: {1}",
+		pollRequest.printerMAC,
+		pollRequest.statusCode
+	));
+
+	// Create a response object
+	PollResponse pollResponse = new PollResponse();
+
+	// do not print anything at this time
+	pollResponse.jobReady = false
+	pollResponse.mediaTypes = null;
+
+	return JsonConvert.SerializeObject(pollResponse);
+}
+This code assumes the Newtonsoft.Json package has been installed to this project as well as the StarMicronics.CloudPRNT-Utility package.
+
+Status Decoding
+A StarMicronics.CloudPrnt.PrinterStatus class provides a way to easily decode and inspect the Star ASB format status that is returned by Star CloudPRNT clients. When CloudPRNT clients report the printer device status, is is as a string of hex values, encoded according to the Star ASB specification, for example:
+
+"23 86 00 00 00 00 00 00 00 00 00"
+This can be decoded into a much easier to process form using the PrinterStatus class. To use this class, pass it the status string as a constructor parameter, for example:
+
+PrinterStatus status = new PrinterStatus("23 86 00 00 00 00 00 00 00 00 00");
+If(status.CoverOpen)
+	Console.WriteLine("Printer cover is open");
+If your code already has a PollRequest object, then you can also use the PollRequest.DecodedStatus property to retrieve a PrinterStatus object. For example:
+
+PollRequest pollRequest = JsonConvert.DeserializeObject<PollRequest>(request);
+If(pollRequest.DecodedStatus.CoverOpen)
+	Console.WriteLine("Printer cover is open");
+Determining possible output media types for a print job
+Handling of print documents is performed via classes that implement the ICpDocument interface. At this time there are three core types of document supported by the API:
+
+Documents.ImageDoc - Handles documents created graphically, such as from a PNG, JPEG, BMP, GIF source.
+Documents.TextDoc) - Handles plain text documents created as UTF8 encoded text.
+Documents.MarkupDoc - Handles documents created using the Star Document Markup Specification.
+Each of these ICpDocument implementations can convert their input document to a variety of output formats, to ensure that they can be handled by any Star printer, regardless of its internal command emulation or which media types it is able to decode internally.
+
+It is possible to construct each of these document types directly, but usually more convenient to use the StarMicronics.CloudPrnt.Document static class, which provides factory methods for creating document objects, and can hide the use of ICpDocument classes entirely.
+
+To obtain a list of supported output media types for a particular given input, the simplest way is to use the Document.GetOutputTypesFromType(string) or Document.GetOutputTypesFromFileName(string) methods.
+
+For example, if a server implementation uses Star Document markup to prepare print jobs, it can determine which data formats the API can convert this to with:
+
+string[] availableOutputMediaTypes = Document.GetOutputTypesFromType("text/vnd.star.markup");
+or if the job will be provided from a file, then the available output types can be determined from the file name (requires a recognized file extension):
+
+string[] availableOutputMediaTypes = Document.GetOutputTypesFileName("jobs/order.png");
+A more complete example of a CloudPRNT POST request handler could be:
+
+string HandleCloudPRNTPoll(string request)
+{
+	PollRequest pollRequest = JsonConvert.DeserializeObject<PollRequest>(request);
+	Console.WriteLine(
+		String.Format("Received CloudPRNT request from {0}, status: {1}",
+			pollRequest.printerMAC,
+			pollRequest.statusCode
+		));
+
+	// Create a response object
+	PollResponse pollResponse = new PollResponse();
+
+	if (database.jobAvailable(pollRequest.printerMAC))
+	{
+		pollResponse.jobReady = true;
+		pollResponse.mediaTypes = new List<string>();
+		pollResponse.mediaTypes.AddRange(Document.GetOutputTypesFromType("text/vnd.star.markup");
+	}
+	else
+	{
+		pollResponse.jobReady = false;
+		pollResponse.mediaTypes = null;
+	}
+
+	return JsonConvert.SerializeObject(pollResponse);
+}
+Note, in the above example, the object database is just used as an example of an object that may be used to hold the state and requirements for a particular device.
+
+Converting and providing print job data (GET requests)
+When a CloudPRNT device has been informed that a print job is available from printing, and provided with a list of available media types (via the poll response), then it will next request the actual print job data via an HTTP GET.
+
+Before downloading a job for printing, a client device will first select it's preferred media type for the job encoding, and then perform an HTTP GET, with the selected media type passed as part of the query string. Servers can ignore the requested media type, and provide the print job in any format that they like, the client will still print it if supported. However this is strongly discouraged, and there are no data formats guaranteed to be supported by all clients.
+
+It is recommended that servers always generate a GET response of the requested media type, to ensure compatibility with all CloudPRNT clients. Servers may use the StarMicronics.CloudPrnt.Document.Convert() and StarMicronics.CloudPrnt.Document.ConvertFromFile() methods to perform this conversion.
+
+For example, to make a print job in Star Document Markup and convert it into the format requested by the client data:
+
+// Make a simple markup language job
+StringBuilder job = new StringBuilder();
+job.Append("Hello World!\n");
+job.Append("[barcode: type code39; data 12345; height 10mm]\n");
+job.Append("[cut]");
+byte[] jobData = Encoding.UTF8.GetBytes(job.ToString());
+
+// get the requested output media type from the query string
+string outputFormat = context.Request.Query["type"];
+
+// set the response media type, and output the converted job to the response body
+context.Response.ContentType = outputFormat;
+Document.Convert(jobData, "text/vnd.star.markup", context.Response.Body, outputFormat, null);
+This code sample is expected to be inside the servers CloudPRNT GET handler, where context is a valid .NET Core HTTPContext object (therefore context.Response.Body is an output stream that will provide the GET response). The final parameter is for a ConversionsObject class, which can be left null to use the defaults (this is not recommended in production, as it will format all output to 80mm).
+
+CPUtil
+CPUtil is a simple example project, intended to serve as both sample code (for the StarMicronics.CloudPRNT-Utility API), and a useful back-end tool to help with implementing CloudPRNT servers that are not .NET or .NET Core based.
+
+Star Micronics can freely modify cputil as needed to help implement required functionality. Cputil can be built and used on any platform supported by .NET Core 2.1 including:
+
+Windows x86 and x64
+Linux x64
+Linux Arm (Raspberry PI compatible)
+Apple Mac OS (OSX) x64
+In all cases, it is possible to build a self-contained package that can be run on the desired platform without the need for a .NET Framework or .NET Core installation. It is also possible to build a general Framework Dependent package that is fully platform neutral, but requires a locally installed .NET Core Runtime (2.0 or later) installed.
+
+Once built, cputil can be integrated with server side projects using any language or environment that can invoke an external process, including:
+
+PHP
+Python
+Node.js
+Lua
+Perl
+Developers who are building a server based on ASP.NET or ASP.NET Core, should usually use the .NET API directly instead of invoking cputil.
+
+CPUtil - Obtaining Binaries
+Pre-built binaries
+Pre-compiled binaries of cputil are provide with this SDK for common supported platforms.
+
+Download Binaries
+Linux x64
+Linux Arm
+Mac OS x64
+Windows x64
+Windows x86
+Building from source
+Developers may freely customize cputil, and build it from source as needed. It is a .NET Core 2.0 Console application, provided as a project with the CloudPRNTSDKSamples solution that is included with the SDK. Cputil can be compiled with any platform that has a .NET Core 2.0 or later SDK available.
+
+Installation
+No special installation is necessary for each platform. The supplied archive can be extracted, and the cputil binary executed immediately. Installation location and method is entirely che choice of the server administrator.
+
+If a system-wide install is required, then the suggested method is:
+
+extract the archive for your required OS and architecture to a system wide location. For example on Linux, this may be /opt/star/cputil
+Add the extracted folder to your PATH variable, to make cputil accessible to scripts, or place a symbolic link somewhere in a PATH accessible folder (i.e /usr/local/bin) to your cputil binary.
+The folder in which cputil is extracted does not need to be writable.
+
+Using cputil
+Decoding Star ASB Status
+Star CloudPRNT devices will report their status in Star ASB format, as a string of 7 or more hexadecimal values. For Example:
+
+"23 86 00 00 00 00 00 00 00 00 00"
+This is not easy to decode in all languages, so cputil provides a method to convert this into JSON format data, e.g.:
+
+cputil jsonstatus "23 86 00 00 00 00 00 00 00 00 00"
+will generate the output:
+
+{
+  "Online": true,
+  "CoverOpen": false,
+  "CompulsionSwitch": false,
+  "OverTemperature": false,
+  "Recoverable": true,
+  "CutterError": false,
+  "MechanicalError": false,
+  "ReceiveBufferOverflow": false,
+  "BlackMarkError": false,
+  "PresenterPaperJam": false,
+  "VoltageError": false,
+  "PaperEmpty": false,
+  "PaperLow": false
+}
+Handling Print Job media formats
+Cputil can help with key parts of the CloudPRNT printing process. A server can prepare a print job in a single input format, which may not be natively supported by the CloudPRNT client device. The server can then use cputil to convert the job, as needed to a format that the CloudPRNT client does support.
+
+Supported input print job media formats are:
+
+Images
+PNG - image/png
+JPEG - image/jpeg
+BMP - image/bmp
+GIF - image/gif
+Plain Text - text/plain
+Star Document Markup - text/vnd.star.markup
+A JSON formatted list of supported input data formats can also be requested from cputil directly, using the supportedinputs option:
+
+cputil supportedinputs
+would generate output:
+
+[
+  "text/plain",
+  "text/vnd.star.markup",
+  "image/png",
+  "image/jpeg",
+  "image/bmp",
+  "image/gif"
+]
+Discovering the possible output formats
+Each input document can be converted to various output formats. The exact list of possible outputs will vary from one input type to another. Each input format can be converted to at least one output that is supported by each current Star CloudPRNT device. This guarantees that your server will be able to print to any target device when using cputil, regardless of the printer.
+
+When a CloudPRNT compatible server has a print job ready for a particular client (typically a Star mC-Print2, mC-Print3 or printer with HI0x interface card), the it must:
+
+wait for a poll request from the client (a JSON request sent by HTTP POST)
+reply to the client with a suitable JSON response, with at least the fields:
+jobReady set to true.
+mediaTypes an array of media type names in which the job can be provided to the client.
+For example:
+
+{
+  "jobReady": true,
+  "mediaTypes": ["image/jpeg", "image/png"]
+}
+At this point in the job printing negotiation, cputil can be used to prepare the mediaTypes list, based on the input format that the server plans to use.
+
+For example, for a server that will use a PNG image as the initial print job source, use (where sourceimage.png is the name of the input file):
+
+cputil mediatypes sourceimage.png
+which will generate the JSON ready output:
+
+["application/vnd.star.raster","application/vnd.star.line","application/vnd.star.starprnt","application/vnd.star.starprntcore", "image/png","image/jpeg"]
+Alternatively, if the server has not yet prepared the print job data, or does not store it as a local file, then the mediatypes-mime option can be used instead, to generate a list of possible outputs, based on the input type (instead of the actual input file).
+
+cputil mediatypes-mime image/png
+will generate the JSON ready output:
+
+["application/vnd.star.raster","application/vnd.star.line","application/vnd.star.starprnt","application/vnd.star.starprntcore", "image/png","image/jpeg"]
+Converting a job for printing
+After a server has provided a JSON response to the CloudPRNT poll with the jobReady field set to true, and a valid mediaTypes list, the client will recognize that it is there is a job for it to print. it will perform the following steps:
+
+select its preferred mediaType, from those available in the list. This is typically selected based on the first format in the list which is supported by the client. However, the exact decision can be client specific.
+perform an HTTP GET to the CloudPRNT server to retrieve the job, specifying the chosen mediaType through a query string parameter.
+When the server receives the HTTP GET, it should return the job to be printer encoded with the requested media type.
+
+Servers can prepare the job in a single, internally preferred format and then use cputil to convert it to the requested format.
+
+For example, if a server has prepared a print job as PNG data, and the client requests it as StarPRNT printer command data (application/vnd.star.starprnt) then cputil can be used:
+
+cputil decode application/vnd.star.starprnt sourceimage.png outputdata.bin
+Which will convert the PNG input file into printer command data stored in "outputdata.bin". If it is more convenient to write the output data to standard output, then use either "-" or "[stdout]" as the output file name.
+
+Conversion options
+Conversion can include image scaling, cropping and dithering. For scaling and cropping to work, it is necessary to inform cputil of the printer print width. CloudPRNT servers can obtain this information through the CloudPRNT clientAction "PageInfo" request. Conversion options should be specified on the command line before the convert option.
+
+To specify the print area size, use one of the following options:
+
+thermal2 or thermal58 - set the print area to that of a 2inch/58mm printer, such as the mC-Print2.
+thermal3 or thermal80 - set the print area to that of a 3inch/80mm printer, such as a TSP650II or mC-Print3.
+thermal4 or thermal112 - set the print area to that of a 4inch/112mm printer, such as the Star TSP800II.
+To specify dithering, use the dither option. To specify that the image should be scaled to fit the print area, use the scale-to-fit option. Otherwise the image will not be scaled, but cropped if it is wider than the print area.
+
+For example, to prepare print data as StarPRNT commands for a 2inch printer from a PNG source, with dithering and the image scaled to fit the page:
+
+cputil thermal2 dither scale-to-fit decode application/vnd.star.starprnt sourceimage.png outputdata.bin
+
+cputil Server Integration
+The cputil tool is intended to be as easy as possible to integrate with any server side web development technology. For this to be possible, a small number of requirements need to be met:
+
+The server side scripting language must allow you to invoke external processes and obtain their output.
+The web host allows running native binaries from your server side scripts.
+The host server environment must be of a type supported by .NET Core. At this time, that includes Windows (32 and 64bit), Linux (64 bit and Arm - including Raspberry Pi), and Mac OS 64bit.
+Invoking cputil
+PHP
+PHP has several methods of triggering an external process and reading the output by command, or including the output directly in an HTTP response. Please refer to the system(), passthru() and exec() functions. In most situations, passthru() can be used to directly insert cputil output into your response. for example, calling cputil mediatypes-mime text/vnd.star.markup will output JSON data that be included as the value for the mediaTypes field of a CloudPRNT POST response, when printing is needed (in this example, to print a star markup document).
+
+Note
+We should add some example code here if possible.
+
+Python
+Note
+Talk with David Pearce, or do some research to create some advice or samples here.
+
+Lua
+Note
+Do some research to create some advice or samples here.
+
+Node.js
+In a Node.js environment, cputil can be invoked as an external process by using the native child_process module. For convenience, the child_process module provides a handful of synchronous and asynchronous alternatives. Please refer to the child_process.exec(), child_process.execSync(), child_process.execFile(), child_process.execFileSync() functions. For certain use cases, such as automating shell scripts, the synchronous counterparts may be more convenient. However, be mindful that synchronous methods can have an impact on performance due to stalling the event loop while spawned processes complete.
+
+For example, to start cputil as a child process and convert ASB status into JSON:
+
+const child_process = require('child_process');
+
+var jsonStatus = child_process.execFileSync('cputil', ['jsonstatus', req.body.status]);
+console.log(JSON.parse(jsonStatus));
+When to use cputil on the server
+cputil is intended to assist with CloudPRNT specific requirements of developing a server. As such, the pain uses are expected to be when handling the CloudPRNT POST and GET requests. The primary function of cputil is to convert print jobs from one format to another. This is useful for CloudPRNT servers, because not all devices will support the same output commands of print data formats. Instead, CloudPRNT provides a mechanism through which a server and client can negotiate a job data format that both support. To avoid adding work and complexity to the server-side code (in particular, the need to convert or render print jobs in multiple ways), cputil can help with the negotiation, and automatically convert print jobs as needed.
+
+POST Requests (CloudPRNT Poll)
+CloudPRNT client devices will issue regular HTTP POST requests to the specified URL on your server. These POST requests are used to inform your server of the current device state, and allow your server to respond with requests. POST requests are triggered at a regular, specified interval, or if a client-side event occurs, such as the printer status changing, a barcode being scanned etc. Servers can use the POST response to request that the client prints a job, update a line display, request additional information about the client (for example paper size/print area), set a custom ID for the device and other similar requests.
+
+Developers can use cputil at this point to aid in two areas:
+
+Decoding Status - the POST request will include both a simple device status code, and more detailed Star ASB format status information. Using the status code alone is enough in many situations, but if a server needs to know more detail, then it needs to decode the bitmasked information from hexadecimal data included in the ASB status string. This is not convenient to do in many server side scripting languages, and so cputil can be used to convert the Star ASB string into formatted JSON. Please refer to the Decoding Star ASB Status section of the usage page for details.
+Managing print job formats - When requesting a print job, cputil can be used to generate the correct value of the mediaTypes field of the JSON response.
+Managing print job formats
+When using cputil, servers can prepare a print job using their preferred method without worrying about which formats the client device can support. Currently this can be as PNG, JPEG, BMP, GIF, ASCII/UTF8 text or using Star Document Markup.
+
+When a server receives a POST request, and it needs to print a job, then it should provide a JSON format response with the fields jobReady set to true and mediaTypes set to a list of strings which describe media types that can be provided to the client.
+
+For example, a bash shell script called through cgi to generate a suitable response could be:
+
+#!/bin/bash
+# Make a CloudPRNT post response to print a Star Markup job with cputil
+
+OUTPUT_TYPES=`cputil mediatypes-mime text/vnd.star.markup`
+
+echo "{"
+echo "  \"jobReady\": true,"
+echo "  \"mediaTypes\": $OUTPUT_TYPES"
+echo "}"
+would produce the JSON output:
+
+{
+  "jobReady": true,
+  "mediaTypes": ["text/vnd.star.markup","application/vnd.star.line","application/vnd.star.starprnt","application/vnd.star.starprntcore"]
+}
+GET Requests (fetching the job)
+CloudPRNT devices will perform an HTTP GET request to your server when they have been asked to print a job. The device will have selected a compatible data format from the mediaTypes list, and this will be provided as a query string parameter to the GET. Servers can use cputil in their GET handler to convert the job from the servers internally used data format, to the CloudPRNT devices requested format.
+
+For example, the following bash script, if called as a CGI script to handle a GET request, will convert a local Star Document Markup file into the format requested by the printer.
+
+#!/bin/bash
+
+urldecode() {
+    local data=${1//+/ }
+    printf '%b' "${data//%/\x}"
+}
+
+# parse query string
+declare -A param
+while IFS='=' read -r -d '&' key value; do
+    param["$key"]=$value
+done <<<"${QUERY_STRING:+"${QUERY_STRING}&"}"
+
+# get the output format requested by the cloudprnt device
+OUTPUT_FORMAT=`urldecode "${param["type"]}"`
+
+# get the unique ID of the CloudPRNT device which requested the print job
+CP_MAC=`urldecode "${param["mac"]}"`
+
+# Assume that print jobs are stored in a local file and named according the the device MAC address ID
+INPUT_FILE="printjob-$CP_MAC.stm"
+
+# use cputil to convert the input file and write directly to standard output
+cputil decode "$OUTPUT_FORMAT" "$INPUT_FILE" -
+
+Star Document Markup
+Stars StarMicronics.CloudPRNT-Utility API package and therefore servers and tools based on it, such as cputil can support the Star Document Markup Language. A simple, easy to use markup language intended to provide the features typically required for Point Of Sale printing.
+
+Using the document markup system provides a balance between full bit-image based printing, and plain text output, while being easier to use that direct device commands, and far more adaptable to different output devices, such as print width.
+
+Star Markup is easy to read, for example:
+
+[align: centre][font: a]\
+[image: url https://star-emea.com/wp-content/uploads/2015/01/logo.jpg;
+        width 60%;
+        min-width 48mm]\
+[magnify: width 2; height 1]
+This is a Star Markup Document!
+
+[magnify: width 3; height 2]Columns[magnify]
+[align: left]\
+[column: left: Item 1;      right: $10.00]
+[column: left: Item 2;      right: $9.95]
+[column: left: Item 3;      right: $103.50]
+
+[align: centre]\
+[barcode: type code39;
+          data 123456789012;
+          height 15mm;
+          module 0;
+          hri]
+[align]\
+Thank you for trying the new Star Document Markup Language\
+we hope you will find it useful. Please let us know!
+[cut: feed; partial]
+This will generate the following output on Star 58mm (2 inch), 80mm (3 inch) and 112mm (4 inch) printers: Sample01 Output
+
+Star Markup Command Structure
+All Star Markup commands follow exactly the same structure, which makes them very easy to parse reliably. Each command is enclosed in square bracket ([ and ]) characters, enclosing the command name, followed by a number of parameter names and values.
+
+Markup Command Structure
+The general structure looks like this:
+
+[<command>: <parameter>: <value>; <parameter>: <value>; <parameter>: <value>; ....]
+Each element has the following meaning:
+
+<command> - indicates the markup command. If parameters need to be specified, then the command must be followed by a single colon ':' character.
+<parameter> parameters are a single name (without spaces), for readability they may optionally be followed by a colon : character. Any white space (including carriage returns) before the parameter name is ignored.
+<value> the parameter value is all characters, including spaces that follow the white space after a value name until reaching a semicolon ; character or the command block terminating square bracket ] character.
+Examples
+Simple Commands
+A simplest command is simply the command name enclosed in square brackets, these can be mixed with UTF8 encoded plain text for example:
+
+Hello World!
+[cut]
+Will print the text "Hello World!" followed by cutting the paper.
+
+Adding parameters
+Most commands support additional parameters, these are separated from the command name with a colon : character, for example to set alignment:
+
+[align: right]Right aligned text
+[align: left]Left aligned text
+Parameters with values
+Parameters can sometimes be specified alone, but will usually require a value. Values can be provided after the parameter name, and separated from the parameter name by one or more space characters. For example, to set the text width magnification:
+
+[magnification: width 2]Double Width Text [magnification: width 1]Single Width Text
+Multiple parameters
+It is possible to supply several parameters as needed. Each parameter/value set is separated by a semicolon ; character, for example:
+
+[magnification: width 2; height 2]Double Width and Double Height text
+Readability
+Purely for readability, a colon : can be placed after a parameter name, this must still be followed by a space and has no operating effect. This can make the functionality clearer when a value contains text with spaces. For example when performing two column layout:
+
+[column: left: Large Vegetable Soup; right: £4.50]
+Is more readable, but functionally identical to:
+
+[column: left Large Vegetable Soup; right £4.50]
+It is also acceptable to use additional white space before a parameter name, this will be completely ignored, such as:
+
+[column: left: Large Vegetable Soup;              right: £4.50]
+[column: left: Garlic Bread;                      right: £3.00]
+[column: left: Olives;                            right: £1.50]
+White space can include line breaks too, for example:
+
+[image: url https://star-emea.com/wp-content/uploads/2015/01/logo.jpg;
+        width 60%;
+        min-width 48mm]
+Warning
+These examples use the '£' pound symbol, but in this sample release, text encoding is not yet supported, causing a £ character to print incorrectly. This will be supported before full release.
+
+In This Article
+Markup Command Structure
+Examples
+Simple Commands
+Adding parameters
+Parameters with values
+Multiple parameters
+Readability
+Back to topGenerated by DocFX
+
+Escaping
+A few characters can not by included inside text intended for printing, due to a conflict with the markup command syntax and word wrapping features. Therefore, these can be escaped with a backslash \ character.
+
+Escapes for character printing
+Escapable print characters are:
+
+Open square bracket [, to print this character please use \[
+Closing square bracket ], to print this character please use \]
+Backslash \, to print a backslash character please use \\
+Space , to ensure that a space character is printed please use \ followed by a single space character.
+Example:
+
+This will print a markup command, instead of acting on it.
+\[cut\]
+Escaping a newline
+If the \ character is used at the end of a line (i.e. immediately before a carriage return and/or line feed), then it will prevent any line break being output. This can be used to insert line breaks into your markup data without breaking word wrapping flow. This method can also be useful for placing markup commands on a single line without causing a line feed.
+
+Example:
+
+[align: middle]\
+[barcode: type code39;
+          data 123456789012;
+		  height 15mm;
+		  module 0;
+		  hri]
+[align]\
+Thank you for trying the new Star Document Markup Language\
+we hope you will find it useful. Please let us know!
+[cut: feed; partial]
+
+Word Wrapping
+In order to adapt easily between output devices with different paper sizes, printable areas, resolutions and font sizes, Star markup will automatically perform word wrapping when outputting a document. THis is different to typical printer behavior, which is to perform character based wrapping only, frequently truncating words.
+
+Using word wrapping allows developers to manage the content of a document, without needing to manage the layout per device.
+
+Results
+The following text is used as test data. For demonstration purposes, use the tabs below to view the output when this is sent to a printer as plain text, or as markup to printers with various paper widths installed.
+
+This is a test of word wrapping when targeting point of sale printers of varying size, and print widths. Star Markup language makes this easy to manage automatically.
+Text Markup 58mm Markup 80mm Markup 112mm
+This is the result when sent as plain text directly to an mC-Print2 58mm(2inch) printer, without using the Star markup system.
+
+Sample01 Output
+
+Mixing Fonts and Magnification
+When Star markup documents are rendered into the printers native commands, font sizes and magnification are tracked by the engine. This makes it completely safe to mix different fonts, and character magnifications on a single line, while preserving word wrapping.
+
+Word Wrapping and Spacing
+Word wrapping of markup documents is performed in a similar way to HTML, each word is identified as a sequence of printable characters, separated by white space (such as a series of spaces). The spaces are treated only as word separators, and not as content. Therefore, it is not possible to put multiple spaces between words, or use space characters to perform formatting (such as column layout) as is commonly done by traditional POS software.
+
+This design is intentional, as documents that rely on spacing to generate layout, can not be reformatted automatically to devices with different print widths, character sizes etc. Instead, the Star markup system provides alternative methods to achieve commonly needed layout designs in ways that can more easily adapt to different form factors.
+
+If it is necessary to output a specific number of space characters, then this can still be done either by escaping the space character, or using the [space] markup command.
+
+Conventions
+Abbreviations
+Stars primary goal in choosing command and parameter names is readability. In cases where it is felt that readability can be preserved, we have supported abbreviated versions of some command and parameter names.
+
+For example:
+
+[magnification: width 3; height 2]
+is functionally identical to:
+
+[mag: w 3; h 2]
+Refer to the documentation for each command for full details.
+
+Default parameters
+Commands which affect the rendering (i.e. text drawing) state, such as [magnification] and [align] typically require parameters to be specified. If they are used without any parameters, then the will reset to the defaults. For example:
+
+This is standard sized text
+[mag: w 2]Double Width Text[mag]
+This is standard sized text again.
+Refer to the documentation for each command for full details.
+
+Specifying Sizes
+Star Markup is intended to help developers generate output that will automatically adapt to different printer paper widths, emulations and output resolutions, as automatically as possible.
+
+In order to accommodate this goal, each command that allows lengths to be specified can do so in ways that are independent of the printer resolution and can be relative to the paper width.
+
+Measurement Types
+Measurements can be specified in the following ways:
+
+Printer dots - Measurements specified based on printer dots, this is discouraged as it will cause your data to render incorrectly on output devices with different resolutions or paper widths. Measurements specified as a value with no suffix are assumed to be in this format, Example:
+
+[image: url https://website.com/logo.jpg; width 300]
+will output an image, resized to 300 printer dots wide, regardless of paper size or the physical size of the printer dots.
+
+Millimeters - Measurements specified in millimeters will be calculated based on the resolution of the output device, therefore they are entirely printer independent. Measurements specified with mm as a suffix, are assumed to be millimeters. Example:
+
+[image: url https://website.com/logo.jpg; width 40mm]
+will output an image sized to 40mm wide on every printer, regardless of paper size or resolution.
+
+Percentage of print width - Measurements specified as a percentage, will be calculated relative to the print width of the output devices configured print area/paper size. This can be useful in ensuring that key elements will adjust in size to match the required layout. Percentage measurements can be specified by adding % as a suffix. Example:
+
+[image: url https://website.com/logo.jpg; width 60%]
+will print an image that is always resized to match 60% or the printer width.
+
+Note
+Measurements in Inches are under consideration but not currently supported.
+
+Combining Measurement types
+Some commands allow additional measurement constraints to be specified. In this case, it useful to mix different measurement suffix types in a single command. For example the [image] command allows a minimum image to be specified:
+
+[image: url https://website.com/logo.jpg; width 60%; min-width 48mm]
+This would request that the image is printed at 60% of the printable width, but not below 48mm. The goal is to print the image at a pleasing size on all printers, including 58mm/2inch models, where 60% of the printable area may feel too small.
+
+[align]
+Specify text and image alignment on the printed page. Currently, the Markup Language supports left, right and central alignment. Please use the [align] tag at the beginning of a line for the expected results. The specified alignment will remain for all proceeding data, until changed, it does not need to be specified per line.
+
+By default, left parameter is assumed, therefor using the [align] command with no parameter is the equivalent of [align: left].
+
+Parameters
+Alignment is specified by the presence of either the left, right, centre, center, or middle parameters, which do not need to have a value. only one of these parameters should be present, or results can not be guaranteed between markup implementations.
+
+Parameter	Description
+left	Specify left alignment for following text and image printing.
+right	Specify right alignment for following text and image printing.
+middle	Specify central alignment for following text and image printing.
+center	Equivalent of middle parameter.
+centre	Equivalent of middle parameter.
+Example
+Markup Output at 58mm Markup 80mm
+This is a simple markup example, using only the [align] and [cut] commands.
+
+[align: left]\
+This will be
+printed on the
+left side of
+the page.
+[align: middle]\
+This will be
+printed in the
+middle of
+the page.
+[align: right]\
+This will be
+printed on the
+right side of
+the page.
+[align]Left again.
+
+[cut]
+
+[barcode]
+Output common 1d type barcode to the document.
+
+Shorthand
+It is acceptable to use the abbreviation bc instead of the full command name barcode. So the command sequence [bc: type code39; data 1234] and [barcode: type code39; data 1234] are equivalent.
+
+Parameters
+Several parameters can be provided to determine the type and look of the barcode being output. Of these, the type and data parameters are required.
+
+Parameter	Description
+type	Select the barcode type, see full list of supported types below.
+data	Data to be encoded in the printed barcode. Content may be limited depending on the barcode type.
+height/h	Height of the barcode to be printed as printer dots, mm (recommended) or % of width. Defaults to 10mm.
+module/m	Barcode module size as dots or mm. Use 0 to specify minimum.
+wide_module/wm	Barcode wide bar module size, for barcode types that support it. Use 0 to specify the minimum size allowed relative to the standard module size. Default is 0.
+hri	No value required, if this parameter is present then HRI (human readable information) will be printed underneath the barcode.
+Supported Barcode Types and Data Limitations
+The following barcode symbologies are currently supported by the markup, although some may not be supported by a particular target device or emulation. In case a symbology is not supported by the target device, the [barcode] command will be ignored. Each symbology has different limitations regarding the type of data that it can represent.
+
+Using data that is not suitable for the requested symbology will cause undefined results.
+
+Use the following table to determine the correct type value and data (e.g. [barcode: type <value>; data <data>] for the particular barcode type that you need to print.
+
+Symbology	<value>	Wide Module	Data Constraints
+EAN8	ean8	✗	7 or 8 numeric characters only, the 8th is a checksum digit and will be calculated by the printer, so does not need to be provided.
+JAN8	jan8	✗	Japanese subset of EAN8 specification, completely compatible with EAN8 data requirements.
+EAN13	ean13	✗	12 or 13 numeric characters only, the 13th is a checksum digit and will be calculated by the printer so does not need to be provided.
+JAN13	jan13	✗	Japanese subset of EAN13 specification, completely compatible with EAN13 data requirements.
+UPC-E	upc-e	✗	11 or 12 numeric characters only, character 12 is a checksum that will be calculated by the printer and so does not need to be provided.
+UPC-A	upc-a	✗	11 or 12 numeric characters only, character 12 is a checksum that will be calculated by the printer and so does not need to be provided.
+Interleaved 2 of 5	itf	✔	An even number of numerical digits, if an odd number of digits are provided, then a '0' will be added to the beginning of the data.
+Code 39	code39	✔	Numerical digits ('0' to '9'), upper case characters ('A' to 'Z') and characters ' ', '$', '%', '+', '-', '.', '/'
+Code 93	code93	✗	Any valid ASCII data
+Code 128	code128	✗	Any valid ASCII data
+NW-7	nw7	✔	Numerical digits ('0' to '9'), limited alphabet characters ('A' to 'D', and 'a' to 'd') and characters '$', '+', '-', '.', '/', ':'
+Barcode Sizing
+Barcode width are dependent of the Symbology type, module size , data length and in some cases (such as Code 128) which internal character set sequence is used. Some devices also support only a limited set of module sizes and ratios. It is therefore not possible to specify the width of the total symbology, however the following rules will be followed:
+
+The module and wide_module values will be adjusted to the closest sizes supported by your output device which are also allowed by the symbology being printed. Set a value of 0 for both in order to request the minimum supported width.
+Most symbologies will always generate the same size barcode for the same number of data digits. Where a symbology supports multiple internal character encodings (such as Code 128) the width may vary depending on the data content as well as number of digits. Data will be automatically analyzed and packed in the most efficient way supported by your target device.
+If your application requires a larger amount of data or data that may vary in length significantly, then it is recommended to use a 2d symbology instead, such as Qr Code of PDF417.
+
+Example
+Markup Output at 58mm Markup 80mm
+This is a simple markup example, using only the [barcode] and [cut] commands.
+
+Barcode Examples
+
+EAN 8:
+[barcode: type ean8; data 1234567]
+
+EAN 13:
+[barcode: type ean13; data 500274857162; hri]
+
+Interleaved 2 of 5 (module 3 dot):
+[barcode: type itf; data 48129500; height 20mm; hri; module 3]
+
+Code 39:
+[barcode: type code39; data ABC123]
+
+Code 39 (module 3, wide module 9):
+[barcode: type code39; data ABC123; module 3; wide_module 9]
+
+Code 126:
+[barcode: type code128; data Hello World!]
+
+[cut]
+
+[bold]
+Select bold/emphasized text when printing. The bold command can be used anywhere in a line of text, causing all subsequent text to be printed with a stronger, bold version of the current font.
+
+Parameters
+Currently, two parameters are supported, with no parameter values required. Only a single on or off parameter should be provided, mixing parameters will cause undefined results.
+
+Parameter	Description	
+on	Set subsequent text printing to use the bold version of the current font.	
+off	Set subsequent text printing to use the standard version of the current font.	
+Note, the [bold] command switches the bold/emphasized effect off by default, therefore the command sequences [bold] and [bold: off] are equivalent.
+
+Example
+Markup Output at 58mm Markup 80mm
+This is a simple markup example, using only the [barcode] and [cut] commands.
+
+Bold Text example
+
+This is Standard Text.
+[bold: on]This is bold text.
+This is still bold.
+[bold: off]This is standard text again.
+
+It is safe to [bold: on]use bold on [bold] and off on the same [bold: on]line [bold]freely.
+
+[cut]\
+
+[column]
+Output two column formatted text, adapted to fit the target printer.
+
+Shorthand
+It is acceptable to use the abbreviation col instead of the full command name column. So the command sequence [col] and [column] are equivalent.
+
+Parameters
+Several parameters can be provided to either configure column layout, ow output a formatted column. Alternatively, if the [column] command is used without any parameters, then it will simply reset any configuration values, such as the indent to their defaults.
+
+Parameter	Description
+left	Specify the left hand text for a column.
+right	Specify the right hand text for a column.
+short	Provide an optional shortened version of the left hand column data, to be used if the full version will not fit the the available print width.
+indent	Set a left hand indent size, in printer dots, mm or percentage of print width. If this is a negative value, then the indent will be measured from the right hand side of the page, by subtracting it from the total print width. Note that the new indent value will affect subsequent columns until it is reset/changed.
+How to use
+The column command handles a common requirement for point of sale printers in a way that hides differences between device capabilities, font sizes, paper width etc.
+
+When using, if one of more of the left, right and short parameters are provided, then a single row of a column will be printed. If the available print area is too narrow to print a column row based on the left and right parameter data (with the currently specified font), the the short parameter value will be used instead of left. Finally, if there is still not enough space to print a single line column, then a two column layout will be used instead.
+
+Optionally, an indent parameter value may be specified to set the left hand margin of the column. This can be set without needing to specify any column data, and it's value will affect all following rows, until the indent is changed or reset. It is also allowed to specify a negative indent value, which will still set the left hand margin of the column, but measured from the right side of the print area.
+
+Example
+Markup Output at 58mm Markup 80mm
+This is a simple markup example, using only the [column] and [cut] commands.
+
+Column Example
+
+Simple Column:
+[column: left Item 1; right 1.00]
+[column: left Item 2; right 1.00]
+[column: left Item 3; right 1.00]
+
+Column with Item fitting:
+[column: left This is a description of Item One;
+         short Item 1;
+         right 1.00]
+[column: left This is a description of Item Two;
+         short Item 2;
+         right 1.00]
+[column: left This is a description of Item Three;
+         short Item 3;
+         right 1.00]
+
+Indented Column:
+[column: left Item 1; right 1.00; indent 5mm]
+[column: left Item 2; right 1.00]
+[column: left Item 3; right 1.00]
+
+Indented from right:
+[col: indent -20mm]\
+[column: left Item 1; right 1.00]
+[column: left Item 2; right 1.00]
+[column: left Item 3; right 1.00]
+
+[cut]\
+
+[comment]
+Embed a comment inside markup data. Comments can be included in any markup data file, they are standard markup commands which have the name comment, or simply no name at all. All parameters and value data included within the comment command will be ignored.
+
+Shorthand
+Any unrecognized command will be ignored by the markup processor and so can be used as a comment, however to ensure compatibility with future versions of the markup language, it is recommended to use the reserved command name of comment, or a command without any name.
+
+Example
+Comment Example
+
+[comment: This is a comment and will be completely ignored]\
+[: This is also a comment]\
+[cut]
+
+[cut]
+Instruct the printer to perform a cut.
+
+Parameters
+Parameter	Description
+feed	If this parameter is present (no value required) then the printer will be asked to feed before cutting. This is the default behavior.
+nofeed	
+partial	If this parameter is present (no value required), then the printer will be asked to perform a partial cut (if supported by the hardware). This is the default.
+full	If this parameter is present (no value required), then the printer will be asked to perform a full cut (if supported by the hardware).
+Feed vs. NoFeed
+Most printers will have their auto-cutter mounted slightly above the print head. This means, that cutting the paper, can actually cut a few mm above the most recently printed output. This distance will vary between models, depending on their mechanical design. In order to compensate for this difference, typically the printer will perform a small feed before performing a cut. The feed is just enough to cut immediately below the last printed line. If you wish to avoid this feed (usually to optimize for minimum top margin) the please include the nofeed parameter.
+
+Warning
+At this time, the nofeed option is not yet supported, it will be implemented before final release. Please contact Star if you have an immediate requirement for this feature.
+
+Full vs. Partial Cut
+Partial cuts will leave a small amount of paper remaining between the printed document and paper roll, which is very easy to separate by hand. It can be useful to ensure that documents can not fall to the floor after cutting, and is the default. However in some environments (in particular inside certain kiosk designs) it is useful to full cut document from the paper roll. If a full cut is required then please specify the full parameter.
+
+Note
+Not all printers can support both partial and full cut operations. In case of a printer that supports only one cut method, then this will be performed regardless of the partial or full parameters being present.
+
+[feed]
+Perform a vertical feed.
+
+Parameters
+If no parameter values are provided, or a length of 0 is specified, then then [feed] command will perform a single line feed.
+
+Parameter	Description
+length	Specify the feed length in either printer dots, mm or percentage of the paper width.
+Example
+Single Line Feed[feed]
+10mm feed[feed: length 10mm]
+2mm feed[feed: length 2mm]
+End
+[cut]\
+
+[font]
+Select the font for subsequent text printing.
+
+Parameters
+If no parameter values are provided, then the font will switch back to the printer or document default (usually Font A).
+
+Parameter	Description
+name	Provide a value to specify the name of the font to be used.
+a	No value required. Select Font A which is the default font for most point of sale printers.
+b	No value required. Select Font B which is a narrower font for most point of sale printers.
+Only one of name, a, or b should be specified, to avoid undefined results.
+
+Example
+[font: name a]This is Font A
+[font: name b]This is Font B
+[font: a]This is also Font A
+[font: b]This is also Font B
+[font] This is the default font.
+[cut]\
+
+[image]
+Include an image in the document loaded from a URL source - for example from a web server of file system.
+
+Parameters
+Parameter	Description
+url	Required, a text value specifying the URL of the image to be embedded in the document.
+width/w	Optional parameter, specified the output width of the image. May be specified in printer dots, mm or as a percentage of the printable width.
+min-width	Optional parameter, minimum allowed width for the image. May be specified in printer dots, mm or as a percentage or the printable width.
+Image Scaling
+Images may be resized for output based on the values of the width and min-width properties, as well as the printable area of the printer, and pixel size of the source image.
+
+If width/min-width are not specified, then the standard behavior to not apply any resizing to the image, instead it will be printed dot-for-dot on the output device, matching pixels to printer dots. Exceptions to this rule can occur if:
+The image pixel width exceeds the available print width, and the markup rendered has been instructed to scale output documents to fit the page. In this case, the image well be resized as if the width parameter was set to "100%".
+The output printer printing resolution does not provide a 1/1 (square pixel) aspect ratio. In this case, the image will match the output device resolution horizontally, but will be scaled vertically to preserve aspect.
+If a width (or shorthand w) parameter is provided, then the image will always be resized to the requested width.
+if a min-width parameter is provided, then the image will be resized according to the above rules, unless the resulting image would be below the requested minimum size. In this case, the image width will be set according to the min-width value.
+Note
+Image resizing will always preserve the aspect ratio of the source image, which is why only horizontal scaling parameters are provided.
+
+Color/Grey-scale Output
+Dithering will be performed to reduce colors/gray levels to match the output device. If it is desired to avoid dithering then it is recommended to use a monochrome source image. However, it is not recommended to pre-dither images unless care is also taken to ensure that the images will not resized (set the width property to match the pixel width of the source image) since resizing an already dithered image will usually conflict with the dither pattern.
+
+Recommended Sizing Pattern
+In order to get expected output from the full range of output devices -including high resolution thermal printers with support for paper widths from 58mm (2") to 132mm (4") and lower resolution dot-matrix printers, with half-dot pixel support- it is recommended to use the following pattern where possible:
+
+Specify the width parameter as a percentage value. This will then be calculated at print time as a percentage of the printable width available to the printer, and will resize automatically to fit the page.
+If the width is specified as something other than 100%, the set the min-widthproperty to a millimeter based size, choosing the size that provides the best results on the narrowest supported printer (usually a 58mm/2" model). In most cases Star would recommend setting this to 48mm, which is the default printable area on 58mm paper.
+For example: [image: url https://www.star-emea.com/logo.png; width 60%; min-width 48mm]
+
+Line Feed
+After printing an image, the print position will move automatically to the next line below the image. Therefore, it may be preferable to put a \ character immediately after an image command (if it is on a single line of the input data) to escape a subsequent line feed and avoid double spacing.
+
+For example:
+
+[image: url http://site.com/image.png]This is the next Line
+is equivalent to:
+
+[image: url http://site.com/image.png]\
+This is the next Line
+but, the following would cause a line feed between the image and text line.
+
+[image: url http://site.com/image.png]
+This is the next Line
+Example
+Markup Output at 58mm Markup 80mm
+This is a simple markup example, demonstrating a middle aligned image with scaling to fit the page.
+
+[align: centre]\
+[image: url https://cloudprnt.net/CloudPRNTSDK/Documentation/images/logo.png; width 80%; min-width 48mm]\
+Image Printing Example
+
+[cut: feed; partial]\
+
+[logo]
+Print a logo stored in printer memory. This tag should be used at the beginning of a line. If data exists before this command, the logo may be truncated or not printed at all.
+
+Parameters
+Parameter	Description
+id	Specify the id of the logo to be printed. Need to specify range
+key	Specify the key of the logo to be printed. Need to specify range
+s	Shorthand for scale. Magnifies both width and height using a single value.
+scale	Magnifies both width and height using a single value.
+sh	Scale vertically only.
+sw	Scale horizontally only.
+Difference between id and key
+Some printers index logo by id number while others use a 2 character alphanumeric. Your markup should supply both to ensure functionality across all models.
+
+Line Feed
+After printing a logo, the print position will move automatically to the next line below. Therefore, it may be preferable to put a \ character immediately after a logo command (if it is on a single line of the input data) to escape a subsequent line feed and avoid double spacing.
+
+For example:
+
+[logo: id 1; key 01; s 1]This is the next Line
+is equivalent to:
+
+[logo: id 1; key 01; s 1]\
+This is the next Line
+but, the following would cause a line feed between the logo and text line.
+
+[logo: id 1; key 01; s 1]
+This is the next Line
+Example
+Logo Example
+
+Prints logo/key 1 at the standard size.
+[logo: id 1; key 1; s 1]
+
+Prints logo 1, key AA 
+[logo: id 1; key AA]\
+
+Prints logo 1 with horizontal and vertical scaling
+[logo: id 1; sw 2; sh 2]
+
+[magnify]
+Specify text size/magnification. Allow text to be scaled up in width and/or height. After use, all subsequent text will be scaled by the specified width and height multipliers until the magnification is changed.
+
+Shorthand
+The [magnify] command may be shortened to [mag] as preferred.
+
+Parameters
+All parameters are optional, if the [magnify] command is used without any parameters, then the width and height scaling factors will both be reverted to the default value of 1.
+
+Parameter	Description
+width/w	Optional parameter, specified the horizontal (width) scaling factor, where 1 is standard width, 2 is double width etc.
+height/h	Optional parameter, specified the vertical (height) scaling factor, where 1 is standard height, 2 is double height etc.
+Size Constraints
+The minimum scaling factor is 1 (for both width and height), while the maximum will vary depending on the target device. In case a factor is specified that is larger than the target device can support, then the markup rendered will simply use the largest supported size. Star printers typically support a maximum scaling factor of 6 for thermal printers, and 2 for dot-matrix.
+
+Word Wrapping
+Be aware, that all markup commands are treated as a word delimiter by the word wrapping engine. Therefore changing text magnification mid-word will result in the text being treated as separate words.
+
+Example
+Markup Output at 58mm Markup 80mm
+This is a simple markup example, demonstrating text magnification.
+
+Magnify Example
+
+[magnify: width 4; height 4]Quad Size Text
+[mag: w 3; h 3]Triple Size Text
+[mag: w 2; h 2]Double Size Text
+[mag: w 2; h 1]Double Wide
+[mag: w 1; h 2]Double Height
+[mag: w 3; h 2]Mixed [mag: w 1; h 3]Size
+[mag]Standard Size
+[cut]\
+
+[space]
+Insert one or more space characters into your document.
+
+Shorthand
+It is acceptable to use the abbreviation sp instead of the full command name space. So the command sequence [sp] and [space] are equivalent.
+
+Parameters
+Parameter	Description
+count/c	Number of spaces to insert, this is optional, if omitted a default of 1 space will be inserted.
+[space] Command vs. Escaped Spaces and Word Wrapping
+Due to the word wrapping system, space characters in a markup document are treated as a word delimiter only, in a similar way to HTML. Therefore, it is not possible to use spacing for layout as is common practice for legacy POS systems. Where it makes sense, the [column] command is recommended to be used in order to achieve a two column layout, or single column left or right justified block. However, in some cases more control may be needed. Star Markup provides two methods of inserting a fixed space into a document, the first is by escaping it with a \ character, for example double\ \ spaced, and the second way is with the [space] command, for example double[sp: c 2]spaced. The difference between these two methods affects the word wrapping algorithm. Escaped spaces are treated as a standard alphanumeric character and not as a word delimiter. So in the above example "double spaced" would be treated as a single word and so will always be placed together on a single line. While the [space] command will always insert the requested number of spaces, but acts as a word delimiter, meaning that "double" and "spaced" are separate words, and could be placed on separate lines.
+
+[underline]
+Adds a horizontal line underneath text when printing. The underline command can be used anywhere in a line of text, causing all subsequent text to be printed with an underline. If the magnify tag is used, this will cause the underline to also be magnified. Underline also applies to the space tag.
+
+Parameters
+Currently, two parameters are supported, with no parameter values required. Only a single on or off parameter should be provided, mixing parameters will cause undefined results.
+
+Parameter	Description
+on	Enables underline for all text at the current font size or magnification.
+off	Enables underline for all text at the current font size or magnification.
+Note, the [underline] command switches the effect off by default, therefore the command sequences [underline] and [underline: off] are equivalent.
+
+Example
+Hello World is underlined
+[underline: on]Hello World[underline: off]
+
+Hello is underlined
+[underline: on]Hello[underline: off] is underlined but the rest is not
+
+Different syntax
+[underline: on]Hello World[underline]
+[cut]\
+
+[upperline]
+Adds a horizontal line underneath text when printing. The upperline command can be used anywhere in a line of text, causing all subsequent text to be printed with an upperline. If the magnify tag is used, this will cause the upperline to also be magnified. upperline also applies to the space tag.
+
+Parameters
+Currently, two parameters are supported, with no parameter values required. Only a single on or off parameter should be provided, mixing parameters will cause undefined results.
+
+Parameter	Description
+on	Enables upperline for all text at the current font size or magnification.
+off	Enables upperline for all text at the current font size or magnification.
+Note, the [upperline] command switches the effect off by default, therefore the command sequences [upperline] and [upperline: off] are equivalent.
+
+Example
+Hello World is upperlined
+[upperline: on]Hello World[upperline: off]
+
+Hello is upperlined
+[upperline: on]Hello[upperline: off] is upperlined but the rest is not
+
+Different syntax
+[upperline: on]Hello World[upperline]
+[cut]\
+
+mod_lua Queue Sample
+The mod_lua_queue example is a fully working example CloudPRNT server based on the Lua language hosted by the Apache mod_lua module. This demonstration implements a very simple queue management system, in which customers can press a button (displayed with web browser, for example on an Android or iOS tablet) to print a ticket with a queue number and optionally additional text and image data. This demonstration is intentionally basic, with no consideration for security, calling customers and other considerations that would be necessary for a real life deployment. For printing, all print jobs are created using the Star Document Markup language and converted to the correct printer supported format using the cputil utility. This allows full support of all CloudPRNT compatible printers, regardless of command emulation or print width.
+
+On the server side, a simple sqlite database is used to maintain a table of connected printers, and queues. Additionally a json.lua library (included) is used to convert between JSON formatted data and Lua tables when needed.
+
+This example is built around the Apache web server using its mod_lua module. This module is currently not considered to be stable and may vary between Apache web server releases, therefore some modification may be required. Initial development and testing has with the Apache HTTP Server version 2.4.18, running on an Ubuntu 16.04 LTS x64 based Server. It has also been tested on Ubuntu 18.04.1 LTS x64, with Apache 2.4.29. Although based on the mod_lua environment, the CloudPRNT specific code elements are generic and should be suitable as a starting point for any Lua 5.1 or later compatible server side scripting solution (such as cgilua).
+
+Installation
+Installation requires that the Apache 2 mod_lua module is installed and enabled, the correct method to do this will vary between different operating systems/distributions, and will depend on how Apache has been configured locally.
+
+On Ubuntu Linux
+On a fresh Ubuntu 18.04 server system, the sample server can be set-up as follows:
+
+First install cputil in such a way that it can be invoked by any user as 'cputil' directly. The easiest way to do this is to extract it to a global location (such as "/opt/starmicronics/cputil") and then create a symbolic link /usr/local/bin/cputil which points to /opt/starmicronics/cputil/cputil.
+After cputil is installed, install the Apache HTTP Server:
+sudo apt-get install apache2
+Enable mod_lua within Apache
+sudo a2enmod lua
+Edit the configuration for the default web site included with Apache
+sudo nano /etc/apache2/sites-enabled/000-default.conf
+Add lines (under the DocumentRoot /var/www/html line)
+   <Files "*.lua">
+     SetHandler lua-script
+   </Files>
+This instructs Apache to treat all files named *.lua as document handlers. A more secure solution may specify only specific lua files instead of all.
+Restart the web server
+sudo systemctl restart apache2
+Extract the cplua sample server to /var/www/html
+sudo tar -xvf mod_lua_queue.tar.gz -C /var/www/html/
+Ensure that the new files are owned by the www-data user, this is necessary because the www-data user must have permission to write to the database and to create a lock file in the cputil folder for database updates.
+sudo chown -R www-data:www-data /var/www/html/cplua
+Test the install by using a web browser to open http://<serverIP>/cplua/management.html
+
+Note that, for source code simplicity, some paths are hard-coded. for example the if the database is not located in <document_root>/cputil/simplequeue.sqlite the please modify the getDB() functions in cloudprnt.lua, devices.lua, print.lua and queues.lua.
+
+In case of issues, please monitor /var/log/apache2/error.log (may vary, depending on Apache configuration options).
+
+Usage
+To use this demo, please first log in to the management page at http://<serverIP>/cplua/management.html. This server manages a list of customer queues inside an Sqlite3 database, some example queues are defined in the default database. A list of registered printers is also stored in the database, each printer is assigned to a specific queue. Any cloudPRNT printer that attempts to connect to the server but is not registered will be ignored by the server.
+
+Register a printer
+At the bottom of the management.html page, is the necessary information to register a new printer, most importantly the url that implements the CloudPRNT API for this server (note that the URL might vary depending on how the server has been set-up).
+
+First configure your CloudPRNT client to ensure that CloudPRNT is enabled and communicating with the correct server URL. Instructions for this will vary between devices but usually involve logging in to its web-based user interface. Your device can be an mC-Print2, mC-Print3, or any compatible Star Thermal printer with HI0x interface fitted. It is recommended to configure the polling interval for 1s, as a user facing solution such as queue ticket printing should be responsive.
+On the management.html page, click the "Register A New Device" link and when prompted enter the Mac address of the device to be registered.
+Next you will be prompted to enter the ID of the queue that this new printer should be linked to. It is safe for multiple printers to be linked to a single queue.
+The printer will now be registered, initially the server will obtain some details from the printer such as the device type and print/paper dimensions.
+
+Displaying the end-customer user interface
+Your newly registered printer will be displayed on the management.html page, on a new row in the printers list. On the right most column are the options "Show" and "Delete". Click on "Show" to display the user page for this printer, this is the page that may be shown on a tablet, to allow end-customers to print tickets. Click on the large "Print" button to print a new queue ticket.
+
+Removing a Printer
+Remove a printer by clicking its associated "Delete" button in the right most column of the "Registered CloudPRNT Devices" table on the management.html page.
+
+Since this is an example demo server, the only way to change the queue that is associated with a printer is to delete and then re-register it (or modify the sqlite database directly).
+
+Adding a Queue
+To add a new Queue, visit the management.html page, and click the "Add A New Queue" link. You will be prompted to enter a new name for the Queue.
+
+Deleting a Queue
+Queues can be removed on the management.html page, by clicking on their associated "Delete" link.
+
+Configuring a Queue
+On the management.html page, a Queue can be reset back to position '1' by clicking it's associated "Reset" link.
+
+Additional configuration of each queue is possible, such as changing the top/bottom logo images and defining the markup used to generate the ticket. To avoid adding complexity to the example, this is only possible by modifying the sqlite database directly.

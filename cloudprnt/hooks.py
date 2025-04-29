@@ -1,9 +1,13 @@
+from . import __version__ as app_version
+
 app_name = "cloudprnt"
 app_title = "CloudPRNT"
 app_publisher = "Neoffice"
-app_description = "Use CloudPRNT service"
-app_email = "hello@neoffice.io"
-app_license = "mit"
+app_description = "Star CloudPRNT Integration for Frappe"
+app_icon = "octicon octicon-file-directory"
+app_color = "grey"
+app_email = "support@neoffice.app"
+app_license = "MIT"
 # required_apps = []
 
 # Includes in <head>
@@ -28,7 +32,7 @@ app_include_js = "/assets/cloudprnt/js/cloudprnt.js"
 # page_js = {"page" : "public/js/file.js"}
 
 # include js in doctype views
-# doctype_js = {"doctype" : "public/js/doctype.js"}
+doctype_js = {"POS Invoice" : "public/js/pos_invoice.js"}
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
@@ -192,26 +196,24 @@ app_include_js = "/assets/cloudprnt/js/cloudprnt.js"
 # User Data Protection
 # --------------------
 
-# user_data_fields = [
-# 	{
-# 		"doctype": "{doctype_1}",
-# 		"filter_by": "{filter_by}",
-# 		"redact_fields": ["{field_1}", "{field_2}"],
-# 		"partial": 1,
-# 	},
-# 	{
-# 		"doctype": "{doctype_2}",
-# 		"filter_by": "{filter_by}",
-# 		"partial": 1,
-# 	},
-# 	{
-# 		"doctype": "{doctype_3}",
-# 		"strict": False,
-# 	},
-# 	{
-# 		"doctype": "{doctype_4}"
-# 	}
-# ]
+user_data_fields = [
+	{
+		"doctype": "{doctype}",
+		"filter_by": "{filter_by}",
+		"redact_fields": ["{field_1}", "{field_2}"],
+		"partial": 1,
+	},
+	{
+		"doctype": "{doctype}",
+		"filter_by": "{filter_by}",
+		"partial": 0,
+	},
+	{
+		"doctype": "{doctype}",
+		"filter_by": "{filter_by}",
+		"partial": 0,
+	},
+]
 
 # Authentication and authorization
 # --------------------------------
@@ -226,4 +228,21 @@ app_include_js = "/assets/cloudprnt/js/cloudprnt.js"
 # default_log_clearing_doctypes = {
 # 	"Logging DocType Name": 30  # days to retain logs
 # }
+
+# Translation
+# --------------------------------
+
+# Make link fields search translated document names for these DocTypes
+# Recommended only for DocTypes which have limited documents with untranslated names
+# For example: Role, Gender, etc.
+# translated_search_doctypes = []
+
+# Custom DocTypes to be created
+# --------------------------------
+fixtures = [
+    {
+        "dt": "DocType",
+        "filters": [["name", "in", ["CloudPRNT Settings", "CloudPRNT Printers", "CloudPRNT Logs"]]]
+    }
+]
 

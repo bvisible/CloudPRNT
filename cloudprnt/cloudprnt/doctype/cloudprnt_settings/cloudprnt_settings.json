@@ -6,8 +6,16 @@
  "engine": "InnoDB",
  "field_order": [
   "enabled",
+  "printers",
+  "logo_section",
+  "header_logo_url",
+  "footer_logo_url",
+  "column_break_4",
   "default_printer",
-  "printers"
+  "default_paper_width",
+  "enable_auto_print",
+  "section_break_8",
+  "column_break_10"
  ],
  "fields": [
   {
@@ -17,22 +25,60 @@
    "options": "CloudPRNT Printers"
   },
   {
-   "default": "0",
-   "fieldname": "enabled",
-   "fieldtype": "Check",
-   "label": "Enabled"
+   "fieldname": "column_break_10",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_8",
+   "fieldtype": "Section Break",
+   "label": "Sync Settings"
+  },
+  {
+   "fieldname": "logo_section",
+   "fieldtype": "Section Break",
+   "label": "Logo Configuration"
+  },
+  {
+   "fieldname": "header_logo_url",
+   "fieldtype": "Data",
+   "label": "Header Logo URL",
+   "description": "URL de l'image à imprimer en haut du ticket"
+  },
+  {
+   "fieldname": "footer_logo_url",
+   "fieldtype": "Data",
+   "label": "Footer Logo URL",
+   "description": "URL de l'image à imprimer en bas du ticket"
+  },
+  {
+   "fieldname": "column_break_4",
+   "fieldtype": "Section Break",
+   "label": "Paramètres d'Impression"
   },
   {
    "fieldname": "default_printer",
    "fieldtype": "Link",
-   "label": "Default Printer",
+   "label": "Imprimante par défaut",
    "options": "CloudPRNT Printers"
+  },
+  {
+   "default": "80mm",
+   "fieldname": "default_paper_width",
+   "fieldtype": "Select",
+   "label": "Largeur de papier par défaut",
+   "options": "58mm\n80mm\n112mm"
+  },
+  {
+   "default": "0",
+   "fieldname": "enable_auto_print",
+   "fieldtype": "Check",
+   "label": "Activer l'impression automatique"
   }
  ],
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2024-07-10 12:10:10.260051",
+ "modified": "2024-08-10 12:10:10.260051",
  "modified_by": "Administrator",
  "module": "CloudPRNT",
  "name": "CloudPRNT Settings",
