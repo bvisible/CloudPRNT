@@ -9,138 +9,98 @@ from cloudprnt.pos_invoice_markup import get_pos_invoice_markup
 from datetime import datetime
 
 @frappe.whitelist()
-def print_pos_invoice(invoice_name, printer=None):
+def print_pos_invoice(invoice_name, printer=None, use_mqtt=False):
     """
-    Print a POS Invoice using CloudPRNT - Fonction basée sur test_print qui fonctionne
+    Print a POS Invoice using CloudPRNT
+    Version 2.0 - Pure Python implementation (no PHP)
+
     :param invoice_name: Name of the POS Invoice
-    :param printer: MAC address of printer or CloudPRNT Printer document name
+    :param printer: MAC address of printer or CloudPRNT Printer label
+    :param use_mqtt: Force MQTT mode (optional)
     :return: Success message
     """
     try:
         if not invoice_name:
             return {"success": False, "message": "Aucune facture spécifiée"}
-        
+
         if not frappe.db.exists("POS Invoice", invoice_name):
             return {"success": False, "message": f"Facture POS {invoice_name} non trouvée"}
-        
-        # Get default printer if not specified
+
+        # Get MAC address
+        mac_address = None
+
         if not printer:
+            # Get default printer
             printer = frappe.db.get_single_value("CloudPRNT Settings", "default_printer")
-        
-        # Récupérer l'adresse MAC
-        if not ":" in printer:
-            if frappe.db.exists("CloudPRNT Printers", printer):
-                mac_address = frappe.db.get_value("CloudPRNT Printers", printer, "mac_address")
-            else:
-                return {"success": False, "message": f"Imprimante {printer} non trouvée"}
+            if not printer:
+                return {"success": False, "message": "Aucune imprimante par défaut configurée"}
+
+        # Resolve MAC address
+        if ":" in printer or "." in printer:
+            # MAC address provided directly
+            mac_address = printer.replace(".", ":")
         else:
-            mac_address = printer
-        
-        # Remplacer les ":" par des "." comme dans l'exemple fonctionnel
-        printer_mac = mac_address.replace(":", ".")
-        
-        # Simplifier la structure des métadonnées d'imprimante
-        printer_meta = {
-            'printerMAC': printer_mac,
-        }
-        
-        # Créer un job d'impression simple
-        job = StarCloudPRNTStarLineModeJob(printer_meta)
-        
-        # Récupérer le markup pour la facture
-        markup_text = get_pos_invoice_markup(invoice_name)
-        
-        # Traiter les lignes du markup
-        lines = markup_text.split('\n')
-        
-        # Variables pour suivre l'état du formatage
-        current_align = "left"  # Alignement par défaut
-        
-        # Fonction pour nettoyer complètement une ligne de toutes les balises
-        def clean_all_tags(text):
-            # Supprime toutes les balises de type [tag: content]
-            text = re.sub(r'\[([^]]+)\]', '', text)
-            return text
-        
-        # Parcourir chaque ligne et appliquer le formatage
-        for line in lines:
-            # Garder une copie originale de la ligne pour les traitements
-            original_line = line
-            
-            # Traiter les balises d'alignement
-            if "[align: centre]" in original_line or "[align: center]" in original_line:
-                job.set_text_center_align()
-                current_align = "center"
-            elif "[align: left]" in original_line:
-                job.set_text_left_align()
-                current_align = "left"
-            elif "[align: right]" in original_line:
-                job.set_text_right_align()
-                current_align = "right"
-            elif "[align]" in original_line:
-                job.set_text_left_align()
-                current_align = "left"
-            
-            # Traiter les balises pour le texte en gras
-            if "[magnify:" in original_line:
-                job.set_text_emphasized()
-            elif "[magnify]" in original_line:
-                job.cancel_text_emphasized()
-            
-            # Traiter les sauts de ligne
-            if "[feed]" in original_line:
-                job.add_new_line(1)
-            elif "[feed: length " in original_line:
-                match = re.search(r'\[feed: length (\d+(\.\d+)?)mm\]', original_line)
-                if match:
-                    try:
-                        length = int(float(match.group(1)))
-                        job.add_new_line(length)
-                    except ValueError:
-                        pass
-            
-            # Traiter la découpe du ticket
-            if "[cut" in original_line:
-                job.cut()
-                continue  # Passer à la ligne suivante
-            
-            # Traiter les colonnes de texte
-            if "[column: left" in original_line:
-                match = re.search(r'\[column: left([^;]*); right([^]]*)\]', original_line)
-                if match:
-                    left_text = match.group(1).strip()
-                    if left_text.startswith(":"):
-                        left_text = left_text[1:].strip()
-                    
-                    right_text = match.group(2).strip()
-                    if right_text.startswith(":"):
-                        right_text = right_text[1:].strip()
-                    
-                    # Ajouter du texte aligné
-                    job.add_aligned_text(left_text, right_text)
-                    continue  # Passer à la ligne suivante
-            
-            # Nettoyer la ligne de toutes les balises restantes
-            clean_line = clean_all_tags(original_line)
-            
-            # Traiter les lignes de texte normales
-            if clean_line:
-                # Si la ligne se termine par \ (continuation), ne pas ajouter de saut de ligne
-                if clean_line.endswith("\\"):
-                    job.add_text(clean_line[:-1])  # Supprimer le \
-                else:
-                    job.add_text_line(clean_line)
-        
-        # Date et heure simples
-        current_time = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
-        
-        # Informations pour le travail d'impression
-        info_content = f"POS Invoice|{invoice_name}|{current_time}.slt"
-        
-        # Envoyer le travail d'impression
-        job.print_job(info_content)
-        
-        return {"success": True, "message": f"Impression de la facture {invoice_name} envoyée à l'imprimante {printer}"}
+            # Printer label provided - find in settings
+            settings = frappe.get_single("CloudPRNT Settings")
+            printer_row = None
+            for p in settings.printers:
+                if p.label == printer:
+                    printer_row = p
+                    break
+
+            if not printer_row:
+                return {"success": False, "message": f"Imprimante {printer} non trouvée"}
+
+            mac_address = printer_row.mac_address
+
+            # Check if printer has MQTT enabled
+            if hasattr(printer_row, 'use_mqtt') and printer_row.use_mqtt:
+                use_mqtt = True
+
+        # Determine print method
+        if use_mqtt and frappe.conf.get("mqtt_broker_host"):
+            # MQTT Mode
+            try:
+                from cloudprnt.mqtt_bridge import get_mqtt_bridge
+                bridge = get_mqtt_bridge()
+
+                # Create job URL
+                site_url = frappe.utils.get_url()
+                job_url = f"{site_url}/api/method/cloudprnt.cloudprnt_server.cloudprnt_job?mac={mac_address.replace(':', '.')}&token={invoice_name}"
+
+                # Send via MQTT
+                bridge.send_print_job(mac_address, invoice_name, job_url)
+
+                frappe.logger().info(f"Print job sent via MQTT: {invoice_name} to {mac_address}")
+
+                return {
+                    "success": True,
+                    "message": f"Impression de la facture {invoice_name} envoyée via MQTT",
+                    "method": "mqtt",
+                    "printer": printer
+                }
+            except Exception as mqtt_error:
+                # Fallback to HTTP if MQTT fails
+                frappe.log_error(f"MQTT failed, falling back to HTTP: {str(mqtt_error)}", "print_pos_invoice")
+                use_mqtt = False
+
+        # HTTP Mode (queue)
+        from cloudprnt.cloudprnt_server import add_print_job
+        result = add_print_job(invoice_name, mac_address)
+
+        if result.get("success"):
+            frappe.logger().info(f"Print job added to queue: {invoice_name} for {mac_address}")
+
+            return {
+                "success": True,
+                "message": f"Impression de la facture {invoice_name} ajoutée à la queue",
+                "method": "http",
+                "printer": printer,
+                "queue_position": result.get("queue_position", 1)
+            }
+        else:
+            return result
+
     except Exception as e:
         frappe.log_error(message=str(e), title="Error in print_pos_invoice")
         return {"success": False, "message": str(e)}

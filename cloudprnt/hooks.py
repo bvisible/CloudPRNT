@@ -246,3 +246,8 @@ fixtures = [
     }
 ]
 
+# CloudPRNT - MQTT Bridge Initialization
+# ----------------------------------------
+# Initialize MQTT bridge on server startup (if configured)
+after_migrate = ["cloudprnt.mqtt_bridge.init_mqtt_bridge"]
+
