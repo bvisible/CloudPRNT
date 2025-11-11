@@ -58,7 +58,6 @@ class StarCloudPRNTStarLineModeJob:
         self.printer_meta = printer_meta
         self.printer_mac = printer_meta['printerMAC']
         self.print_job_builder = ""
-        self.base_path = os.path.join(get_bench_path(), "apps", "cloudprnt", "cloudprnt", "cloudprnt", "php", "data")
         self.set_codepage("1252")
 
     def str_to_hex(self, string):
@@ -185,34 +184,6 @@ class StarCloudPRNTStarLineModeJob:
 
     def cut(self):
         self.print_job_builder += self.SLM_FEED_PARTIAL_CUT_HEX
-
-    def print_job(self, info_content):
-        queue_dir = f"{self.base_path}/printerdata/{self.printer_mac}/queue/"
-
-        # Trouver le plus grand numéro de fichier .slt dans le dossier
-        max_file_number = 0
-        if os.path.exists(queue_dir):
-            for filename in os.listdir(queue_dir):
-                if filename.endswith(".slt"):
-                    try:
-                        file_number = int(filename.split(".")[0])
-                        if file_number > max_file_number:
-                            max_file_number = file_number
-                    except ValueError:
-                        continue
-        
-        next_file_number = max_file_number + 1
-        
-        # Écrire le fichier d'informations
-        info_file_path = os.path.join(queue_dir, f"{next_file_number}")
-        with open(info_file_path, 'w') as info_file:
-            info_file.write(info_content)
-        
-        # Écrire le fichier SLT pour l'impression
-        slt_file_path = os.path.join(queue_dir, f"{next_file_number}.slt")
-        with open(slt_file_path, 'wb') as f:
-            f.write(binascii.unhexlify(self.print_job_builder))
-        
 
 @frappe.whitelist()
 def call_execute_cputil(command, args):
