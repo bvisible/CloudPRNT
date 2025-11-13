@@ -79,16 +79,20 @@ sudo systemctl reload nginx
 
 #### B. Start Standalone Server
 
+**Option 1: Manual start (for testing)**
 ```bash
-# Manual start (for testing)
+# Runs in foreground, Ctrl+C to stop
 bench --site your-site run-cloudprnt-server
-
-# Or start with nohup for background
-cd ~/frappe-bench
-nohup ./env/bin/python apps/cloudprnt/cloudprnt/cloudprnt_standalone_server.py > /tmp/cloudprnt-server.log 2>&1 &
 ```
 
-#### C. Setup Auto-Start with Supervisor (Recommended)
+**Option 2: Background with nohup (temporary)**
+```bash
+# Runs in background but won't survive reboot
+cd ~/frappe-bench
+nohup bench --site your-site run-cloudprnt-server > logs/cloudprnt-server.log 2>&1 &
+```
+
+**Option 3: Supervisor (Production - Auto-restart on reboot) ✅ RECOMMENDED**
 
 Create `/etc/supervisor/conf.d/cloudprnt-server.conf`:
 
@@ -100,8 +104,9 @@ user=frappe
 autostart=true
 autorestart=true
 redirect_stderr=true
-stdout_logfile=/var/log/cloudprnt-server.log
-stderr_logfile=/var/log/cloudprnt-server-error.log
+stdout_logfile=/home/frappe/frappe-bench/logs/cloudprnt-server.log
+stderr_logfile=/home/frappe/frappe-bench/logs/cloudprnt-server-error.log
+stopwaitsecs=10
 ```
 
 Then:
@@ -109,6 +114,24 @@ Then:
 sudo supervisorctl reread
 sudo supervisorctl update
 sudo supervisorctl start cloudprnt-server
+
+# Check status
+sudo supervisorctl status cloudprnt-server
+```
+
+**Managing with Supervisor:**
+```bash
+# Start
+sudo supervisorctl start cloudprnt-server
+
+# Stop
+sudo supervisorctl stop cloudprnt-server
+
+# Restart
+sudo supervisorctl restart cloudprnt-server
+
+# View logs
+tail -f ~/frappe-bench/logs/cloudprnt-server.log
 ```
 
 ### 5. Configure Printers

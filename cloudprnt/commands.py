@@ -31,11 +31,17 @@ def run_cloudprnt_server(site):
 	# Python executable
 	python_bin = os.path.join(bench_path, 'env', 'bin', 'python')
 
+	# Setup log file in Frappe's logs directory
+	log_dir = os.path.join(bench_path, 'logs')
+	os.makedirs(log_dir, exist_ok=True)
+	log_file = os.path.join(log_dir, 'cloudprnt-server.log')
+
 	click.echo("=" * 80)
 	click.echo("Starting CloudPRNT Standalone Server")
 	click.echo("=" * 80)
 	click.echo(f"Site: {site}")
 	click.echo(f"Port: 8001")
+	click.echo(f"Logs: {log_file}")
 	click.echo(f"Press Ctrl+C to stop")
 	click.echo("=" * 80)
 
