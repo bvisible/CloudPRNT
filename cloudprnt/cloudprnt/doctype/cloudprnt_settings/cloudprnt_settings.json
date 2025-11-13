@@ -10,6 +10,9 @@
   "logo_section",
   "header_logo_url",
   "footer_logo_url",
+  "test_print_section",
+  "test_image_link",
+  "test_text",
   "column_break_4",
   "default_printer",
   "default_paper_width",
@@ -49,6 +52,23 @@
    "fieldtype": "Data",
    "label": "Footer Logo URL",
    "description": "URL de l'image à imprimer en bas du ticket"
+  },
+  {
+   "fieldname": "test_print_section",
+   "fieldtype": "Section Break",
+   "label": "Test d'impression"
+  },
+  {
+   "fieldname": "test_image_link",
+   "fieldtype": "Data",
+   "label": "Lien de l'image",
+   "description": "URL de l'image à tester (PNG, JPEG, BMP, GIF)"
+  },
+  {
+   "fieldname": "test_text",
+   "fieldtype": "Small Text",
+   "label": "Texte à imprimer",
+   "description": "Texte de test à imprimer"
   },
   {
    "fieldname": "column_break_4",

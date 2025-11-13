@@ -32,14 +32,16 @@ def get_settings():
 	}
 
 @frappe.whitelist()
-def test_print(printer, test_text="Test d'impression CloudPRNT"):
+def test_print(printer, test_text="Test d'impression CloudPRNT", image_link=None):
 	"""
 	Test print function using new Python CloudPRNT server
 
 	Version 2.0 - Uses in-memory queue instead of writing to disk
+	Can now print images from URL before text
 
 	:param printer: Printer label or MAC address
 	:param test_text: Text to print (default: "Test d'impression CloudPRNT")
+	:param image_link: URL of image to print (optional, PNG/JPEG/BMP/GIF)
 	:return: Result dict with success status
 	"""
 	try:
@@ -63,7 +65,98 @@ def test_print(printer, test_text="Test d'impression CloudPRNT"):
 			if not mac_address:
 				return {"success": False, "message": f"Imprimante {printer} non trouvée"}
 
-		# Create test markup
+		# Handle image printing if URL provided
+		image_hex = None
+		if image_link and image_link.strip():
+			try:
+				import requests
+				import tempfile
+				from cloudprnt.cputil_wrapper import convert_png_to_starprnt_80mm
+
+				# Download image
+				response = requests.get(image_link, timeout=10)
+				response.raise_for_status()
+
+				# Save to temp file
+				temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.png')
+				temp_file.write(response.content)
+				temp_file.close()
+
+				# Convert to StarPRNT
+				binary_data = convert_png_to_starprnt_80mm(
+					temp_file.name,
+					dither=True,
+					scale_to_fit=True
+				)
+
+				# Convert to hex
+				image_hex = binary_data.hex().upper()
+
+				# Cleanup
+				os.unlink(temp_file.name)
+
+			except Exception as img_error:
+				frappe.log_error(f"Image download/conversion error: {str(img_error)}", "test_print")
+				return {
+					"success": False,
+					"message": f"Erreur lors du traitement de l'image: {str(img_error)}"
+				}
+
+		# If we have an image, print it with StarPRNT format
+		if image_hex:
+			# Image job - use StarPRNT media type
+			test_job_token = f"TEST-IMG-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+
+			from cloudprnt.print_queue_manager import add_job_to_queue
+
+			result = add_job_to_queue(
+				job_token=test_job_token,
+				printer_mac=mac_address,
+				invoice_name=None,
+				job_data=image_hex,
+				media_types=["application/vnd.star.starprnt"]
+			)
+
+			if not result.get("success"):
+				return result
+
+			frappe.logger().info(f"Test image print job added to queue: {test_job_token} for {mac_address}")
+
+			# If there's also text, print it separately
+			if test_text and test_text.strip():
+				# Add a small delay by creating second job
+				test_job_token_text = f"TEST-TXT-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+				current_time = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
+
+				test_markup = f"""[align: centre]
+[magnify: width 2; height 1]--- TEST D'IMPRESSION ---[magnify]
+
+{test_text}
+
+Date/Heure: {current_time}
+
+[align: left]
+Imprimante: {printer}
+MAC: {mac_address}
+
+[cut: feed; partial]"""
+
+				add_job_to_queue(
+					job_token=test_job_token_text,
+					printer_mac=mac_address,
+					invoice_name=None,
+					job_data=test_markup,
+					media_types=["application/vnd.star.line", "text/vnd.star.markup"]
+				)
+
+			return {
+				"success": True,
+				"message": f"Test d'impression (image + texte) envoyé à la queue",
+				"job_token": test_job_token,
+				"queue_position": result.get("queue_position", 1)
+			}
+
+		# Text only - original behavior
 		current_time = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
 
 		test_markup = f"""[align: centre]
