@@ -245,6 +245,64 @@ def create_print_log(invoice_name):
 # CLOUDPRNT HTTP ENDPOINTS
 # ============================================================================
 
+@frappe.whitelist(allow_guest=True, methods=['POST', 'GET'])
+def cloudprnt_debug():
+    """
+    DEBUG Endpoint - Log everything the printer sends
+    """
+    import json
+    from datetime import datetime
+
+    # Log to file as well to bypass any Frappe filtering
+    try:
+        log_file = "/tmp/cloudprnt_debug.log"
+        with open(log_file, "a") as f:
+            f.write("\n" + "=" * 80 + "\n")
+            f.write(f"Timestamp: {datetime.now()}\n")
+            f.write(f"Remote IP: {frappe.request.remote_addr}\n")
+            f.write(f"X-Forwarded-For: {frappe.request.headers.get('X-Forwarded-For', 'N/A')}\n")
+            f.write(f"Headers: {dict(frappe.request.headers)}\n")
+            f.write(f"Method: {frappe.request.method}\n")
+            f.write(f"URL: {frappe.request.url}\n")
+            f.write(f"Query String: {frappe.request.query_string}\n")
+            f.write(f"Form Dict: {frappe.form_dict}\n")
+            try:
+                data = frappe.request.get_json(force=True, silent=True)
+                f.write(f"JSON Data: {data}\n")
+            except Exception as e:
+                f.write(f"JSON Parse Error: {e}\n")
+            if frappe.request.data:
+                f.write(f"Raw Data: {frappe.request.data}\n")
+            f.write("=" * 80 + "\n")
+    except Exception as e:
+        frappe.logger().error(f"File logging error: {e}")
+
+    frappe.logger().error("=" * 80)
+    frappe.logger().error("🔍 DEBUG CloudPRNT Request")
+    frappe.logger().error(f"Remote IP: {frappe.request.remote_addr}")
+    frappe.logger().error(f"Headers: {dict(frappe.request.headers)}")
+    frappe.logger().error(f"Method: {frappe.request.method}")
+    frappe.logger().error(f"URL: {frappe.request.url}")
+    frappe.logger().error(f"Query String: {frappe.request.query_string}")
+    frappe.logger().error(f"Form Dict: {frappe.form_dict}")
+
+    try:
+        data = frappe.request.get_json(force=True, silent=True)
+        frappe.logger().error(f"JSON Data: {data}")
+    except:
+        frappe.logger().error("No JSON data")
+
+    if frappe.request.data:
+        frappe.logger().error(f"Raw Data: {frappe.request.data}")
+
+    frappe.logger().error("=" * 80)
+
+    frappe.response.update({
+        "jobReady": False,
+        "debug": "Logged successfully",
+        "mediaTypes": ["application/vnd.star.line", "text/vnd.star.markup"]
+    })
+
 @frappe.whitelist(allow_guest=True)
 def cloudprnt_poll():
     """
@@ -268,6 +326,9 @@ def cloudprnt_poll():
         "jobToken": "unique-job-id"  // if jobReady=true
     }
     """
+    # Add logging to see ALL requests
+    frappe.logger().error(f"📥 cloudprnt_poll called from {frappe.request.remote_addr}")
+
     try:
         # Parse JSON body - handle both application/json and other content types
         data = None
