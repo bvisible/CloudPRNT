@@ -1,0 +1,45 @@
+# CloudPRNT Test Dependencies
+# ============================
+#
+# Install: pip install -r requirements-test.txt
+#
+# Usage:
+#   cd ~/frappe-bench
+#   bench --site sitename run-tests cloudprnt
+
+# Core testing framework
+pytest>=7.4.0
+pytest-cov>=4.1.0              # Coverage reporting
+pytest-mock>=3.12.0            # Mocking utilities
+pytest-asyncio>=0.21.0         # Async test support
+pytest-timeout>=2.2.0          # Test timeouts
+pytest-xdist>=3.5.0            # Parallel test execution
+
+# HTTP testing
+httpx>=0.25.0                  # Async HTTP client for FastAPI tests
+requests-mock>=1.11.0          # Mock HTTP requests
+
+# FastAPI testing (for standalone server)
+fastapi[all]>=0.104.0          # FastAPI framework
+uvicorn[standard]>=0.24.0      # ASGI server
+
+# Image testing (for PNG generation)
+Pillow>=10.1.0                 # Image processing
+
+# MQTT testing (optional - only if testing MQTT)
+paho-mqtt>=1.6.0               # MQTT client
+
+# Database testing
+faker>=20.0.0                  # Generate fake test data
+
+# Code quality
+black>=23.11.0                 # Code formatting
+flake8>=6.1.0                  # Linting
+mypy>=1.7.0                    # Type checking
+
+# Coverage reporting
+coverage[toml]>=7.3.0          # Coverage with pyproject.toml support
+
+# Utilities
+freezegun>=1.4.0               # Mock datetime for tests
+responses>=0.24.0              # Mock requests library
