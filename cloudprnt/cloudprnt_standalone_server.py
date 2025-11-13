@@ -96,6 +96,8 @@ def get_next_job_for_printer(printer_mac):
     try:
         import json
 
+        print(f"[DEBUG] Searching for jobs for printer: {printer_mac.upper()}")
+
         # Direct SQL query to avoid module import issues
         jobs = frappe.db.sql("""
             SELECT name, job_token, invoice_name, job_data, media_types
@@ -105,6 +107,7 @@ def get_next_job_for_printer(printer_mac):
             LIMIT 1
         """, (printer_mac.upper(),), as_dict=True)
 
+        print(f"[DEBUG] Found {len(jobs)} jobs")
         if not jobs:
             return None
 
@@ -163,6 +166,8 @@ async def poll(request: Request):
         status_code = data.get("statusCode", "")
         printing_in_progress = data.get("printingInProgress", False)
         client_type = data.get("clientType", "")
+
+        print(f"[DEBUG] Poll request from {client_ip}, MAC: {printer_mac_dots}")
 
         # Normalize MAC address
         printer_mac = normalize_mac_address(printer_mac_dots)
@@ -363,22 +368,24 @@ async def delete_job(
         if job_token:
             # Mark job as printed (delete from queue) using direct SQL
             try:
-                # Find and delete the job
-                jobs = frappe.db.sql("""
-                    SELECT name FROM `tabCloudPRNT Print Queue`
+                # Delete the job using pure SQL to avoid module import issues
+                result = frappe.db.sql("""
+                    DELETE FROM `tabCloudPRNT Print Queue`
                     WHERE job_token = %s
-                """, (job_token,), as_dict=True)
+                """, (job_token,))
+                frappe.db.commit()
 
-                if jobs:
-                    frappe.delete_doc("CloudPRNT Print Queue", jobs[0].name, ignore_permissions=True)
-                    frappe.db.commit()
-                    print(f"Job {job_token} printed and deleted successfully")
+                if result:
+                    print(f"[DEBUG] Job {job_token} printed and deleted successfully")
                     return JSONResponse({"message": "ok"})
                 else:
-                    return JSONResponse({"message": "Job not found"}, status_code=404)
+                    print(f"[DEBUG] Job {job_token} not found for deletion")
+                    return JSONResponse({"message": "ok"})  # Return ok anyway
 
             except Exception as e:
                 print(f"Error marking job as printed: {e}")
+                import traceback
+                traceback.print_exc()
                 return JSONResponse({"message": f"Error: {str(e)}"}, status_code=500)
         else:
             return JSONResponse({"message": "No job to delete"}, status_code=404)
