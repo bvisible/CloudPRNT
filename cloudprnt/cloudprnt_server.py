@@ -124,15 +124,18 @@ def generate_star_line_job(job_data):
     """
     Generate Star Line Mode hex from markup
 
-    :param job_data: Job dict with 'invoice' and 'printer_mac'
+    :param job_data: Job dict with 'invoice' or 'test_markup' and 'printer_mac'
     :return: Hex string (uppercase)
     """
     try:
         invoice_name = job_data.get("invoice")
         printer_mac = job_data.get("printer_mac")
 
-        # Get markup
-        markup_text = get_pos_invoice_markup(invoice_name)
+        # Get markup - check if it's a test job first
+        if "test_markup" in job_data and job_data["test_markup"]:
+            markup_text = job_data["test_markup"]
+        else:
+            markup_text = get_pos_invoice_markup(invoice_name)
 
         # Create job
         printer_meta = {'printerMAC': mac_to_dots(printer_mac)}
@@ -383,7 +386,11 @@ def cloudprnt_job():
 
         elif media_type == "text/vnd.star.markup":
             # Generate Star Markup
-            markup_content = get_pos_invoice_markup(job["invoice"])
+            # Check if it's a test job (has test_markup) or regular invoice job
+            if "test_markup" in job and job["test_markup"]:
+                markup_content = job["test_markup"]
+            else:
+                markup_content = get_pos_invoice_markup(job["invoice"])
 
             # Set response
             frappe.response['type'] = 'page'
