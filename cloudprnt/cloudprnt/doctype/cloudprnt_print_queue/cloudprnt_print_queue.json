@@ -1,0 +1,96 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "creation": "2025-11-13 12:40:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "job_token",
+  "printer_mac",
+  "invoice_name",
+  "column_break_1",
+  "status",
+  "created_at",
+  "section_break_2",
+  "job_data",
+  "media_types"
+ ],
+ "fields": [
+  {
+   "fieldname": "job_token",
+   "fieldtype": "Data",
+   "label": "Job Token",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "printer_mac",
+   "fieldtype": "Data",
+   "label": "Printer MAC",
+   "reqd": 1
+  },
+  {
+   "fieldname": "invoice_name",
+   "fieldtype": "Data",
+   "label": "Invoice"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Pending\nFetched\nPrinted\nError",
+   "default": "Pending",
+   "reqd": 1
+  },
+  {
+   "fieldname": "created_at",
+   "fieldtype": "Datetime",
+   "label": "Created At",
+   "default": "Now",
+   "reqd": 1
+  },
+  {
+   "fieldname": "job_data",
+   "fieldtype": "Long Text",
+   "label": "Job Data"
+  },
+  {
+   "fieldname": "media_types",
+   "fieldtype": "Small Text",
+   "label": "Media Types"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_2",
+   "fieldtype": "Section Break"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-11-13 12:40:00.000000",
+ "modified_by": "Administrator",
+ "module": "CloudPRNT",
+ "name": "CloudPRNT Print Queue",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "created_at",
+ "sort_order": "ASC",
+ "states": [],
+ "track_changes": 1
+}

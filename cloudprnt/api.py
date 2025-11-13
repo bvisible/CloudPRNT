@@ -40,11 +40,12 @@ def print_pos_invoice(invoice_name, printer=None, use_mqtt=False):
             # MAC address provided directly
             mac_address = printer.replace(".", ":")
         else:
-            # Printer label provided - find in settings
+            # Printer label or name provided - find in settings
             settings = frappe.get_single("CloudPRNT Settings")
             printer_row = None
             for p in settings.printers:
-                if p.label == printer:
+                # Check both label and name (for backward compatibility)
+                if p.label == printer or p.name == printer:
                     printer_row = p
                     break
 

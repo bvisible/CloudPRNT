@@ -82,14 +82,19 @@ def mac_to_dots(mac_address):
     return mac_address.replace(":", ".")
 
 
-def get_print_queue():
-    """Get print queue from Redis"""
+def get_next_job_for_printer(printer_mac):
+    """
+    Get next job for printer from database queue
+
+    :param printer_mac: Printer MAC address
+    :return: Job dict or None
+    """
     try:
-        # Import here to avoid initialization issues
-        from cloudprnt.cloudprnt_server import PRINT_QUEUE as QUEUE
-        return QUEUE
-    except:
-        return PRINT_QUEUE
+        import print_queue_manager
+        return print_queue_manager.get_next_job(printer_mac)
+    except Exception as e:
+        print(f"Error getting next job: {e}")
+        return None
 
 
 def get_real_ip(request: Request) -> str:
@@ -106,6 +111,7 @@ async def poll(request: Request):
     CloudPRNT Poll Endpoint
 
     Printer polls to check for jobs and send status updates
+    Accepts both / and /poll paths
     """
     try:
         init_frappe()
@@ -148,11 +154,10 @@ async def poll(request: Request):
             # Don't fail if discovery tracking fails
             print(f"Discovery tracking error: {e}")
 
-        # Check for jobs in queue
-        queue = get_print_queue()
-        if printer_mac in queue and len(queue[printer_mac]) > 0:
-            job = queue[printer_mac][0]
+        # Check for jobs in database queue
+        job = get_next_job_for_printer(printer_mac)
 
+        if job:
             return JSONResponse({
                 "jobReady": True,
                 "mediaTypes": job.get("media_types", ["application/vnd.star.line", "text/vnd.star.markup"]),
@@ -178,6 +183,7 @@ async def poll(request: Request):
 async def get_job(mac: str = Query(..., description="Printer MAC address in dot format")):
     """
     CloudPRNT Job Endpoint
+    Accepts both / and /job paths
 
     Returns the job data for printing
     """
@@ -191,19 +197,32 @@ async def get_job(mac: str = Query(..., description="Printer MAC address in dot 
         if not printer_mac:
             return Response(content="Invalid MAC address", status_code=400)
 
-        # Get job from queue
-        queue = get_print_queue()
-        if printer_mac not in queue or len(queue[printer_mac]) == 0:
+        # Get job from database queue
+        job = get_next_job_for_printer(printer_mac)
+
+        if not job:
             return Response(content="No job available", status_code=404)
 
-        job = queue[printer_mac][0]
         job_token = job["token"]
 
-        # Generate print data based on media type
-        media_type = job.get("media_type", "application/vnd.star.line")
+        # Mark job as fetched
+        try:
+            import print_queue_manager
+            print_queue_manager.mark_job_fetched(job_token)
+        except Exception as e:
+            print(f"Error marking job as fetched: {e}")
 
-        if media_type == "application/vnd.star.line":
-            # Generate Star Line Mode hex
+        # Check if it's a test job with custom markup
+        if job.get("job_data"):
+            # Test job - return the markup directly
+            return PlainTextResponse(
+                content=job["job_data"],
+                media_type="text/vnd.star.markup"
+            )
+
+        # Regular invoice job - generate from invoice
+        if job.get("invoice"):
+            # Generate Star Line Mode from invoice
             try:
                 from cloudprnt.cloudprnt_server import generate_star_line_job
                 hex_data = generate_star_line_job(job)
@@ -224,14 +243,6 @@ async def get_job(mac: str = Query(..., description="Printer MAC address in dot 
                 traceback.print_exc()
                 return Response(content=f"Error generating job: {str(e)}", status_code=500)
 
-        elif media_type == "text/vnd.star.markup":
-            # Return markup directly
-            markup = job.get("markup", "")
-            return PlainTextResponse(
-                content=markup,
-                media_type="text/vnd.star.markup"
-            )
-
         else:
             return Response(content="Unsupported media type", status_code=400)
 
@@ -243,9 +254,14 @@ async def get_job(mac: str = Query(..., description="Printer MAC address in dot 
 
 
 @app.delete("/job")
-async def delete_job(mac: str = Query(..., description="Printer MAC address in dot format")):
+async def delete_job(
+    mac: str = Query(..., description="Printer MAC address in dot format"),
+    token: str = Query(None, description="Job token to delete"),
+    code: str = Query(None, description="Status code from printer")
+):
     """
     CloudPRNT Delete Endpoint
+    Accepts both / and /job paths
 
     Confirms job completion and removes it from queue
     """
@@ -259,24 +275,37 @@ async def delete_job(mac: str = Query(..., description="Printer MAC address in d
         if not printer_mac:
             return JSONResponse({"message": "Invalid MAC address"}, status_code=400)
 
-        # Remove job from queue
-        queue = get_print_queue()
-        if printer_mac in queue and len(queue[printer_mac]) > 0:
-            removed_job = queue[printer_mac].pop(0)
+        # Use token if provided, otherwise get next job
+        job_token = token
+        if not job_token:
+            job = get_next_job_for_printer(printer_mac)
+            if job:
+                job_token = job["token"]
 
-            # Clean up empty queue
-            if len(queue[printer_mac]) == 0:
-                del queue[printer_mac]
-
-            # Log the print
+        if job_token:
+            # Mark job as printed (removes from queue)
             try:
-                frappe.set_user("Administrator")
-                from cloudprnt.cloudprnt_server import create_print_log
-                create_print_log(removed_job)
-            except Exception as e:
-                print(f"Error creating print log: {e}")
+                import print_queue_manager
+                result = print_queue_manager.mark_job_printed(job_token)
 
-            return JSONResponse({"message": "ok"})
+                if result.get("success"):
+                    # Log the print
+                    try:
+                        frappe.set_user("Administrator")
+                        from cloudprnt.cloudprnt_server import create_print_log
+                        # Create minimal job dict for logging
+                        log_job = {"token": job_token, "printer_mac": printer_mac}
+                        create_print_log(log_job)
+                    except Exception as e:
+                        print(f"Error creating print log: {e}")
+
+                    return JSONResponse({"message": "ok"})
+                else:
+                    return JSONResponse({"message": "Error marking as printed"}, status_code=500)
+
+            except Exception as e:
+                print(f"Error marking job as printed: {e}")
+                return JSONResponse({"message": f"Error: {str(e)}"}, status_code=500)
         else:
             return JSONResponse({"message": "No job to delete"}, status_code=404)
 
@@ -285,6 +314,31 @@ async def delete_job(mac: str = Query(..., description="Printer MAC address in d
         import traceback
         traceback.print_exc()
         return JSONResponse({"message": f"Error: {str(e)}"}, status_code=500)
+
+
+@app.api_route("/", methods=["POST", "GET", "DELETE"])
+async def root_endpoint(
+    request: Request,
+    mac: str = Query(None),
+    token: str = Query(None),
+    code: str = Query(None)
+):
+    """
+    Root endpoint that routes to appropriate handler based on HTTP method
+    Allows printer to use https://domain/cloudprnt/ for all operations
+    """
+    if request.method == "POST":
+        return await poll(request)
+    elif request.method == "GET":
+        if not mac:
+            return Response(content="MAC address required", status_code=400)
+        return await get_job(mac)
+    elif request.method == "DELETE":
+        if not mac:
+            return Response(content="MAC address required", status_code=400)
+        return await delete_job(mac, token, code)
+    else:
+        return Response(content="Method not allowed", status_code=405)
 
 
 @app.get("/health")

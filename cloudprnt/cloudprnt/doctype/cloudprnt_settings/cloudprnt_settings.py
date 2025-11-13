@@ -52,10 +52,11 @@ def test_print(printer, test_text="Test d'impression CloudPRNT"):
 			# MAC address provided directly
 			mac_address = printer.replace(".", ":")
 		else:
-			# Printer label provided - find in settings
+			# Printer label or name provided - find in settings
 			settings = frappe.get_single("CloudPRNT Settings")
 			for p in settings.printers:
-				if p.label == printer:
+				# Check both label and name (for backward compatibility)
+				if p.label == printer or p.name == printer:
 					mac_address = p.mac_address
 					break
 
@@ -81,24 +82,19 @@ MAC: {mac_address}
 		# Create temporary test job document in memory
 		test_job_token = f"TEST-{datetime.now().strftime('%Y%m%d%H%M%S')}"
 
-		# Add to queue using new Python server
-		from cloudprnt.cloudprnt_server import PRINT_QUEUE
+		# Add to database queue (shared between processes)
+		from cloudprnt.print_queue_manager import add_job_to_queue
 
-		if mac_address not in PRINT_QUEUE:
-			PRINT_QUEUE[mac_address] = []
+		result = add_job_to_queue(
+			job_token=test_job_token,
+			printer_mac=mac_address,
+			invoice_name=None,  # No invoice for test
+			job_data=test_markup,  # Custom markup for test
+			media_types=["application/vnd.star.line", "text/vnd.star.markup"]
+		)
 
-		# Add test job with custom markup
-		test_job = {
-			"token": test_job_token,
-			"invoice": None,  # No invoice for test
-			"printer_mac": mac_address,
-			"timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-			"status": "pending",
-			"media_types": ["application/vnd.star.line", "text/vnd.star.markup"],
-			"test_markup": test_markup  # Custom markup for test
-		}
-
-		PRINT_QUEUE[mac_address].append(test_job)
+		if not result.get("success"):
+			return result
 
 		frappe.logger().info(f"Test print job added to queue: {test_job_token} for {mac_address}")
 
@@ -106,7 +102,7 @@ MAC: {mac_address}
 			"success": True,
 			"message": f"Test d'impression envoyé à la queue (job: {test_job_token})",
 			"job_token": test_job_token,
-			"queue_position": len(PRINT_QUEUE[mac_address])
+			"queue_position": result.get("queue_position", 1)
 		}
 
 	except Exception as e:
