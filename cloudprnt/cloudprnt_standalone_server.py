@@ -212,39 +212,44 @@ async def get_job(mac: str = Query(..., description="Printer MAC address in dot 
         except Exception as e:
             print(f"Error marking job as fetched: {e}")
 
-        # Check if it's a test job with custom markup
-        if job.get("job_data"):
-            # Test job - return the markup directly
-            return PlainTextResponse(
-                content=job["job_data"],
-                media_type="text/vnd.star.markup"
+        # Generate Star Line Mode binary for all jobs (test and invoice)
+        try:
+            import cloudprnt_server
+            generate_star_line_job = cloudprnt_server.generate_star_line_job
+
+            # Prepare job data for generator
+            if job.get("job_data"):
+                # Test job - use job_data as markup
+                job_for_generator = {
+                    "test_markup": job["job_data"],
+                    "printer_mac": printer_mac
+                }
+            elif job.get("invoice"):
+                # Regular invoice job
+                job_for_generator = {
+                    "invoice": job["invoice"],
+                    "printer_mac": printer_mac
+                }
+            else:
+                return Response(content="No job data or invoice", status_code=400)
+
+            # Generate binary Star Line Mode
+            hex_data = generate_star_line_job(job_for_generator)
+            binary_data = bytes.fromhex(hex_data)
+
+            return Response(
+                content=binary_data,
+                media_type="application/vnd.star.line",
+                headers={
+                    "Content-Type": "application/vnd.star.line",
+                    "Content-Length": str(len(binary_data))
+                }
             )
-
-        # Regular invoice job - generate from invoice
-        if job.get("invoice"):
-            # Generate Star Line Mode from invoice
-            try:
-                from cloudprnt.cloudprnt_server import generate_star_line_job
-                hex_data = generate_star_line_job(job)
-                # Convert hex string to bytes
-                binary_data = bytes.fromhex(hex_data)
-
-                return Response(
-                    content=binary_data,
-                    media_type="application/vnd.star.line",
-                    headers={
-                        "Content-Type": "application/vnd.star.line",
-                        "Content-Length": str(len(binary_data))
-                    }
-                )
-            except Exception as e:
-                print(f"Error generating Star Line Mode job: {e}")
-                import traceback
-                traceback.print_exc()
-                return Response(content=f"Error generating job: {str(e)}", status_code=500)
-
-        else:
-            return Response(content="Unsupported media type", status_code=400)
+        except Exception as e:
+            print(f"Error generating Star Line Mode job: {e}")
+            import traceback
+            traceback.print_exc()
+            return Response(content=f"Error generating job: {str(e)}", status_code=500)
 
     except Exception as e:
         print(f"Error in job endpoint: {e}")
@@ -292,7 +297,8 @@ async def delete_job(
                     # Log the print
                     try:
                         frappe.set_user("Administrator")
-                        from cloudprnt.cloudprnt_server import create_print_log
+                        import cloudprnt_server
+                        create_print_log = cloudprnt_server.create_print_log
                         # Create minimal job dict for logging
                         log_job = {"token": job_token, "printer_mac": printer_mac}
                         create_print_log(log_job)

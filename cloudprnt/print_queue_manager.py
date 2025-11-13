@@ -71,8 +71,8 @@ def get_next_job(printer_mac):
 				"printer_mac": printer_mac.upper(),
 				"status": "Pending"
 			},
-			fields=["name", "job_token", "invoice_name", "job_data", "media_types"],
-			order_by="created_at asc",
+			fields=["name", "job_token", "invoice_name", "job_data", "media_types", "creation"],
+			order_by="creation asc",
 			limit=1
 		)
 
@@ -157,8 +157,8 @@ def get_queue_position(printer_mac, job_token):
 				"printer_mac": printer_mac.upper(),
 				"status": "Pending"
 			},
-			fields=["job_token"],
-			order_by="created_at asc"
+			fields=["job_token", "creation"],
+			order_by="creation asc"
 		)
 
 		for idx, job in enumerate(jobs, 1):
@@ -188,8 +188,8 @@ def get_queue_status(printer_mac=None):
 		jobs = frappe.get_all(
 			"CloudPRNT Print Queue",
 			filters=filters,
-			fields=["job_token", "printer_mac", "invoice_name", "status", "created_at"],
-			order_by="created_at asc"
+			fields=["job_token", "printer_mac", "invoice_name", "status", "creation"],
+			order_by="creation asc"
 		)
 
 		if printer_mac:
