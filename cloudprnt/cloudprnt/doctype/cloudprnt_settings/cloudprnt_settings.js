@@ -129,14 +129,13 @@ frappe.ui.form.on("CloudPRNT Settings", {
                         label: __('Lien de l\'image'),
                         fieldname: 'image_link',
                         fieldtype: 'Data',
-                        description: __('URL de l\'image à imprimer (optionnel)'),
-                        default: frm.doc.test_image_link || ''
+                        description: __('URL de l\'image à imprimer (optionnel)')
                     },
                     {
                         label: __('Texte à imprimer'),
                         fieldname: 'test_text',
                         fieldtype: 'Small Text',
-                        default: frm.doc.test_text || 'Ceci est un test d\'impression CloudPRNT'
+                        default: 'Ceci est un test d\'impression CloudPRNT'
                     }
                 ],
                 primary_action_label: __('Imprimer'),
