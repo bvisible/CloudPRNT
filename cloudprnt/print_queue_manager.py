@@ -92,8 +92,8 @@ def get_next_job(printer_mac):
 			"token": job.job_token,
 			"invoice": job.invoice_name,
 			"job_data": job.job_data,
-			"media_types": media_types
-		"printer_mac": job.printer_mac
+			"media_types": media_types,
+			"printer_mac": job.printer_mac
 		}
 
 	except Exception as e:
