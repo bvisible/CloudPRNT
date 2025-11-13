@@ -64,7 +64,6 @@ def get_pos_invoice_markup(invoice_name):
     markup.append(f"{_('Currency')}: {doc.currency}")
 
     # Separator before items
-    markup.append("")  # Single blank line
     markup.append("[align: centre]")
     markup.append("-" * 48)
     markup.append("[align: left]")
@@ -75,23 +74,17 @@ def get_pos_invoice_markup(invoice_name):
             return ""
         # Convertir en minuscules, supprimer les espaces et les tirets
         return re.sub(r'[\s\-]', '', text.lower())
-
-    # Articles - use bold mode once for all item names to improve performance
-    markup.append("")  # Single blank line
-    markup.append("[bold: on]")
+    
+    # Articles
     for item in doc.items:
-        markup.append("")  # Empty line for spacing between items
-        # Display item name with item code on same line if different
+        markup.append("[feed: length 2mm]")
+        # Display item name in bold with item code on same line if different
         item_display = item.item_name
         if normalize_for_comparison(item.item_code) != normalize_for_comparison(item.item_name):
             item_display = f"{item.item_name} ({item.item_code})"
 
-        markup.append(item_display)
+        markup.append(f"[bold: on]{item_display}[bold: off]")
 
-    markup.append("[bold: off]")
-
-    # Now show details for each item (prices, serial numbers, etc.)
-    for item in doc.items:
         # Display serial numbers and batch numbers if available
         if hasattr(item, 'serial_and_batch_bundle') and item.serial_and_batch_bundle:
             try:
@@ -111,9 +104,9 @@ def get_pos_invoice_markup(invoice_name):
         # Use rjust to align amount to the right (48 chars width)
         line = f"{qty_price} {amount_str.rjust(48 - len(qty_price) - 1)}"
         markup.append(line)
-
+    
     # Ligne de séparation
-    markup.append("")
+    markup.append("[feed: length 2mm]")
 
     # Cartes-cadeaux générées
     for item in doc.items:
@@ -126,11 +119,10 @@ def get_pos_invoice_markup(invoice_name):
                 markup.append(f"{_('Gift card with a value of')} {fmt_money(giftcard.value, currency=doc.currency)}: {giftcard.name}")
     
     # Separator line (centered)
-    markup.append("")
     markup.append("[align: centre]")
     markup.append("-" * 48)
     markup.append("[align: left]")
-    markup.append("")
+    markup.append("[feed: length 2mm]")
 
     # Totals and payments section - use spacing to align amounts on same line
     def format_line_with_amount(label, amount, width=48):
@@ -174,11 +166,10 @@ def get_pos_invoice_markup(invoice_name):
 
     if doc.change_amount:
         markup.append(format_line_with_amount(_('Change Amount'), doc.change_amount))
-
+    
     # Ligne de séparation
-    markup.append("")
-    markup.append("")
-
+    markup.append("[feed: length 3mm]")
+    
     # TVA
     tva_net = {}
     for taxe in doc.taxes:
@@ -217,8 +208,7 @@ def get_pos_invoice_markup(invoice_name):
     
     # Conditions
     if doc.terms:
-        markup.append("")
-        markup.append("")
+        markup.append("[feed: length 3mm]")
         markup.append(doc.terms)
     
     # Logo du bas
@@ -226,10 +216,9 @@ def get_pos_invoice_markup(invoice_name):
     if footer_logo_url:
         markup.append("[align: centre]")
         markup.append(f"[image: url {footer_logo_url}; width 40%; min-width 30mm]")
-
+    
     # Ajouter un code-barres avec le numéro de facture
-    markup.append("")
-    markup.append("")
+    markup.append("[feed: length 3mm]")
     markup.append("[align: centre]")
     # Selon la doc, l'ajout d'un code-barre est fait avec cette syntaxe
     markup.append(f"[barcode: type code128; data {doc.name}; height 15mm; module 2; hri]")

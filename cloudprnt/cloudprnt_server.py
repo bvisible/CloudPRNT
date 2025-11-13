@@ -29,7 +29,7 @@ from cloudprnt.pos_invoice_markup import get_pos_invoice_markup
 #             "printer_mac": "00:11:62:12:34:56",
 #             "timestamp": "2025-01-01 12:00:00",
 #             "status": "pending",
-#             "media_types": ["application/vnd.star.line", "text/vnd.star.markup"]
+#             "media_types": ["image/png", "application/vnd.star.line", "text/vnd.star.markup"]
 #         }
 #     ]
 # }
@@ -300,7 +300,7 @@ def cloudprnt_debug():
     frappe.response.update({
         "jobReady": False,
         "debug": "Logged successfully",
-        "mediaTypes": ["application/vnd.star.line", "text/vnd.star.markup"]
+        "mediaTypes": ["image/png", "application/vnd.star.line", "text/vnd.star.markup"]
     })
 
 @frappe.whitelist(allow_guest=True)
@@ -322,7 +322,7 @@ def cloudprnt_poll():
     Response JSON:
     {
         "jobReady": true/false,
-        "mediaTypes": ["application/vnd.star.line", "text/vnd.star.markup"],
+        "mediaTypes": ["image/png", "application/vnd.star.line", "text/vnd.star.markup"],
         "jobToken": "unique-job-id"  // if jobReady=true
     }
     """
@@ -397,14 +397,14 @@ def cloudprnt_poll():
 
             frappe.response.update({
                 "jobReady": True,
-                "mediaTypes": job.get("media_types", ["application/vnd.star.line", "text/vnd.star.markup"]),
+                "mediaTypes": job.get("media_types", ["image/png", "application/vnd.star.line", "text/vnd.star.markup"]),
                 "jobToken": job["token"]
             })
         else:
             # No jobs
             frappe.response.update({
                 "jobReady": False,
-                "mediaTypes": ["application/vnd.star.line", "text/vnd.star.markup"]
+                "mediaTypes": ["image/png", "application/vnd.star.line", "text/vnd.star.markup"]
             })
 
     except Exception as e:
@@ -464,7 +464,22 @@ def cloudprnt_job():
         frappe.logger().info(f"Fetching job {job_token} for printer {printer_mac} (type: {media_type})")
 
         # Generate content based on media type
-        if media_type == "application/vnd.star.line":
+        if media_type == "image/png":
+            # Generate PNG receipt image
+            from cloudprnt.print_job import generate_receipt_png
+
+            # Get receipt text (without Star Markup formatting)
+            markup_content = get_pos_invoice_markup(job["invoice"])
+
+            # Generate PNG image
+            png_content = generate_receipt_png(markup_content, width_pixels=576)
+
+            # Set response
+            frappe.response['type'] = 'binary'
+            frappe.response['filecontent'] = png_content
+            frappe.response['content_type'] = 'image/png'
+
+        elif media_type == "application/vnd.star.line":
             # Generate Star Line Mode hex
             hex_content = generate_star_line_job(job)
 
@@ -627,7 +642,7 @@ def add_print_job(invoice_name, printer_mac=None):
             printer_mac=printer_mac,
             invoice_name=invoice_name,
             job_data=None,  # Will be generated on-demand from POS Invoice
-            media_types=["application/vnd.star.line", "text/vnd.star.markup"]
+            media_types=["image/png", "application/vnd.star.line", "text/vnd.star.markup"]
         )
 
         if result.get("success"):

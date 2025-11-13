@@ -117,7 +117,7 @@ def get_next_job_for_printer(printer_mac):
         try:
             media_types = json.loads(job.get("media_types") or "[]")
         except:
-            media_types = ["application/vnd.star.line", "text/vnd.star.markup"]
+            media_types = ["image/png", "application/vnd.star.line", "text/vnd.star.markup"]
 
         return {
             "name": job.name,
@@ -175,7 +175,7 @@ async def poll(request: Request):
         if not printer_mac:
             return JSONResponse({
                 "jobReady": False,
-                "mediaTypes": ["application/vnd.star.line", "text/vnd.star.markup"]
+                "mediaTypes": ["image/png", "application/vnd.star.line", "text/vnd.star.markup"]
             })
 
         # Track for discovery
@@ -198,13 +198,13 @@ async def poll(request: Request):
         if job:
             return JSONResponse({
                 "jobReady": True,
-                "mediaTypes": job.get("media_types", ["application/vnd.star.line", "text/vnd.star.markup"]),
+                "mediaTypes": job.get("media_types", ["image/png", "application/vnd.star.line", "text/vnd.star.markup"]),
                 "jobToken": job["token"]
             })
         else:
             return JSONResponse({
                 "jobReady": False,
-                "mediaTypes": ["application/vnd.star.line", "text/vnd.star.markup"]
+                "mediaTypes": ["image/png", "application/vnd.star.line", "text/vnd.star.markup"]
             })
 
     except Exception as e:
@@ -213,7 +213,7 @@ async def poll(request: Request):
         traceback.print_exc()
         return JSONResponse({
             "jobReady": False,
-            "mediaTypes": ["application/vnd.star.line", "text/vnd.star.markup"]
+            "mediaTypes": ["image/png", "application/vnd.star.line", "text/vnd.star.markup"]
         })
 
 
