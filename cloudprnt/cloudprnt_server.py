@@ -289,6 +289,19 @@ def cloudprnt_poll():
             frappe.log_error(f"Invalid MAC address: {printer_mac_dots}", "cloudprnt_poll")
             return {"jobReady": False}
 
+        # Track for discovery (helps auto-detect new printers)
+        try:
+            from cloudprnt.printer_discovery import track_printer_poll
+            track_printer_poll(
+                printer_mac,
+                ip_address=frappe.request.remote_addr,
+                client_type=client_type,
+                status_code=status_code
+            )
+        except Exception as e:
+            # Don't fail if discovery tracking fails
+            frappe.logger().debug(f"Discovery tracking failed: {str(e)}")
+
         # Update printer status
         update_printer_status(
             printer_mac,

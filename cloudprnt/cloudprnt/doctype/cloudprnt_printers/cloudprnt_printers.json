@@ -35,7 +35,7 @@
    "fieldtype": "Data",
    "in_list_view": 1,
    "label": "MAC Address",
-   "read_only": 1
+   "reqd": 1
   },
   {
    "fieldname": "label",
