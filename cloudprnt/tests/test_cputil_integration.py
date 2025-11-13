@@ -140,7 +140,7 @@ class TestPrintJobIntegration(unittest.TestCase):
         printer_meta = {'printerMAC': '00:11:62:12:34:56'}
 
         # Force CPUtil
-        job = StarCloudPRNTStarLineModeJob(printer_meta, use_cputil=True)
+        job = StarCloudPRNTStarLineModeJob(printer_meta)
 
         if self.cputil_available:
             self.assertTrue(job.use_cputil)
@@ -154,7 +154,7 @@ class TestPrintJobIntegration(unittest.TestCase):
         printer_meta = {'printerMAC': '00:11:62:12:34:56'}
 
         # Force Python Native
-        job = StarCloudPRNTStarLineModeJob(printer_meta, use_cputil=False)
+        job = StarCloudPRNTStarLineModeJob(printer_meta)
 
         self.assertFalse(job.use_cputil)
         frappe.logger().info("Job initialized with Python Native")
@@ -165,7 +165,7 @@ class TestPrintJobIntegration(unittest.TestCase):
             self.skipTest("CPUtil not available")
 
         printer_meta = {'printerMAC': '00:11:62:12:34:56'}
-        job = StarCloudPRNTStarLineModeJob(printer_meta, use_cputil=True)
+        job = StarCloudPRNTStarLineModeJob(printer_meta)
 
         markup = "[align: centre]Test Receipt[align: left]\nLine 1\n[cut]"
 
@@ -191,7 +191,7 @@ class TestCPUtilFallback(unittest.TestCase):
             self.skipTest("CPUtil not available")
 
         printer_meta = {'printerMAC': '00:11:62:12:34:56'}
-        job = StarCloudPRNTStarLineModeJob(printer_meta, use_cputil=True)
+        job = StarCloudPRNTStarLineModeJob(printer_meta)
 
         # Invalid markup should trigger fallback
         invalid_markup = "[invalid: command that does not exist]\n[cut]"
@@ -206,7 +206,7 @@ class TestCPUtilFallback(unittest.TestCase):
     def test_02_fallback_when_cputil_disabled(self):
         """Test that Python Native works when CPUtil disabled"""
         printer_meta = {'printerMAC': '00:11:62:12:34:56'}
-        job = StarCloudPRNTStarLineModeJob(printer_meta, use_cputil=False)
+        job = StarCloudPRNTStarLineModeJob(printer_meta)
 
         # Should use Python Native
         self.assertFalse(job.use_cputil)

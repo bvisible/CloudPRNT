@@ -71,7 +71,7 @@ def get_next_job(printer_mac):
 				"printer_mac": printer_mac.upper(),
 				"status": "Pending"
 			},
-			fields=["name", "job_token", "invoice_name", "job_data", "media_types", "creation"],
+			fields=["name", "job_token", "invoice_name", "job_data", "media_types", "printer_mac", "creation"],
 			order_by="creation asc",
 			limit=1
 		)
@@ -93,6 +93,7 @@ def get_next_job(printer_mac):
 			"invoice": job.invoice_name,
 			"job_data": job.job_data,
 			"media_types": media_types
+		"printer_mac": job.printer_mac
 		}
 
 	except Exception as e:

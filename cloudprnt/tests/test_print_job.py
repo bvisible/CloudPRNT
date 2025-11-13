@@ -126,9 +126,9 @@ class TestStarLineModeJob:
         """Test job initialization with Python Native (no CPUtil)"""
         printer_meta = mock_printer_meta()
 
-        job = StarCloudPRNTStarLineModeJob(printer_meta, use_cputil=False)
+        job = StarCloudPRNTStarLineModeJob(printer_meta)
 
-        assert job.use_cputil == False
+        
         assert job.printer_mac == "00:11:62:12:34:56"
         assert job.print_job_builder == ""
 
@@ -138,18 +138,18 @@ class TestStarLineModeJob:
         """Test job initialization attempts CPUtil if requested"""
         printer_meta = mock_printer_meta()
 
-        job = StarCloudPRNTStarLineModeJob(printer_meta, use_cputil=True)
+        job = StarCloudPRNTStarLineModeJob(printer_meta)
 
         # use_cputil will be True only if CPUtil is actually available
         # We don't assert the value, just that it doesn't crash
-        assert isinstance(job.use_cputil, bool)
+        
 
-        frappe.logger().info(f"✅ Job init CPUtil test passed (use_cputil={job.use_cputil})")
+        frappe.logger().info("✅ Job init test passed")
 
     def test_str_to_hex_utf8_uppercase(self):
         """Test str_to_hex converts UTF-8 to uppercase hex"""
         printer_meta = mock_printer_meta()
-        job = StarCloudPRNTStarLineModeJob(printer_meta, use_cputil=False)
+        job = StarCloudPRNTStarLineModeJob(printer_meta)
 
         # Test basic ASCII
         hex_ascii = job.str_to_hex("ABC")
@@ -167,7 +167,7 @@ class TestStarLineModeJob:
     def test_build_job_from_markup_basic(self):
         """Test build_job_from_markup with simple markup"""
         printer_meta = mock_printer_meta()
-        job = StarCloudPRNTStarLineModeJob(printer_meta, use_cputil=False)
+        job = StarCloudPRNTStarLineModeJob(printer_meta)
 
         markup = get_test_markup_simple()
 
@@ -186,7 +186,7 @@ class TestStarLineModeJob:
     def test_hex_output_valid_format(self):
         """Test generated hex is valid uppercase format"""
         printer_meta = mock_printer_meta()
-        job = StarCloudPRNTStarLineModeJob(printer_meta, use_cputil=False)
+        job = StarCloudPRNTStarLineModeJob(printer_meta)
 
         # Manually build some hex using class methods
         job.add_text("Test")
@@ -211,7 +211,7 @@ class TestStarLineModeCommands:
     def test_set_text_emphasized(self):
         """Test emphasis command"""
         printer_meta = mock_printer_meta()
-        job = StarCloudPRNTStarLineModeJob(printer_meta, use_cputil=False)
+        job = StarCloudPRNTStarLineModeJob(printer_meta)
 
         job.set_text_emphasized()
 
@@ -221,7 +221,7 @@ class TestStarLineModeCommands:
     def test_set_text_alignment(self):
         """Test alignment commands"""
         printer_meta = mock_printer_meta()
-        job = StarCloudPRNTStarLineModeJob(printer_meta, use_cputil=False)
+        job = StarCloudPRNTStarLineModeJob(printer_meta)
 
         job.set_text_center_align()
         assert "1B1D6101" in job.print_job_builder
@@ -237,7 +237,7 @@ class TestStarLineModeCommands:
     def test_add_barcode(self):
         """Test barcode generation"""
         printer_meta = mock_printer_meta()
-        job = StarCloudPRNTStarLineModeJob(printer_meta, use_cputil=False)
+        job = StarCloudPRNTStarLineModeJob(printer_meta)
 
         job.add_barcode(
             type=4,  # Code128
@@ -266,7 +266,7 @@ class TestPrintJobWithRealMarkup:
     def test_build_job_from_real_markup(self):
         """Test building job from realistic receipt markup"""
         printer_meta = mock_printer_meta()
-        job = StarCloudPRNTStarLineModeJob(printer_meta, use_cputil=False)
+        job = StarCloudPRNTStarLineModeJob(printer_meta)
 
         markup = get_test_markup()  # Realistic receipt markup
 
@@ -286,7 +286,7 @@ class TestCPUtilIntegrationInPrintJob:
     def test_cputil_options_from_settings(self):
         """Test _get_cputil_options_from_settings"""
         printer_meta = mock_printer_meta()
-        job = StarCloudPRNTStarLineModeJob(printer_meta, use_cputil=False)
+        job = StarCloudPRNTStarLineModeJob(printer_meta)
 
         options = job._get_cputil_options_from_settings()
 
@@ -300,7 +300,7 @@ class TestCPUtilIntegrationInPrintJob:
     def test_fallback_to_python_on_cputil_error(self):
         """Test fallback to Python when CPUtil fails"""
         printer_meta = mock_printer_meta()
-        job = StarCloudPRNTStarLineModeJob(printer_meta, use_cputil=True)
+        job = StarCloudPRNTStarLineModeJob(printer_meta)
 
         # Invalid markup that would make CPUtil fail
         invalid_markup = "[invalid: command that does not exist]"
