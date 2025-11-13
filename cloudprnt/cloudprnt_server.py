@@ -245,7 +245,7 @@ def create_print_log(invoice_name):
 # CLOUDPRNT HTTP ENDPOINTS
 # ============================================================================
 
-@frappe.whitelist(allow_guest=True, methods=['POST'])
+@frappe.whitelist(allow_guest=True)
 def cloudprnt_poll():
     """
     CloudPRNT Poll Endpoint (POST)
@@ -269,12 +269,29 @@ def cloudprnt_poll():
     }
     """
     try:
-        # Parse JSON body
-        data = frappe.request.get_json()
+        # Parse JSON body - handle both application/json and other content types
+        data = None
+
+        # Try to get JSON with force=True to handle missing Content-Type header
+        try:
+            data = frappe.request.get_json(force=True, silent=True)
+        except:
+            pass
+
+        # Fallback: try to parse from request.data if JSON parsing failed
+        if not data and frappe.request.data:
+            try:
+                data = json.loads(frappe.request.data)
+            except:
+                pass
+
+        # Last resort: check form data
+        if not data and frappe.form_dict:
+            data = frappe.form_dict
 
         if not data:
-            frappe.log_error("No JSON data in poll request", "cloudprnt_poll")
-            return {"jobReady": False}
+            frappe.response.update({"jobReady": False})
+            return
 
         # Extract printer info
         printer_mac_dots = data.get("printerMAC", "")
@@ -287,7 +304,8 @@ def cloudprnt_poll():
 
         if not printer_mac:
             frappe.log_error(f"Invalid MAC address: {printer_mac_dots}", "cloudprnt_poll")
-            return {"jobReady": False}
+            frappe.response.update({"jobReady": False})
+            return
 
         # Track for discovery (helps auto-detect new printers)
         try:
@@ -316,21 +334,21 @@ def cloudprnt_poll():
 
             frappe.logger().info(f"Job ready for printer {printer_mac}: {job['token']}")
 
-            return {
+            frappe.response.update({
                 "jobReady": True,
                 "mediaTypes": job.get("media_types", ["application/vnd.star.line", "text/vnd.star.markup"]),
                 "jobToken": job["token"]
-            }
+            })
         else:
             # No jobs
-            return {
+            frappe.response.update({
                 "jobReady": False,
                 "mediaTypes": ["application/vnd.star.line", "text/vnd.star.markup"]
-            }
+            })
 
     except Exception as e:
         frappe.log_error(f"Error in cloudprnt_poll: {str(e)}", "cloudprnt_poll")
-        return {"jobReady": False}
+        frappe.response.update({"jobReady": False})
 
 
 @frappe.whitelist(allow_guest=True, methods=['GET'])
