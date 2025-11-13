@@ -297,9 +297,31 @@ async def get_job(mac: str = Query(..., description="Printer MAC address in dot 
                 elif "[magnify]" in line or "[bold: off]" in line:
                     star_job.cancel_text_emphasized()
 
-                # Feed tags
-                if "[feed]" in line:
-                    star_job.add_new_line(1)
+                # Image tags - [image: url URL; ...]
+                if "[image:" in line:
+                    import re as img_re
+                    img_match = img_re.search(r'\[image:\s*url\s+([^\s;]+)', line)
+                    if img_match:
+                        image_url = img_match.group(1)
+                        try:
+                            star_job.add_image_from_url(image_url)
+                        except Exception as e:
+                            print(f"Error adding image from URL {image_url}: {e}")
+                    continue
+
+                # Feed tags - handle both [feed] and [feed: length Xmm]
+                if "[feed" in line:
+                    # Extract feed length if specified (e.g., "[feed: length 3mm]")
+                    import re as feed_re
+                    feed_match = feed_re.search(r'\[feed:\s*length\s+(\d+)mm\]', line)
+                    if feed_match:
+                        # Convert mm to lines (roughly 1mm = 0.3 lines, so 3mm = 1 line)
+                        mm = int(feed_match.group(1))
+                        lines_to_feed = max(1, mm // 3)
+                        star_job.add_new_line(lines_to_feed)
+                    else:
+                        # Simple [feed] tag
+                        star_job.add_new_line(1)
 
                 # Cut tags
                 if "[cut" in line:
