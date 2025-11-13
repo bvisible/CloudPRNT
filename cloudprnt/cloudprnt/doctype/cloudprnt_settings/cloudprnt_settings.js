@@ -3,14 +3,8 @@
 
 frappe.ui.form.on("CloudPRNT Settings", {
     refresh(frm) {
-        frappe.call({
-            method: "cloudprnt.cloudprnt.doctype.cloudprnt_printers.cloudprnt_printers.update_printers",
-            callback: function (r) {
-                if(r.message)
-                    console.log(r.message);
-                frm.refresh_field('printers');
-            }
-        });
+        // Note: update_printers() removed - printers are now updated automatically
+        // by cloudprnt_server.py when they poll the server
 
         frm.add_custom_button(__('Tester Imprimante'), function() {
             const dialog = new frappe.ui.Dialog({
