@@ -21,16 +21,16 @@ def get_pos_invoice_markup(invoice_name):
     markup = []
     
     # Logo et en-tête
-    markup.append("[align: centre][font: a]\\")
-    
+    markup.append("[align: centre][font: a]")
+
     # Si un logo est configuré, ajoutez-le
     logo_url = frappe.db.get_single_value("CloudPRNT Settings", "header_logo_url")
     if logo_url:
-        markup.append(f"[image: url {logo_url}; width 60%; min-width 48mm]\\")
-    
+        markup.append(f"[image: url {logo_url}; width 60%; min-width 48mm]")
+
     # En-tête avec informations de la société
     markup.append(f"[magnify: width 2; height 1]{doc.company}")
-    markup.append("[magnify]\\")
+    markup.append("[magnify]")
     
     if company_address:
         for address in company_address:
@@ -46,8 +46,8 @@ def get_pos_invoice_markup(invoice_name):
                 city_line.append(address.city)
                 address_lines.append(" ".join(city_line))
             markup.append(" ".join(address_lines))
-    
-    markup.append("\\")
+
+    markup.append("")
     markup.append(f"{_('Invoice')}: {doc.name}")
     
     # Format dates manually instead of using format_datetime
@@ -64,14 +64,14 @@ def get_pos_invoice_markup(invoice_name):
     markup.append(f"{_('Customer')}: {doc.customer_name}")
     markup.append(f"{_('Cashier')}: {owner_first_name} {owner_last_name[:1]}.")
     markup.append(f"{_('Currency')}: {doc.currency}")
-    markup.append("\\")
+    markup.append("")
     
     # Ligne de séparation
     markup.append("[feed: length 3mm]")
-    
+
     # En-tête des colonnes - un seul titre pour les articles
-    markup.append("[align: left]\\")
-    
+    markup.append("[align: left]")
+
     # En-tête de colonnes pour Qty et Price avec traduction
     markup.append(f"[column: left {_('Qty')}; right {_('Price')}]")
     
@@ -87,7 +87,7 @@ def get_pos_invoice_markup(invoice_name):
     
     # Articles
     for item in doc.items:
-        markup.append("\\")
+        markup.append("")
         # Mettre le nom de l'article en gras avec la commande bold
         markup.append(f"[bold: on]{item.item_name}[bold: off]")
         
@@ -207,7 +207,7 @@ def get_pos_invoice_markup(invoice_name):
     # Logo du bas
     footer_logo_url = frappe.db.get_single_value("CloudPRNT Settings", "footer_logo_url")
     if footer_logo_url:
-        markup.append("[align: centre]\\")
+        markup.append("[align: centre]")
         markup.append(f"[image: url {footer_logo_url}; width 40%; min-width 30mm]")
     
     # Ajouter un code-barres avec le numéro de facture
