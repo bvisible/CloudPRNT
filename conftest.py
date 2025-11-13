@@ -21,12 +21,11 @@ def frappe_session():
         # Get site name from environment or use default
         site = os.environ.get("FRAPPE_SITE", "test_site")
 
-        # Change to bench directory if we're in apps/cloudprnt
-        original_dir = os.getcwd()
+        # Find bench path (directory containing sites/)
         bench_path = os.environ.get("FRAPPE_BENCH_PATH")
 
-        # Try to find bench path by going up from current directory
         if not bench_path:
+            # Try to find bench path by going up from current directory
             current = os.getcwd()
             while current != '/':
                 if os.path.exists(os.path.join(current, 'sites', 'apps.txt')):
@@ -34,11 +33,20 @@ def frappe_session():
                     break
                 current = os.path.dirname(current)
 
-        # Change to bench directory if found
+        # Determine sites_path
+        if bench_path:
+            sites_path = os.path.join(bench_path, 'sites')
+        else:
+            # Fallback: assume we're in bench directory
+            sites_path = os.path.join(os.getcwd(), 'sites')
+
+        # Change to bench directory for initialization
+        original_dir = os.getcwd()
         if bench_path and os.path.exists(bench_path):
             os.chdir(bench_path)
 
-        frappe.init(site=site)
+        # Initialize Frappe with explicit sites_path
+        frappe.init(site=site, sites_path=sites_path)
         frappe.connect()
 
         # Restore original directory
