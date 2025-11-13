@@ -251,3 +251,10 @@ fixtures = [
 # Initialize MQTT bridge on server startup (if configured)
 after_migrate = ["cloudprnt.mqtt_bridge.init_mqtt_bridge"]
 
+# Bench Commands
+# --------------
+# Add custom bench commands
+commands = [
+	"cloudprnt.commands.run_cloudprnt_server"
+]
+

@@ -46,11 +46,20 @@ PRINT_QUEUE = {}
 
 def init_frappe():
     """Initialize Frappe connection for this request"""
-    if not frappe.local.site:
+    if not hasattr(frappe.local, 'site') or not frappe.local.site:
         sites_path = os.path.join(bench_path, "sites")
-        frappe.init(site="prod.local", sites_path=sites_path)
-        frappe.connect()
-        frappe.set_user("Administrator")
+        try:
+            frappe.init(site="prod.local", sites_path=sites_path)
+            frappe.connect()
+            frappe.set_user("Administrator")
+        except Exception as e:
+            # If connection fails, try without logging
+            import logging
+            logging.disable(logging.CRITICAL)
+            frappe.init(site="prod.local", sites_path=sites_path)
+            frappe.connect()
+            frappe.set_user("Administrator")
+            logging.disable(logging.NOTSET)
 
 
 def normalize_mac_address(mac_address):

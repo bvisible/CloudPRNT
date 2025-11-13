@@ -34,13 +34,84 @@ bench get-app https://github.com/bvisible/CloudPRNT.git
 bench --site your-site install-app cloudprnt
 ```
 
-### 2. Run Migration
+### 2. Install Dependencies
+
+```bash
+cd ~/frappe-bench
+./env/bin/pip install fastapi uvicorn
+```
+
+### 3. Run Migration
 
 ```bash
 bench --site your-site migrate
 ```
 
-### 3. Configure Printers
+### 4. Setup Standalone Server
+
+CloudPRNT uses a standalone FastAPI server on port 8001 to avoid saturating Frappe's Gunicorn workers.
+
+#### A. Create Nginx Configuration
+
+Add this location block to your Nginx config (e.g., `/etc/nginx/conf.d/frappe-bench.conf`):
+
+```nginx
+# CloudPRNT Standalone Server - Python FastAPI on port 8001
+location /cloudprnt/ {
+    proxy_http_version 1.1;
+    proxy_set_header X-Forwarded-For $remote_addr;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header Host $host;
+    proxy_read_timeout 120;
+    proxy_redirect off;
+
+    # Strip /cloudprnt prefix and pass to standalone server
+    rewrite ^/cloudprnt/(.*) /$1 break;
+    proxy_pass http://127.0.0.1:8001;
+}
+```
+
+Then reload Nginx:
+```bash
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+#### B. Start Standalone Server
+
+```bash
+# Manual start (for testing)
+bench --site your-site run-cloudprnt-server
+
+# Or start with nohup for background
+cd ~/frappe-bench
+nohup ./env/bin/python apps/cloudprnt/cloudprnt/cloudprnt_standalone_server.py > /tmp/cloudprnt-server.log 2>&1 &
+```
+
+#### C. Setup Auto-Start with Supervisor (Recommended)
+
+Create `/etc/supervisor/conf.d/cloudprnt-server.conf`:
+
+```ini
+[program:cloudprnt-server]
+command=/home/frappe/frappe-bench/env/bin/python /home/frappe/frappe-bench/apps/cloudprnt/cloudprnt/cloudprnt_standalone_server.py
+directory=/home/frappe/frappe-bench
+user=frappe
+autostart=true
+autorestart=true
+redirect_stderr=true
+stdout_logfile=/var/log/cloudprnt-server.log
+stderr_logfile=/var/log/cloudprnt-server-error.log
+```
+
+Then:
+```bash
+sudo supervisorctl reread
+sudo supervisorctl update
+sudo supervisorctl start cloudprnt-server
+```
+
+### 5. Configure Printers
 
 1. Go to **CloudPRNT Settings**
 2. Add your printers in the **Printers** table:
@@ -50,15 +121,31 @@ bench --site your-site migrate
 3. Set **Default Printer**
 4. Save
 
-### 4. Configure Printer Device
+### 6. Configure Printer Device
 
 In your Star printer's web interface, set CloudPRNT URL to:
 
 ```
-https://your-domain.tld/api/method/cloudprnt.cloudprnt_server.cloudprnt_poll
+https://your-domain.tld/cloudprnt/poll
 ```
 
 **Poll interval:** 5 seconds (recommended)
+
+### 7. Verify Installation
+
+```bash
+# Check if standalone server is running
+curl http://localhost:8001/health
+# Should return: {"status":"ok","timestamp":"...","queued_jobs":0}
+
+# Check external access
+curl https://your-domain.tld/cloudprnt/health
+# Should return same response
+
+# Monitor printer connections
+tail -f /tmp/cloudprnt-server.log
+# You should see printer poll requests
+```
 
 ## 🎯 Quick Start
 
