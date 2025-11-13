@@ -619,31 +619,28 @@ def add_print_job(invoice_name, printer_mac=None):
                 "message": "Invalid MAC address"
             }
 
-        # Create job
-        job = {
-            "token": invoice_name,  # Use invoice name as token
-            "invoice": invoice_name,
-            "printer_mac": printer_mac,
-            "timestamp": frappe.utils.now_datetime().strftime("%Y-%m-%d %H:%M:%S"),
-            "status": "pending",
-            "media_types": ["application/vnd.star.line", "text/vnd.star.markup"]
-        }
+        # Add to database queue (shared between processes)
+        from cloudprnt.print_queue_manager import add_job_to_queue
 
-        # Add to queue
-        if printer_mac not in PRINT_QUEUE:
-            PRINT_QUEUE[printer_mac] = []
+        result = add_job_to_queue(
+            job_token=invoice_name,  # Use invoice name as token
+            printer_mac=printer_mac,
+            invoice_name=invoice_name,
+            job_data=None,  # Will be generated on-demand from POS Invoice
+            media_types=["application/vnd.star.line", "text/vnd.star.markup"]
+        )
 
-        PRINT_QUEUE[printer_mac].append(job)
-
-        frappe.logger().info(f"Job added to queue: {invoice_name} for printer {printer_mac}")
-
-        return {
-            "success": True,
-            "message": f"Job added to queue",
-            "job_token": job["token"],
-            "printer_mac": printer_mac,
-            "queue_position": len(PRINT_QUEUE[printer_mac])
-        }
+        if result.get("success"):
+            frappe.logger().info(f"Job added to queue: {invoice_name} for printer {printer_mac}")
+            return {
+                "success": True,
+                "message": f"Job added to queue",
+                "job_token": invoice_name,
+                "printer_mac": printer_mac,
+                "queue_position": result.get("queue_position", 1)
+            }
+        else:
+            return result
 
     except Exception as e:
         frappe.log_error(f"Error adding print job: {str(e)}", "add_print_job")
