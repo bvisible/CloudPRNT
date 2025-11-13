@@ -10,7 +10,6 @@
   "invoice_name",
   "column_break_1",
   "status",
-  "created_at",
   "section_break_2",
   "job_data",
   "media_types"
@@ -40,13 +39,6 @@
    "label": "Status",
    "options": "Pending\nFetched\nPrinted\nError",
    "default": "Pending",
-   "reqd": 1
-  },
-  {
-   "fieldname": "created_at",
-   "fieldtype": "Datetime",
-   "label": "Created At",
-   "default": "Now",
    "reqd": 1
   },
   {
@@ -89,7 +81,7 @@
    "write": 1
   }
  ],
- "sort_field": "created_at",
+ "sort_field": "creation",
  "sort_order": "ASC",
  "states": [],
  "track_changes": 1

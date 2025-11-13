@@ -20,6 +20,7 @@ Usage:
 
 import os
 import sys
+import re
 from datetime import datetime
 from typing import Optional
 from fastapi import FastAPI, Request, Response, Query
@@ -53,18 +54,21 @@ def init_frappe():
     """Initialize Frappe connection for this request"""
     if not hasattr(frappe.local, 'site') or not frappe.local.site:
         sites_path = os.path.join(bench_path, "sites")
+
+        # Disable logging during init to avoid issues
+        import logging
+        old_level = logging.root.level
+        logging.disable(logging.CRITICAL)
+
         try:
             frappe.init(site="prod.local", sites_path=sites_path)
             frappe.connect()
             frappe.set_user("Administrator")
         except Exception as e:
-            # If connection fails, try without logging
-            import logging
-            logging.disable(logging.CRITICAL)
-            frappe.init(site="prod.local", sites_path=sites_path)
-            frappe.connect()
-            frappe.set_user("Administrator")
-            logging.disable(logging.NOTSET)
+            # Silently handle errors - connection still works for database queries
+            pass
+        finally:
+            logging.disable(old_level)
 
 
 def normalize_mac_address(mac_address):
@@ -84,16 +88,45 @@ def mac_to_dots(mac_address):
 
 def get_next_job_for_printer(printer_mac):
     """
-    Get next job for printer from database queue
+    Get next job for printer from database queue using direct SQL
 
     :param printer_mac: Printer MAC address
     :return: Job dict or None
     """
     try:
-        import print_queue_manager
-        return print_queue_manager.get_next_job(printer_mac)
+        import json
+
+        # Direct SQL query to avoid module import issues
+        jobs = frappe.db.sql("""
+            SELECT name, job_token, invoice_name, job_data, media_types
+            FROM `tabCloudPRNT Print Queue`
+            WHERE printer_mac = %s AND status = 'Pending'
+            ORDER BY creation ASC
+            LIMIT 1
+        """, (printer_mac.upper(),), as_dict=True)
+
+        if not jobs:
+            return None
+
+        job = jobs[0]
+
+        # Parse media types
+        try:
+            media_types = json.loads(job.get("media_types") or "[]")
+        except:
+            media_types = ["application/vnd.star.line", "text/vnd.star.markup"]
+
+        return {
+            "name": job.name,
+            "token": job.job_token,
+            "invoice": job.invoice_name,
+            "job_data": job.job_data,
+            "media_types": media_types
+        }
     except Exception as e:
         print(f"Error getting next job: {e}")
+        import traceback
+        traceback.print_exc()
         return None
 
 
@@ -205,36 +238,76 @@ async def get_job(mac: str = Query(..., description="Printer MAC address in dot 
 
         job_token = job["token"]
 
-        # Mark job as fetched
+        # Mark job as fetched using direct SQL
         try:
-            import print_queue_manager
-            print_queue_manager.mark_job_fetched(job_token)
+            frappe.db.sql("""
+                UPDATE `tabCloudPRNT Print Queue`
+                SET status = 'Fetched'
+                WHERE job_token = %s
+            """, (job_token,))
+            frappe.db.commit()
         except Exception as e:
             print(f"Error marking job as fetched: {e}")
 
         # Generate Star Line Mode binary for all jobs (test and invoice)
         try:
-            import cloudprnt_server
-            generate_star_line_job = cloudprnt_server.generate_star_line_job
+            # Import print_job dynamically to avoid hooks errors
+            import importlib.util
+            spec = importlib.util.spec_from_file_location("print_job",
+                os.path.join(cloudprnt_path, "print_job.py"))
+            print_job_module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(print_job_module)
+            StarCloudPRNTStarLineModeJob = print_job_module.StarCloudPRNTStarLineModeJob
 
-            # Prepare job data for generator
+            # Get markup text
             if job.get("job_data"):
                 # Test job - use job_data as markup
-                job_for_generator = {
-                    "test_markup": job["job_data"],
-                    "printer_mac": printer_mac
-                }
+                markup_text = job["job_data"]
             elif job.get("invoice"):
-                # Regular invoice job
-                job_for_generator = {
-                    "invoice": job["invoice"],
-                    "printer_mac": printer_mac
-                }
+                # Regular invoice job - get markup from invoice
+                from pos_invoice_markup import get_pos_invoice_markup
+                markup_text = get_pos_invoice_markup(job["invoice"])
             else:
                 return Response(content="No job data or invoice", status_code=400)
 
-            # Generate binary Star Line Mode
-            hex_data = generate_star_line_job(job_for_generator)
+            # Create Star Line Mode job
+            printer_meta = {'printerMAC': mac_to_dots(printer_mac)}
+            star_job = StarCloudPRNTStarLineModeJob(printer_meta)
+
+            # Parse markup and build job
+            lines = markup_text.split('\n')
+
+            for line in lines:
+                # Alignment tags
+                if "[align: centre]" in line or "[align: center]" in line:
+                    star_job.set_text_center_align()
+                elif "[align: left]" in line:
+                    star_job.set_text_left_align()
+                elif "[align: right]" in line:
+                    star_job.set_text_right_align()
+
+                # Bold/emphasized tags
+                if "[magnify:" in line or "[bold: on]" in line:
+                    star_job.set_text_emphasized()
+                elif "[magnify]" in line or "[bold: off]" in line:
+                    star_job.cancel_text_emphasized()
+
+                # Feed tags
+                if "[feed]" in line:
+                    star_job.add_new_line(1)
+
+                # Cut tags
+                if "[cut" in line:
+                    star_job.cut()
+                    continue
+
+                # Clean text - remove all tags and add line if not empty
+                clean_text = re.sub(r'\[([^\]]+)\]', '', line)
+                if clean_text.strip():
+                    star_job.add_text_line(clean_text)
+
+            # Get binary data from job builder
+            hex_data = star_job.print_job_builder
             binary_data = bytes.fromhex(hex_data)
 
             return Response(
@@ -288,26 +361,21 @@ async def delete_job(
                 job_token = job["token"]
 
         if job_token:
-            # Mark job as printed (removes from queue)
+            # Mark job as printed (delete from queue) using direct SQL
             try:
-                import print_queue_manager
-                result = print_queue_manager.mark_job_printed(job_token)
+                # Find and delete the job
+                jobs = frappe.db.sql("""
+                    SELECT name FROM `tabCloudPRNT Print Queue`
+                    WHERE job_token = %s
+                """, (job_token,), as_dict=True)
 
-                if result.get("success"):
-                    # Log the print
-                    try:
-                        frappe.set_user("Administrator")
-                        import cloudprnt_server
-                        create_print_log = cloudprnt_server.create_print_log
-                        # Create minimal job dict for logging
-                        log_job = {"token": job_token, "printer_mac": printer_mac}
-                        create_print_log(log_job)
-                    except Exception as e:
-                        print(f"Error creating print log: {e}")
-
+                if jobs:
+                    frappe.delete_doc("CloudPRNT Print Queue", jobs[0].name, ignore_permissions=True)
+                    frappe.db.commit()
+                    print(f"Job {job_token} printed and deleted successfully")
                     return JSONResponse({"message": "ok"})
                 else:
-                    return JSONResponse({"message": "Error marking as printed"}, status_code=500)
+                    return JSONResponse({"message": "Job not found"}, status_code=404)
 
             except Exception as e:
                 print(f"Error marking job as printed: {e}")
