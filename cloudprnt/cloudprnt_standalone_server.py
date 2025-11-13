@@ -33,6 +33,11 @@ else:
     bench_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 
 sys.path.insert(0, bench_path)
+# Add cloudprnt app directory so modules can be imported
+cloudprnt_path = os.path.join(bench_path, "apps", "cloudprnt", "cloudprnt")
+if cloudprnt_path not in sys.path:
+    sys.path.insert(0, cloudprnt_path)
+
 os.chdir(bench_path)
 
 # Frappe will be initialized per-request to avoid connection issues
@@ -131,7 +136,8 @@ async def poll(request: Request):
 
         # Track for discovery
         try:
-            from cloudprnt.printer_discovery import track_printer_poll
+            import printer_discovery
+            track_printer_poll = printer_discovery.track_printer_poll
             track_printer_poll(
                 printer_mac,
                 ip_address=client_ip,
