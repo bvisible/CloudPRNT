@@ -16,8 +16,10 @@ def run_cloudprnt_server(site):
 	Usage:
 		bench --site prod.local run-cloudprnt-server
 	"""
-	# Get bench path
+	# Get bench path (ensure we're in bench root, not sites directory)
 	bench_path = os.getcwd()
+	if bench_path.endswith('/sites'):
+		bench_path = os.path.dirname(bench_path)
 
 	# Path to standalone server
 	server_path = os.path.join(bench_path, 'apps', 'cloudprnt', 'cloudprnt', 'cloudprnt_standalone_server.py')
