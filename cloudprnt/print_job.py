@@ -43,8 +43,8 @@ def neolog(title=None, message=None, reference_doctype=None, reference_name=None
 
 class StarCloudPRNTStarLineModeJob:
     SLM_NEW_LINE_HEX = "0A"
-    SLM_SET_EMPHASIZED_HEX = "1B45"
-    SLM_CANCEL_EMPHASIZED_HEX = "1B46"
+    SLM_SET_EMPHASIZED_HEX = "1B4501"  # ESC E 01 - Enable emphasized mode
+    SLM_CANCEL_EMPHASIZED_HEX = "1B4600"  # ESC F 00 - Cancel emphasized mode
     SLM_SET_LEFT_ALIGNMENT_HEX = "1B1D6100"
     SLM_SET_CENTER_ALIGNMENT_HEX = "1B1D6101"
     SLM_SET_RIGHT_ALIGNMENT_HEX = "1B1D6102"
@@ -163,24 +163,41 @@ class StarCloudPRNTStarLineModeJob:
         self.print_job_builder += print_bc
     
     def add_image_from_url(self, url):
+            """
+            Add an image to the print job using Star Line Mode raster graphics.
+            Uses ESC * command with single-density mode for compatibility.
+            """
             response = requests.get(url)
             image = Image.open(io.BytesIO(response.content))
-            image = image.convert("1")  # Convert to 1-bit image for printing
 
+            # Convert to 1-bit monochrome image
+            image = image.convert("1")
             width, height = image.size
-            pixels = list(image.getdata())
 
-            # Convert image data to hex
-            image_hex = ""
-            for i in range(0, len(pixels), 8):
-                byte = 0
-                for bit in range(8):
-                    if i + bit < len(pixels) and pixels[i + bit] == 0:  # 0 means black in 1-bit image
-                        byte |= (1 << (7 - bit))
-                image_hex += f"{byte:02X}"
+            # For Star printers, width must be multiple of 8
+            if width % 8 != 0:
+                new_width = ((width // 8) + 1) * 8
+                new_image = Image.new("1", (new_width, height), 1)  # white background
+                new_image.paste(image, (0, 0))
+                image = new_image
+                width = new_width
 
-            # Add image data to print job
-            self.print_job_builder += f"1B2A{chr(width % 256)}{chr(width // 256)}{chr(height % 256)}{chr(height // 256)}{image_hex}"
+            # Process image line by line for raster mode
+            for y in range(height):
+                line_data = ""
+                for x in range(0, width, 8):
+                    byte = 0
+                    for bit in range(8):
+                        if x + bit < width:
+                            pixel = image.getpixel((x + bit, y))
+                            if pixel == 0:  # 0 = black in 1-bit mode
+                                byte |= (1 << (7 - bit))
+                    line_data += f"{byte:02X}"
+
+                # ESC * mode width_low width_high [data] - single density raster
+                width_low = f"{width % 256:02X}"
+                width_high = f"{width // 256:02X}"
+                self.print_job_builder += f"1B2A00{width_low}{width_high}{line_data}{self.SLM_NEW_LINE_HEX}"
 
     def cut(self):
         self.print_job_builder += self.SLM_FEED_PARTIAL_CUT_HEX

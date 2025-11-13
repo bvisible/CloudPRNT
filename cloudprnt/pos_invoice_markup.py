@@ -22,18 +22,14 @@ def get_pos_invoice_markup(invoice_name):
     
     # Logo et en-tête
     markup.append("[align: centre][font: a]")
-    markup.append("")
 
     # Si un logo est configuré, ajoutez-le
     logo_url = frappe.db.get_single_value("CloudPRNT Settings", "header_logo_url")
     if logo_url:
         markup.append(f"[image: url {logo_url}; width 60%; min-width 48mm]")
-        markup.append("")
 
     # En-tête avec informations de la société
-    markup.append(f"[magnify: width 2; height 1]{doc.company}")
-    markup.append("[magnify]")
-    markup.append("")
+    markup.append(f"[magnify: width 2; height 1]{doc.company}[magnify]")
     
     if company_address:
         for address in company_address:
@@ -50,8 +46,6 @@ def get_pos_invoice_markup(invoice_name):
                 address_lines.append(" ".join(city_line))
             markup.append(" ".join(address_lines))
 
-    markup.append("")
-    markup.append("")
     markup.append(f"{_('Invoice')}: {doc.name}")
     
     # Format dates manually instead of using format_datetime
@@ -68,22 +62,12 @@ def get_pos_invoice_markup(invoice_name):
     markup.append(f"{_('Customer')}: {doc.customer_name}")
     markup.append(f"{_('Cashier')}: {owner_first_name} {owner_last_name[:1]}.")
     markup.append(f"{_('Currency')}: {doc.currency}")
-    markup.append("")
-    markup.append("")
 
-    # Ligne de séparation
-    markup.append("[feed: length 3mm]")
-    markup.append("")
-
-    # En-tête des colonnes - un seul titre pour les articles
+    # Separator before items
+    markup.append("")  # Single blank line
+    markup.append("[align: centre]")
+    markup.append("-" * 48)
     markup.append("[align: left]")
-
-    # En-tête de colonnes pour Qty et Price avec traduction
-    markup.append(f"[column: left {_('Qty')}; right {_('Price')}]")
-    
-    # Ligne de séparation pour les colonnes
-    markup.append("-" * 42)  # Ligne de tirets pour séparer l'en-tête des données
-    markup.append("")
 
     # Fonction pour normaliser les chaînes pour comparaison (supprimer espaces et tirets)
     def normalize_for_comparison(text):
@@ -91,18 +75,24 @@ def get_pos_invoice_markup(invoice_name):
             return ""
         # Convertir en minuscules, supprimer les espaces et les tirets
         return re.sub(r'[\s\-]', '', text.lower())
-    
-    # Articles
+
+    # Articles - use bold mode once for all item names to improve performance
+    markup.append("")  # Single blank line
+    markup.append("[bold: on]")
     for item in doc.items:
-        markup.append("")
-        # Mettre le nom de l'article en gras avec la commande bold
-        markup.append(f"[bold: on]{item.item_name}[bold: off]")
-        
-        # Afficher le code article UNIQUEMENT s'il est différent du nom (en ignorant la casse, espaces et tirets)
+        markup.append("")  # Empty line for spacing between items
+        # Display item name with item code on same line if different
+        item_display = item.item_name
         if normalize_for_comparison(item.item_code) != normalize_for_comparison(item.item_name):
-            markup.append(f"{item.item_code}")
-        
-        # Afficher les numéros de série et de lot si disponibles
+            item_display = f"{item.item_name} ({item.item_code})"
+
+        markup.append(item_display)
+
+    markup.append("[bold: off]")
+
+    # Now show details for each item (prices, serial numbers, etc.)
+    for item in doc.items:
+        # Display serial numbers and batch numbers if available
         if hasattr(item, 'serial_and_batch_bundle') and item.serial_and_batch_bundle:
             try:
                 sabb_entries = frappe.get_doc("Serial and Batch Bundle", item.serial_and_batch_bundle).get("entries") or []
@@ -114,20 +104,15 @@ def get_pos_invoice_markup(invoice_name):
             except Exception:
                 # Ignore errors if serial/batch info is not available
                 pass
-        
-        # Prix, remise et total de la ligne - sans répéter les en-têtes
-        markup.append(f"[column: left {item.qty}; right {fmt_money(item.rate, currency=doc.currency)}]")
-        
-        if item.discount_percentage > 0:
-            markup.append(f"[column: left; right Disc: {item.discount_percentage}%]")
-        
-        # Afficher le total de la ligne UNIQUEMENT s'il est différent du prix unitaire
-        # (c'est-à-dire si quantité > 1 ou s'il y a une remise)
-        if item.qty != 1 or item.discount_percentage > 0 or item.rate != item.amount:
-            markup.append(f"[column: left; right {_('Total')}: {fmt_money(item.amount, currency=doc.currency)}]")
-    
+
+        # Show quantity x price with amount on same line, right-aligned
+        qty_price = f"{item.qty} x {fmt_money(item.rate, currency=doc.currency)}"
+        amount_str = fmt_money(item.amount, currency=doc.currency).strip()
+        # Use rjust to align amount to the right (48 chars width)
+        line = f"{qty_price} {amount_str.rjust(48 - len(qty_price) - 1)}"
+        markup.append(line)
+
     # Ligne de séparation
-    markup.append("[feed: length 1mm]")
     markup.append("")
 
     # Cartes-cadeaux générées
@@ -140,41 +125,60 @@ def get_pos_invoice_markup(invoice_name):
             for giftcard in giftcard_numbers:
                 markup.append(f"{_('Gift card with a value of')} {fmt_money(giftcard.value, currency=doc.currency)}: {giftcard.name}")
     
-    # Ligne de séparation
-    markup.append("[feed: length 1mm]")
+    # Separator line (centered)
+    markup.append("")
+    markup.append("[align: centre]")
+    markup.append("-" * 48)
+    markup.append("[align: left]")
     markup.append("")
 
-    # Total et paiements
+    # Totals and payments section - use spacing to align amounts on same line
+    def format_line_with_amount(label, amount, width=48):
+        """Format a line with label on left and amount on right, on same line"""
+        amount_str = fmt_money(amount, currency=doc.currency).strip()
+        label_str = f"{label}:"
+        # Use rjust to right-align the amount within the total width
+        line = f"{label_str} {amount_str.rjust(width - len(label_str) - 1)}"
+        return line
+
+    # Show subtotal
     if doc.discount_amount:
-        markup.append(f"[column: left {_('Discount')}; right {fmt_money(doc.discount_amount, currency=doc.currency)}]")
-    
+        markup.append(format_line_with_amount(_('Discount'), doc.discount_amount))
+
     if doc.taxes_and_charges == "TVA Vente HT - pri":
-        markup.append(f"[column: left {_('Net Total')}; right {fmt_money(doc.net_total, currency=doc.currency)}]")
-    
-    markup.append(f"[column: left {_('Grand Total')}; right {fmt_money(doc.grand_total, currency=doc.currency)}]")
-    
+        markup.append(format_line_with_amount(_('Net Total'), doc.net_total))
+
+    # Show tax lines
+    for taxe in doc.taxes:
+        if taxe.tax_amount != 0.0 and hasattr(taxe, 'account_head'):
+            taxename = taxe.account_head.split('-')
+            if len(taxename) > 1:
+                tax_label = taxename[1].strip()
+                markup.append(format_line_with_amount(tax_label, taxe.tax_amount))
+
+    markup.append(format_line_with_amount(_('Grand Total'), doc.grand_total))
+
     if doc.rounded_total != doc.grand_total:
-        markup.append(f"[column: left {_('Rounded Total')}; right {fmt_money(doc.rounded_total, currency=doc.currency)}]")
-    
-    # Méthodes de paiement
+        markup.append(format_line_with_amount(_('Rounded Total'), doc.rounded_total))
+
+    # Payment methods
     for payment in doc.payments:
         if payment.amount > 0:
             if payment.mode_of_payment == "Carte cadeau":
                 payment_text = payment.mode_of_payment
                 for payment_gift_card in doc.get("payment_gift_card", []):
                     payment_text += f" {_('N°')}: {payment_gift_card.code}"
-                markup.append(f"[column: left {payment_text}; right -{fmt_money(payment.amount, currency=doc.currency)}]")
+                markup.append(format_line_with_amount(payment_text, payment.amount))
             else:
-                markup.append(f"[column: left {payment.mode_of_payment}; right -{fmt_money(payment.amount, currency=doc.currency)}]")
-    
-    markup.append(f"[column: left {_('Paid Amount')}; right {fmt_money(doc.paid_amount, currency=doc.currency)}]")
-    
+                markup.append(format_line_with_amount(payment.mode_of_payment, payment.amount))
+
     if doc.change_amount:
-        markup.append(f"[column: left {_('Change Amount')}; right {fmt_money(doc.change_amount, currency=doc.currency)}]")
-    
+        markup.append(format_line_with_amount(_('Change Amount'), doc.change_amount))
+
     # Ligne de séparation
-    markup.append("[feed: length 3mm]")
-    
+    markup.append("")
+    markup.append("")
+
     # TVA
     tva_net = {}
     for taxe in doc.taxes:
@@ -189,28 +193,32 @@ def get_pos_invoice_markup(invoice_name):
                 if key.strip() in compare_tva.strip():
                     tva_net[key] = tva_net[key] + row.net_amount
     
-    # Afficher les informations de TVA
+    # Display VAT information
     markup.append(f"{_('Total product')}: {doc.total_qty}")
-    
+
+    # Show VAT number once if there are any taxes
+    tax_id_shown = False
     for taxe in doc.taxes:
         if taxe.tax_amount != 0.0 and hasattr(taxe, 'account_head'):
-            if 'tax_id' not in locals():
+            if not tax_id_shown:
                 tax_id = frappe.db.get_value("Company", doc.company, "tax_id")
                 if tax_id:
                     markup.append(f"{_('VAT number')}: {tax_id}")
-            
+                    tax_id_shown = True
+
             taxename = taxe.account_head.split('-')
             if len(taxename) > 1:
                 taxenameprint = taxename[1].strip()
                 base_amount = tva_net.get(taxenameprint, 0)
                 tax_amount = taxe.base_tax_amount_after_discount_amount
                 total_amount = base_amount + tax_amount
-                
+
                 markup.append(f"{taxenameprint} {_('on')} {fmt_money(base_amount, currency=doc.currency)} = {fmt_money(tax_amount, currency=doc.currency)} | {_('Total')}: {fmt_money(total_amount, currency=doc.currency)}")
     
     # Conditions
     if doc.terms:
-        markup.append("[feed: length 3mm]")
+        markup.append("")
+        markup.append("")
         markup.append(doc.terms)
     
     # Logo du bas
@@ -218,9 +226,10 @@ def get_pos_invoice_markup(invoice_name):
     if footer_logo_url:
         markup.append("[align: centre]")
         markup.append(f"[image: url {footer_logo_url}; width 40%; min-width 30mm]")
-    
+
     # Ajouter un code-barres avec le numéro de facture
-    markup.append("[feed: length 3mm]")
+    markup.append("")
+    markup.append("")
     markup.append("[align: centre]")
     # Selon la doc, l'ajout d'un code-barre est fait avec cette syntaxe
     markup.append(f"[barcode: type code128; data {doc.name}; height 15mm; module 2; hri]")
