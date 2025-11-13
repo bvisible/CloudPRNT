@@ -22,15 +22,18 @@ def get_pos_invoice_markup(invoice_name):
     
     # Logo et en-tête
     markup.append("[align: centre][font: a]")
+    markup.append("")
 
     # Si un logo est configuré, ajoutez-le
     logo_url = frappe.db.get_single_value("CloudPRNT Settings", "header_logo_url")
     if logo_url:
         markup.append(f"[image: url {logo_url}; width 60%; min-width 48mm]")
+        markup.append("")
 
     # En-tête avec informations de la société
     markup.append(f"[magnify: width 2; height 1]{doc.company}")
     markup.append("[magnify]")
+    markup.append("")
     
     if company_address:
         for address in company_address:
@@ -47,6 +50,7 @@ def get_pos_invoice_markup(invoice_name):
                 address_lines.append(" ".join(city_line))
             markup.append(" ".join(address_lines))
 
+    markup.append("")
     markup.append("")
     markup.append(f"{_('Invoice')}: {doc.name}")
     
@@ -65,9 +69,11 @@ def get_pos_invoice_markup(invoice_name):
     markup.append(f"{_('Cashier')}: {owner_first_name} {owner_last_name[:1]}.")
     markup.append(f"{_('Currency')}: {doc.currency}")
     markup.append("")
-    
+    markup.append("")
+
     # Ligne de séparation
     markup.append("[feed: length 3mm]")
+    markup.append("")
 
     # En-tête des colonnes - un seul titre pour les articles
     markup.append("[align: left]")
@@ -77,7 +83,8 @@ def get_pos_invoice_markup(invoice_name):
     
     # Ligne de séparation pour les colonnes
     markup.append("-" * 42)  # Ligne de tirets pour séparer l'en-tête des données
-    
+    markup.append("")
+
     # Fonction pour normaliser les chaînes pour comparaison (supprimer espaces et tirets)
     def normalize_for_comparison(text):
         if not text:
@@ -121,7 +128,8 @@ def get_pos_invoice_markup(invoice_name):
     
     # Ligne de séparation
     markup.append("[feed: length 1mm]")
-    
+    markup.append("")
+
     # Cartes-cadeaux générées
     for item in doc.items:
         if item.item_code == "giftcard":
@@ -134,7 +142,8 @@ def get_pos_invoice_markup(invoice_name):
     
     # Ligne de séparation
     markup.append("[feed: length 1mm]")
-    
+    markup.append("")
+
     # Total et paiements
     if doc.discount_amount:
         markup.append(f"[column: left {_('Discount')}; right {fmt_money(doc.discount_amount, currency=doc.currency)}]")
