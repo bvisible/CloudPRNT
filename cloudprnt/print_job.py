@@ -164,40 +164,66 @@ class StarCloudPRNTStarLineModeJob:
     
     def add_image_from_url(self, url):
             """
-            Add an image to the print job using Star Line Mode raster graphics.
-            Uses ESC * command with single-density mode for compatibility.
+            Add an image to the print job using CPUtil for conversion.
+            Handles transparency by converting to white background.
             """
-            response = requests.get(url)
-            image = Image.open(io.BytesIO(response.content))
+            import tempfile
 
-            # Convert to 1-bit monochrome image
-            image = image.convert("1")
-            width, height = image.size
+            try:
+                # Download image
+                response = requests.get(url, timeout=10)
+                response.raise_for_status()
 
-            # For Star printers, width must be multiple of 8
-            if width % 8 != 0:
-                new_width = ((width // 8) + 1) * 8
-                new_image = Image.new("1", (new_width, height), 1)  # white background
-                new_image.paste(image, (0, 0))
-                image = new_image
-                width = new_width
+                # Save to temp file
+                temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.png')
+                temp_file.write(response.content)
+                temp_file.close()
 
-            # Process image line by line for raster mode
-            for y in range(height):
-                line_data = ""
-                for x in range(0, width, 8):
-                    byte = 0
-                    for bit in range(8):
-                        if x + bit < width:
-                            pixel = image.getpixel((x + bit, y))
-                            if pixel == 0:  # 0 = black in 1-bit mode
-                                byte |= (1 << (7 - bit))
-                    line_data += f"{byte:02X}"
+                # Convert transparency to white background
+                image = Image.open(temp_file.name)
+                if image.mode in ('RGBA', 'LA') or (image.mode == 'P' and 'transparency' in image.info):
+                    # Create white background
+                    background = Image.new('RGB', image.size, (255, 255, 255))
+                    if image.mode == 'P':
+                        image = image.convert('RGBA')
+                    # Paste image on white background using alpha channel as mask
+                    background.paste(image, mask=image.split()[-1] if image.mode == 'RGBA' else None)
+                    image = background
 
-                # ESC * mode width_low width_high [data] - single density raster
-                width_low = f"{width % 256:02X}"
-                width_high = f"{width // 256:02X}"
-                self.print_job_builder += f"1B2A00{width_low}{width_high}{line_data}{self.SLM_NEW_LINE_HEX}"
+                # Save processed image
+                processed_file = tempfile.NamedTemporaryFile(delete=False, suffix='.png')
+                image.save(processed_file.name, 'PNG')
+                processed_file.close()
+
+                # Convert using CPUtil
+                from cputil_wrapper import convert_image_to_starline
+                image_hex = convert_image_to_starline(
+                    processed_file.name,
+                    options={
+                        'printer_width': 3,  # 80mm
+                        'dither': True,
+                        'scale_to_fit': True,
+                        'partial_cut': True  # Use partial cut (will be removed below)
+                    }
+                )
+
+                # Remove cut commands from end of hex since we're in middle of a job
+                # Star Line Mode cut commands: 1B64XX (ESC d + cut type)
+                # Remove last occurrence of cut command
+                import re
+                image_hex = re.sub(r'1B64[0-9A-F]{2}$', '', image_hex, flags=re.IGNORECASE)
+
+                # Add hex to job builder
+                self.print_job_builder += image_hex
+
+                # Cleanup
+                os.unlink(temp_file.name)
+                os.unlink(processed_file.name)
+
+            except Exception as e:
+                print(f"Error adding image from URL {url}: {e}")
+                # Don't fail the whole job, just skip the image
+                pass
 
     def cut(self):
         self.print_job_builder += self.SLM_FEED_PARTIAL_CUT_HEX

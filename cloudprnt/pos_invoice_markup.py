@@ -27,6 +27,7 @@ def get_pos_invoice_markup(invoice_name):
     logo_url = frappe.db.get_single_value("CloudPRNT Settings", "header_logo_url")
     if logo_url:
         markup.append(f"[image: url {logo_url}; width 60%; min-width 48mm]")
+        markup.append("[feed: length 3mm]")  # Space after logo
 
     # En-tête avec informations de la société
     markup.append(f"[magnify: width 2; height 1]{doc.company}[magnify]")
@@ -194,6 +195,7 @@ def get_pos_invoice_markup(invoice_name):
                     tva_net[key] = tva_net[key] + row.net_amount
     
     # Display VAT information
+    markup.append("[feed: length 3mm]")  # Space before Total product
     markup.append(f"{_('Total product')}: {doc.total_qty}")
 
     # Show VAT number once if there are any taxes

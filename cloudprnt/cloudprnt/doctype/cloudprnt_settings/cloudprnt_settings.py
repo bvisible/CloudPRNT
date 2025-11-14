@@ -71,7 +71,8 @@ def test_print(printer, test_text="Test d'impression CloudPRNT", image_link=None
 			try:
 				import requests
 				import tempfile
-				from cloudprnt.cputil_wrapper import convert_png_to_starprnt_80mm
+				from cloudprnt.cputil_wrapper import convert_image_to_starline
+				from PIL import Image
 
 				# Download image
 				response = requests.get(image_link, timeout=10)
@@ -82,18 +83,35 @@ def test_print(printer, test_text="Test d'impression CloudPRNT", image_link=None
 				temp_file.write(response.content)
 				temp_file.close()
 
-				# Convert to StarPRNT
-				binary_data = convert_png_to_starprnt_80mm(
-					temp_file.name,
-					dither=True,
-					scale_to_fit=True
-				)
+				# Convert transparency to white background
+				img = Image.open(temp_file.name)
+				if img.mode in ('RGBA', 'LA') or (img.mode == 'P' and 'transparency' in img.info):
+					# Create white background
+					background = Image.new('RGB', img.size, (255, 255, 255))
+					if img.mode == 'P':
+						img = img.convert('RGBA')
+					# Paste image on white background using alpha channel as mask
+					background.paste(img, mask=img.split()[-1] if img.mode == 'RGBA' else None)
+					img = background
 
-				# Convert to hex
-				image_hex = binary_data.hex().upper()
+				# Save processed image
+				processed_file = tempfile.NamedTemporaryFile(delete=False, suffix='.png')
+				img.save(processed_file.name, 'PNG')
+				processed_file.close()
+
+				# Convert to Star Line Mode (not StarPRNT)
+				image_hex = convert_image_to_starline(
+					processed_file.name,
+					options={
+						'printer_width': 3,  # 80mm
+						'dither': True,  # Re-enable dithering for better quality
+						'scale_to_fit': True
+					}
+				)
 
 				# Cleanup
 				os.unlink(temp_file.name)
+				os.unlink(processed_file.name)
 
 			except Exception as img_error:
 				frappe.log_error(f"Image download/conversion error: {str(img_error)}", "test_print")
@@ -102,9 +120,9 @@ def test_print(printer, test_text="Test d'impression CloudPRNT", image_link=None
 					"message": f"Erreur lors du traitement de l'image: {str(img_error)}"
 				}
 
-		# If we have an image, print it with StarPRNT format
+		# If we have an image, print it with Star Line Mode format
 		if image_hex:
-			# Image job - use StarPRNT media type
+			# Image job - use Star Line Mode media type (same as text jobs)
 			test_job_token = f"TEST-IMG-{datetime.now().strftime('%Y%m%d%H%M%S')}"
 
 			from cloudprnt.print_queue_manager import add_job_to_queue
@@ -114,7 +132,7 @@ def test_print(printer, test_text="Test d'impression CloudPRNT", image_link=None
 				printer_mac=mac_address,
 				invoice_name=None,
 				job_data=image_hex,
-				media_types=["application/vnd.star.starprnt"]
+				media_types=["application/vnd.star.line"]
 			)
 
 			if not result.get("success"):

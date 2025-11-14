@@ -254,7 +254,43 @@ async def get_job(mac: str = Query(..., description="Printer MAC address in dot 
         except Exception as e:
             print(f"Error marking job as fetched: {e}")
 
-        # Generate Star Line Mode binary for all jobs (test and invoice)
+        # Check if job contains pre-converted hex data (from CPUtil image conversion or custom jobs)
+        # These jobs have job_data as raw hex string that should be sent directly to printer
+        media_types = job.get("media_types", [])
+        print(f"[DEBUG] Job {job_token} media_types: {media_types}")
+
+        # If job has job_data and it looks like hex data (no markup tags), return it directly
+        if job.get("job_data"):
+            job_data = job["job_data"]
+
+            # Check if this is raw hex data (no Star Markup tags like [align:], [cut:], etc.)
+            # Hex data will only contain [0-9A-Fa-f] characters
+            is_hex_only = all(c in '0123456789ABCDEFabcdef\n\r ' for c in job_data[:100])
+
+            if is_hex_only and len(job_data) > 100:  # Raw hex data (image or pre-converted)
+                try:
+                    print(f"[DEBUG] Processing pre-converted hex job {job_token}, hex length: {len(job_data)}")
+                    binary_data = bytes.fromhex(job_data)
+                    print(f"[DEBUG] Returning binary data, {len(binary_data)} bytes")
+
+                    # Use first media type from the list
+                    media_type = media_types[0] if media_types else "application/vnd.star.line"
+
+                    return Response(
+                        content=binary_data,
+                        media_type=media_type,
+                        headers={
+                            "Content-Type": media_type,
+                            "Content-Length": str(len(binary_data))
+                        }
+                    )
+                except Exception as e:
+                    print(f"Error converting hex to binary: {e}")
+                    import traceback
+                    traceback.print_exc()
+                    return Response(content=f"Error processing hex job: {str(e)}", status_code=500)
+
+        # Generate Star Line Mode binary for markup jobs (test and invoice)
         try:
             # Import print_job dynamically to avoid hooks errors
             import importlib.util

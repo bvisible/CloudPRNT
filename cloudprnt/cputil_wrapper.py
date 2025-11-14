@@ -202,10 +202,12 @@ def build_cputil_command(options=None):
         cmd.extend(['buzzer-end', str(int(buzzer_end))])
 
     # Type de coupe
-    if options.get('partial_cut', True):  # Partial cut par défaut
-        cmd.append('partialcut')
-    else:
-        cmd.append('fullcut')
+    # If cut is explicitly disabled (cut=False), don't add any cut command
+    if options.get('cut', True):  # Cut enabled by default
+        if options.get('partial_cut', True):  # Partial cut par défaut
+            cmd.append('partialcut')
+        else:
+            cmd.append('fullcut')
 
     # UTF-8 (par défaut)
     if not options.get('sbcs_only', False):
