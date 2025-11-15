@@ -4,7 +4,6 @@ import os
 import re
 from frappe import _ as translate
 from frappe.utils import get_bench_path
-from cloudprnt.print_job import StarCloudPRNTStarLineModeJob, neolog
 from cloudprnt.pos_invoice_markup import get_pos_invoice_markup
 from datetime import datetime
 
@@ -72,8 +71,6 @@ def print_pos_invoice(invoice_name, printer=None, use_mqtt=False):
                 # Send via MQTT
                 bridge.send_print_job(mac_address, invoice_name, job_url)
 
-                frappe.logger().info(f"Print job sent via MQTT: {invoice_name} to {mac_address}")
-
                 return {
                     "success": True,
                     "message": f"Impression de la facture {invoice_name} envoyée via MQTT",
@@ -85,13 +82,32 @@ def print_pos_invoice(invoice_name, printer=None, use_mqtt=False):
                 frappe.log_error(f"MQTT failed, falling back to HTTP: {str(mqtt_error)}", "print_pos_invoice")
                 use_mqtt = False
 
-        # HTTP Mode (queue)
-        from cloudprnt.cloudprnt_server import add_print_job
-        result = add_print_job(invoice_name, mac_address)
+        # HTTP Mode (database queue)
+        from cloudprnt.print_queue_manager import add_job_to_queue
+
+        # Pre-generate job data (Star Line Mode hex string)
+        try:
+            # Import generate function from cloudprnt_server
+            from cloudprnt.cloudprnt_server import generate_star_line_job
+
+            # Generate job data using the same logic as the standalone server
+            job_data = generate_star_line_job({
+                "invoice": invoice_name,
+                "printer_mac": mac_address
+            })
+        except Exception as e:
+            frappe.log_error(f"Error generating job data: {str(e)}", "print_pos_invoice")
+            job_data = None
+
+        result = add_job_to_queue(
+            job_token=invoice_name,
+            printer_mac=mac_address,
+            invoice_name=invoice_name,
+            job_data=job_data,  # Pre-generated binary data
+            media_types=["application/vnd.star.line", "text/vnd.star.markup"]
+        )
 
         if result.get("success"):
-            frappe.logger().info(f"Print job added to queue: {invoice_name} for {mac_address}")
-
             return {
                 "success": True,
                 "message": f"Impression de la facture {invoice_name} ajoutée à la queue",
