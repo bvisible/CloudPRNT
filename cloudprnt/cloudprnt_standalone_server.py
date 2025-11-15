@@ -97,6 +97,10 @@ def get_next_job_for_printer(printer_mac):
         import json
         import pymysql
 
+        # Normalize MAC address to uppercase with colons
+        printer_mac_normalized = printer_mac.upper()
+        print(f"[CloudPRNT] Looking for jobs for printer MAC: {printer_mac_normalized}")
+
         # Get database config from Frappe site_config
         import os
         site_config_path = os.path.join(bench_path, "sites", "prod.local", "site_config.json")
@@ -114,18 +118,22 @@ def get_next_job_for_printer(printer_mac):
 
         try:
             with conn.cursor(pymysql.cursors.DictCursor) as cursor:
+                # Use UPPER() in SQL to ensure case-insensitive comparison
                 cursor.execute("""
-                    SELECT name, job_token, invoice_name, job_data, media_types
+                    SELECT name, job_token, invoice_name, job_data, media_types, printer_mac
                     FROM `tabCloudPRNT Print Queue`
-                    WHERE printer_mac = %s AND status = 'Pending'
+                    WHERE UPPER(printer_mac) = %s AND status = 'Pending'
                     ORDER BY creation ASC
                     LIMIT 1
-                """, (printer_mac.upper(),))
+                """, (printer_mac_normalized,))
 
                 job = cursor.fetchone()
 
                 if not job:
+                    print(f"[CloudPRNT] No jobs found for {printer_mac_normalized}")
                     return None
+
+                print(f"[CloudPRNT] Found job: {job['job_token']} for printer {job['printer_mac']}")
 
                 # Parse media types
                 try:
@@ -139,13 +147,16 @@ def get_next_job_for_printer(printer_mac):
                     "invoice": job["invoice_name"],
                     "job_data": job["job_data"],
                     "media_types": media_types,
-                    "printer_mac": printer_mac
+                    "printer_mac": printer_mac_normalized
                 }
         finally:
             conn.close()
 
     except Exception as e:
-        # Silently return None on error
+        # Log the error instead of silently failing
+        print(f"[CloudPRNT ERROR] Failed to get job for {printer_mac}: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return None
 
 
@@ -187,7 +198,10 @@ async def poll(request: Request):
         # Normalize MAC address
         printer_mac = normalize_mac_address(printer_mac_dots)
 
+        print(f"[CloudPRNT] Poll from {client_ip}, MAC: {printer_mac_dots} -> normalized: {printer_mac}, status: {status_code}")
+
         if not printer_mac:
+            print(f"[CloudPRNT WARNING] Invalid MAC address: {printer_mac_dots}")
             return JSONResponse({
                 "jobReady": False,
                 "mediaTypes": ["application/vnd.star.line", "text/vnd.star.markup"]
@@ -210,13 +224,17 @@ async def poll(request: Request):
         # Check for jobs in database queue
         job = get_next_job_for_printer(printer_mac)
 
+        print(f"[CloudPRNT] Job result: {job}")
+
         if job:
+            print(f"[CloudPRNT] Returning jobReady=True for token: {job['token']}")
             return JSONResponse({
                 "jobReady": True,
                 "mediaTypes": job.get("media_types", ["application/vnd.star.line", "text/vnd.star.markup"]),
                 "jobToken": job["token"]
             })
         else:
+            print(f"[CloudPRNT] Returning jobReady=False (no job found)")
             return JSONResponse({
                 "jobReady": False,
                 "mediaTypes": ["application/vnd.star.line", "text/vnd.star.markup"]
