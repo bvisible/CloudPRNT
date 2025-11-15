@@ -441,13 +441,22 @@ async def get_job(mac: str = Query(..., description="Printer MAC address in dot 
             # Get binary data from job builder
             hex_data = star_job.print_job_builder
 
+            # Clean hex data: remove spaces, newlines, and ensure even length
+            hex_data = hex_data.replace(" ", "").replace("\n", "").replace("\r", "").upper()
+
+            # Ensure even length by padding with 0 if needed
+            if len(hex_data) % 2 != 0:
+                print(f"[CloudPRNT WARNING] Odd hex length {len(hex_data)}, padding with 0")
+                hex_data += "0"
+
             # Debug: check if hex_data is valid hex
             try:
                 binary_data = bytes.fromhex(hex_data)
             except ValueError as hex_error:
-                print(f"[CloudPRNT ERROR] Invalid hex data at position {str(hex_error)}")
+                print(f"[CloudPRNT ERROR] Invalid hex data: {str(hex_error)}")
                 print(f"[CloudPRNT ERROR] Hex data length: {len(hex_data)}")
-                print(f"[CloudPRNT ERROR] Sample around error: {hex_data[max(0, 1170):min(len(hex_data), 1200)]}")
+                error_pos = int(str(hex_error).split("position")[1].strip()) if "position" in str(hex_error) else 0
+                print(f"[CloudPRNT ERROR] Sample around error: {hex_data[max(0, error_pos-20):min(len(hex_data), error_pos+20)]}")
                 raise
 
             return Response(
