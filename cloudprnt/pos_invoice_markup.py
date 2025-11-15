@@ -27,7 +27,7 @@ def get_pos_invoice_markup(invoice_name):
     logo_url = frappe.db.get_single_value("CloudPRNT Settings", "header_logo_url")
     if logo_url:
         markup.append(f"[image: url {logo_url}; width 60%; min-width 48mm]")
-        markup.append("[feed: length 3mm]")  # Space after logo
+        markup.append("[feed: length 1mm]")  # Space after logo
 
     # En-tête avec informations de la société
     markup.append(f"[magnify: width 2; height 1]{doc.company}[magnify]")
@@ -55,13 +55,14 @@ def get_pos_invoice_markup(invoice_name):
         posting_date_str = doc.posting_date.strftime("%d-%m-%Y")
     markup.append(f"{_('Date')}: {posting_date_str}")
     
-    posting_time_str = doc.posting_time
-    if hasattr(doc.posting_time, 'strftime'):
-        posting_time_str = doc.posting_time.strftime("%H:%M:%S")
+    posting_time_str = str(doc.posting_time)
+    # Remove decimal seconds if present (e.g., "17:46:02.148083" -> "17:46:02")
+    if '.' in posting_time_str:
+        posting_time_str = posting_time_str.split('.')[0]
     markup.append(f"{_('Time')}: {posting_time_str}")
     
     markup.append(f"{_('Customer')}: {doc.customer_name}")
-    markup.append(f"{_('Cashier')}: {owner_first_name} {owner_last_name[:1]}.")
+    markup.append(f"{_('Cashier')}: {owner_first_name} {owner_last_name[:1]}")
     markup.append(f"{_('Currency')}: {doc.currency}")
 
     # Separator before items
@@ -77,22 +78,19 @@ def get_pos_invoice_markup(invoice_name):
         # Convertir en minuscules, supprimer les espaces et les tirets
         return re.sub(r'[\s\-]', '', text.lower())
 
-    # Articles - use bold mode once for all item names to improve performance
+    # Articles - print each item with name and price together
     markup.append("")  # Single blank line
-    markup.append("[bold: on]")
     for item in doc.items:
         markup.append("")  # Empty line for spacing between items
-        # Display item name with item code on same line if different
+
+        # Display item name with item code on same line if different (in bold)
+        markup.append("[bold: on]")
         item_display = item.item_name
         if normalize_for_comparison(item.item_code) != normalize_for_comparison(item.item_name):
             item_display = f"{item.item_name} ({item.item_code})"
-
         markup.append(item_display)
+        markup.append("[bold: off]")
 
-    markup.append("[bold: off]")
-
-    # Now show details for each item (prices, serial numbers, etc.)
-    for item in doc.items:
         # Display serial numbers and batch numbers if available
         if hasattr(item, 'serial_and_batch_bundle') and item.serial_and_batch_bundle:
             try:

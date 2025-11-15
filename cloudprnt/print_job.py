@@ -196,7 +196,7 @@ class StarCloudPRNTStarLineModeJob:
                 processed_file.close()
 
                 # Convert using CPUtil
-                from cputil_wrapper import convert_image_to_starline
+                from cloudprnt.cputil_wrapper import convert_image_to_starline
                 image_hex = convert_image_to_starline(
                     processed_file.name,
                     options={

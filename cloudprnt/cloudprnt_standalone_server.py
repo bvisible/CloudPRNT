@@ -456,19 +456,34 @@ async def delete_job(
                 job_token = job["token"]
 
         if job_token:
-            # Mark job as printed (delete from queue) using direct SQL
+            # Mark job as printed (delete from queue) using direct MySQL
             try:
-                # Delete the job using pure SQL to avoid module import issues
-                result = frappe.db.sql("""
-                    DELETE FROM `tabCloudPRNT Print Queue`
-                    WHERE job_token = %s
-                """, (job_token,))
-                frappe.db.commit()
+                import pymysql
+                import json
+                import os
 
-                if result:
-                    return JSONResponse({"message": "ok"})
-                else:
-                    return JSONResponse({"message": "ok"})  # Return ok anyway
+                site_config_path = os.path.join(bench_path, "sites", "prod.local", "site_config.json")
+                with open(site_config_path, 'r') as f:
+                    site_config = json.load(f)
+
+                conn = pymysql.connect(
+                    host=site_config.get('db_host', 'localhost'),
+                    user=site_config.get('db_user', site_config.get('db_name', 'root')),
+                    password=site_config.get('db_password', ''),
+                    database=site_config.get('db_name'),
+                    charset='utf8mb4'
+                )
+
+                try:
+                    with conn.cursor() as cursor:
+                        cursor.execute("""
+                            DELETE FROM `tabCloudPRNT Print Queue`
+                            WHERE job_token = %s
+                        """, (job_token,))
+                        conn.commit()
+                        return JSONResponse({"message": "ok"})
+                finally:
+                    conn.close()
 
             except Exception as e:
                 print(f"Error marking job as printed: {e}")
