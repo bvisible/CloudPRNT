@@ -85,18 +85,12 @@ def print_pos_invoice(invoice_name, printer=None, use_mqtt=False):
         # HTTP Mode (database queue)
         from cloudprnt.print_queue_manager import add_job_to_queue
 
-        # Pre-generate job data (Star Line Mode hex string)
+        # Pre-generate Star Markup for the invoice
         try:
-            # Import generate function from cloudprnt_server
-            from cloudprnt.cloudprnt_server import generate_star_line_job
-
-            # Generate job data using the same logic as the standalone server
-            job_data = generate_star_line_job({
-                "invoice": invoice_name,
-                "printer_mac": mac_address
-            })
+            markup_text = get_pos_invoice_markup(invoice_name)
+            job_data = markup_text  # Store markup directly, will be converted by standalone server
         except Exception as e:
-            frappe.log_error(f"Error generating job data: {str(e)}", "print_pos_invoice")
+            frappe.log_error(f"Error generating markup: {str(e)}", "print_pos_invoice")
             job_data = None
 
         result = add_job_to_queue(

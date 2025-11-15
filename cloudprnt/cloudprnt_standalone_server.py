@@ -209,8 +209,8 @@ async def poll(request: Request):
 
         # Track for discovery
         try:
-            import printer_discovery
-            track_printer_poll = printer_discovery.track_printer_poll
+            init_frappe()
+            from printer_discovery import track_printer_poll
             track_printer_poll(
                 printer_mac,
                 ip_address=client_ip,
@@ -356,7 +356,13 @@ async def get_job(mac: str = Query(..., description="Printer MAC address in dot 
                 markup_text = job["job_data"]
             elif job.get("invoice"):
                 # Regular invoice job - get markup from invoice
-                from pos_invoice_markup import get_pos_invoice_markup
+                # Import pos_invoice_markup dynamically
+                import importlib.util
+                spec_markup = importlib.util.spec_from_file_location("pos_invoice_markup",
+                    os.path.join(cloudprnt_path, "pos_invoice_markup.py"))
+                pos_invoice_markup_module = importlib.util.module_from_spec(spec_markup)
+                spec_markup.loader.exec_module(pos_invoice_markup_module)
+                get_pos_invoice_markup = pos_invoice_markup_module.get_pos_invoice_markup
                 markup_text = get_pos_invoice_markup(job["invoice"])
             else:
                 return Response(content="No job data or invoice", status_code=400)
