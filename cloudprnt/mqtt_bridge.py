@@ -261,7 +261,7 @@ class CloudPRNTMQTTBridge:
                 "title": "print-job",
                 "jobToken": job_token,
                 "printData": job_url,  # Pass URL mode
-                "mediaTypes": ["application/vnd.star.line", "text/vnd.star.markup"]
+                "mediaTypes": ["image/png", "application/vnd.star.line", "text/vnd.star.markup"]
             }
 
             # Publish

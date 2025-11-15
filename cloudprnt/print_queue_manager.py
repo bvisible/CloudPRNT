@@ -29,7 +29,7 @@ def add_job_to_queue(job_token, printer_mac, invoice_name=None, job_data=None, m
 
 		# Default media types
 		if not media_types:
-			media_types = ["application/vnd.star.line", "text/vnd.star.markup"]
+			media_types = ["image/png", "application/vnd.star.line", "text/vnd.star.markup"]
 
 		# Create queue entry
 		queue_doc = frappe.get_doc({
@@ -88,7 +88,7 @@ def get_next_job(printer_mac):
 		try:
 			media_types = json.loads(job.get("media_types") or "[]")
 		except:
-			media_types = ["application/vnd.star.line", "text/vnd.star.markup"]
+			media_types = ["image/png", "application/vnd.star.line", "text/vnd.star.markup"]
 
 		return {
 			"name": job.name,
