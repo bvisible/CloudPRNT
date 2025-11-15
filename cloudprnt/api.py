@@ -4,7 +4,6 @@ import os
 import re
 from frappe import _ as translate
 from frappe.utils import get_bench_path
-from cloudprnt.print_job import StarCloudPRNTStarLineModeJob, neolog
 from cloudprnt.pos_invoice_markup import get_pos_invoice_markup
 from datetime import datetime
 
@@ -72,8 +71,6 @@ def print_pos_invoice(invoice_name, printer=None, use_mqtt=False):
                 # Send via MQTT
                 bridge.send_print_job(mac_address, invoice_name, job_url)
 
-                frappe.logger().info(f"Print job sent via MQTT: {invoice_name} to {mac_address}")
-
                 return {
                     "success": True,
                     "message": f"Impression de la facture {invoice_name} envoyée via MQTT",
@@ -85,13 +82,32 @@ def print_pos_invoice(invoice_name, printer=None, use_mqtt=False):
                 frappe.log_error(f"MQTT failed, falling back to HTTP: {str(mqtt_error)}", "print_pos_invoice")
                 use_mqtt = False
 
-        # HTTP Mode (queue)
-        from cloudprnt.cloudprnt_server import add_print_job
-        result = add_print_job(invoice_name, mac_address)
+        # HTTP Mode (database queue)
+        from cloudprnt.print_queue_manager import add_job_to_queue
+
+        # Pre-generate job data (Star Line Mode hex string)
+        try:
+            # Import generate function from cloudprnt_server
+            from cloudprnt.cloudprnt_server import generate_star_line_job
+
+            # Generate job data using the same logic as the standalone server
+            job_data = generate_star_line_job({
+                "invoice": invoice_name,
+                "printer_mac": mac_address
+            })
+        except Exception as e:
+            frappe.log_error(f"Error generating job data: {str(e)}", "print_pos_invoice")
+            job_data = None
+
+        result = add_job_to_queue(
+            job_token=invoice_name,
+            printer_mac=mac_address,
+            invoice_name=invoice_name,
+            job_data=job_data,  # Pre-generated binary data
+            media_types=["application/vnd.star.line", "text/vnd.star.markup"]
+        )
 
         if result.get("success"):
-            frappe.logger().info(f"Print job added to queue: {invoice_name} for {mac_address}")
-
             return {
                 "success": True,
                 "message": f"Impression de la facture {invoice_name} ajoutée à la queue",
@@ -105,3 +121,98 @@ def print_pos_invoice(invoice_name, printer=None, use_mqtt=False):
     except Exception as e:
         frappe.log_error(message=str(e), title="Error in print_pos_invoice")
         return {"success": False, "message": str(e)}
+
+
+@frappe.whitelist()
+def print_image_to_cloudprnt(image_path, printer_mac, printer_width=3, dither=True, scale_to_fit=True, drawer_end=False, buzzer_end=0):
+    """
+    Print an image (PNG/JPEG/BMP/GIF) to a CloudPRNT printer
+
+    Example usage for printing company logo on receipts:
+
+    >>> from cloudprnt.api import print_image_to_cloudprnt
+    >>> print_image_to_cloudprnt(
+    ...     '/path/to/logo.png',
+    ...     '00:11:62:12:34:56',
+    ...     printer_width=3,
+    ...     dither=True,
+    ...     scale_to_fit=True
+    ... )
+
+    :param image_path: Path to image file (PNG, JPEG, BMP, GIF)
+    :param printer_mac: MAC address of printer (with colons)
+    :param printer_width: Printer width - 2 (58mm), 3 (80mm), or 4 (112mm) - default 3
+    :param dither: Apply dithering for better quality (default True)
+    :param scale_to_fit: Scale image to fit printer width (default True)
+    :param drawer_end: Open cash drawer after printing (default False)
+    :param buzzer_end: Buzzer beeps after printing 0-9 (default 0)
+    :return: Success response with job token
+    """
+    from cloudprnt.cputil_wrapper import convert_png_to_starprnt, is_cputil_available
+    from cloudprnt.print_queue_manager import add_job_to_queue
+    import uuid
+
+    try:
+        # Check CPUtil availability
+        if not is_cputil_available():
+            return {
+                "success": False,
+                "message": translate("CPUtil n'est pas disponible. Impossible de convertir l'image.")
+            }
+
+        # Normalize MAC address
+        printer_mac = printer_mac.replace(".", ":")
+
+        # Build conversion options
+        options = {
+            'printer_width': int(printer_width),
+            'dither': bool(dither),
+            'scale_to_fit': bool(scale_to_fit),
+            'partial_cut': True
+        }
+
+        if drawer_end:
+            options['drawer'] = 'end'
+
+        if buzzer_end and int(buzzer_end) > 0:
+            options['buzzer_end'] = int(buzzer_end)
+
+        # Convert image to StarPRNT binary
+        binary_data = convert_png_to_starprnt(image_path, options)
+
+        # Convert to hex for database storage
+        hex_data = binary_data.hex().upper()
+
+        # Generate job token
+        job_token = f"IMG-{uuid.uuid4().hex[:8].upper()}"
+
+        # Add to print queue
+        result = add_job_to_queue(
+            job_token=job_token,
+            printer_mac=printer_mac,
+            job_data=hex_data,
+            media_types=["application/vnd.star.starprnt"]
+        )
+
+        if result.get("success"):
+            return {
+                "success": True,
+                "job_token": job_token,
+                "message": translate("Image ajoutée à la queue d'impression ({0} bytes)").format(len(binary_data)),
+                "bytes": len(binary_data)
+            }
+        else:
+            return result
+
+    except FileNotFoundError as e:
+        frappe.log_error(str(e), "print_image_to_cloudprnt - File Not Found")
+        return {
+            "success": False,
+            "message": translate("Fichier image introuvable: {0}").format(image_path)
+        }
+    except Exception as e:
+        frappe.log_error(str(e), "print_image_to_cloudprnt")
+        return {
+            "success": False,
+            "message": translate("Erreur lors de l'impression de l'image: {0}").format(str(e))
+        }

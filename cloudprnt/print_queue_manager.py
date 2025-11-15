@@ -23,6 +23,10 @@ def add_job_to_queue(job_token, printer_mac, invoice_name=None, job_data=None, m
 	:return: Success dict
 	"""
 	try:
+		# Ensure we have a user set
+		if not frappe.session.user:
+			frappe.set_user("Administrator")
+
 		# Default media types
 		if not media_types:
 			media_types = ["image/png", "application/vnd.star.line", "text/vnd.star.markup"]
@@ -40,7 +44,6 @@ def add_job_to_queue(job_token, printer_mac, invoice_name=None, job_data=None, m
 		queue_doc.insert(ignore_permissions=True)
 		frappe.db.commit()
 
-		frappe.logger().info(f"Job added to queue: {job_token} for printer {printer_mac}")
 
 		return {
 			"success": True,
@@ -71,7 +74,7 @@ def get_next_job(printer_mac):
 				"printer_mac": printer_mac.upper(),
 				"status": "Pending"
 			},
-			fields=["name", "job_token", "invoice_name", "job_data", "media_types", "creation"],
+			fields=["name", "job_token", "invoice_name", "job_data", "media_types", "printer_mac", "creation"],
 			order_by="creation asc",
 			limit=1
 		)
@@ -92,7 +95,8 @@ def get_next_job(printer_mac):
 			"token": job.job_token,
 			"invoice": job.invoice_name,
 			"job_data": job.job_data,
-			"media_types": media_types
+			"media_types": media_types,
+			"printer_mac": job.printer_mac
 		}
 
 	except Exception as e:
@@ -109,7 +113,6 @@ def mark_job_fetched(job_token):
 	try:
 		frappe.db.set_value("CloudPRNT Print Queue", {"job_token": job_token}, "status", "Fetched")
 		frappe.db.commit()
-		frappe.logger().info(f"Job marked as fetched: {job_token}")
 	except Exception as e:
 		frappe.log_error(f"Error marking job as fetched: {str(e)}", "mark_job_fetched")
 
@@ -131,7 +134,6 @@ def mark_job_printed(job_token):
 		if jobs:
 			frappe.delete_doc("CloudPRNT Print Queue", jobs[0].name, ignore_permissions=True)
 			frappe.db.commit()
-			frappe.logger().info(f"Job marked as printed and removed: {job_token}")
 			return {"success": True}
 		else:
 			frappe.logger().warning(f"Job not found for deletion: {job_token}")

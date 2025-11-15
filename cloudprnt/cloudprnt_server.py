@@ -190,6 +190,18 @@ def generate_star_line_job(job_data):
                 job.cut()
                 continue
 
+            # Image tags
+            if "[image:" in original_line:
+                match = re.search(r'\[image:\s*url\s+([^;\]]+)', original_line)
+                if match:
+                    image_url = match.group(1).strip()
+                    try:
+                        job.add_image_from_url(image_url)
+                    except Exception as img_error:
+                        frappe.logger().error(f"Error adding image from URL {image_url}: {str(img_error)}")
+                        # Continue processing even if image fails
+                    continue
+
             # Column tags
             if "[column: left" in original_line:
                 match = re.search(r'\[column: left([^;]*); right([^\]]*)\]', original_line)

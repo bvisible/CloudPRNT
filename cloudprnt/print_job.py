@@ -9,7 +9,7 @@ from frappe.utils import get_bench_path
 from frappe import as_unicode, get_traceback
 import requests
 import io
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image
 from io import BytesIO
 import binascii
 
@@ -43,8 +43,8 @@ def neolog(title=None, message=None, reference_doctype=None, reference_name=None
 
 class StarCloudPRNTStarLineModeJob:
     SLM_NEW_LINE_HEX = "0A"
-    SLM_SET_EMPHASIZED_HEX = "1B45"
-    SLM_CANCEL_EMPHASIZED_HEX = "1B46"
+    SLM_SET_EMPHASIZED_HEX = "1B4501"  # ESC E 01 - Enable emphasized mode
+    SLM_CANCEL_EMPHASIZED_HEX = "1B4600"  # ESC F 00 - Cancel emphasized mode
     SLM_SET_LEFT_ALIGNMENT_HEX = "1B1D6100"
     SLM_SET_CENTER_ALIGNMENT_HEX = "1B1D6101"
     SLM_SET_RIGHT_ALIGNMENT_HEX = "1B1D6102"
@@ -54,46 +54,14 @@ class StarCloudPRNTStarLineModeJob:
     SLM_OPEN_CASH_DRAWER_HEX = "1B70001450"
     SLM_SET_LINE_SPACING_HEX = "1B33"  #
     
-    def __init__(self, printer_meta, use_cputil=None):
-        """
-        Initialize Star CloudPRNT Job Generator
-
-        :param printer_meta: Dict with printer metadata (printerMAC, etc.)
-        :param use_cputil: True=force CPUtil, False=force Python, None=auto-detect from settings
-        """
+    def __init__(self, printer_meta):
         self.printer_meta = printer_meta
         self.printer_mac = printer_meta['printerMAC']
         self.print_job_builder = ""
-
-        # Auto-detect CPUtil usage from settings if None
-        if use_cputil is None:
-            try:
-                use_cputil = frappe.db.get_single_value("CloudPRNT Settings", "use_cputil") or False
-            except:
-                use_cputil = False
-
-        # Check if CPUtil is actually available
-        if use_cputil:
-            try:
-                from cloudprnt.cputil_wrapper import is_cputil_available
-                self.use_cputil = is_cputil_available()
-                if self.use_cputil:
-                    frappe.logger().debug(f"Job generator: CPUtil (printer {self.printer_mac})")
-                else:
-                    frappe.logger().debug(f"Job generator: Python Native - CPUtil not available (printer {self.printer_mac})")
-            except Exception as e:
-                frappe.logger().warning(f"CPUtil check failed: {e}, using Python Native")
-                self.use_cputil = False
-        else:
-            self.use_cputil = False
-            frappe.logger().debug(f"Job generator: Python Native (printer {self.printer_mac})")
-
-        # Initialize Python native mode
-        self.set_codepage("UTF-8")
+        self.set_codepage("1252")
 
     def str_to_hex(self, string):
-        # Encode string as UTF-8 bytes, then convert to hex
-        return string.encode('utf-8').hex().upper()
+        return ''.join(format(ord(c), '02x') for c in string).upper()
     
     def set_text_emphasized(self):
         self.print_job_builder += self.SLM_SET_EMPHASIZED_HEX
@@ -112,8 +80,7 @@ class StarCloudPRNTStarLineModeJob:
     
     def set_codepage(self, codepage):
         if codepage == "UTF-8":
-            # UTF-8 mode requires two commands: ESC GS ) U and configuration
-            self.print_job_builder += "1B1D295502003001" + "1B1D295502004000"
+            self.print_job_builder += "1b1d295502003001" + "1b1d295502004000"
         elif codepage == "1252":
             self.print_job_builder += self.SLM_CODEPAGE_HEX + "20"
         else:
@@ -196,96 +163,70 @@ class StarCloudPRNTStarLineModeJob:
         self.print_job_builder += print_bc
     
     def add_image_from_url(self, url):
-            response = requests.get(url)
-            image = Image.open(io.BytesIO(response.content))
-            image = image.convert("1")  # Convert to 1-bit image for printing
+            """
+            Add an image to the print job using CPUtil for conversion.
+            Handles transparency by converting to white background.
+            """
+            import tempfile
 
-            width, height = image.size
-            pixels = list(image.getdata())
+            try:
+                # Download image
+                response = requests.get(url, timeout=10)
+                response.raise_for_status()
 
-            # Convert image data to hex
-            image_hex = ""
-            for i in range(0, len(pixels), 8):
-                byte = 0
-                for bit in range(8):
-                    if i + bit < len(pixels) and pixels[i + bit] == 0:  # 0 means black in 1-bit image
-                        byte |= (1 << (7 - bit))
-                image_hex += f"{byte:02X}"
+                # Save to temp file
+                temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.png')
+                temp_file.write(response.content)
+                temp_file.close()
 
-            # Add image data to print job - all values must be in hex format
-            width_low = f"{width % 256:02X}"
-            width_high = f"{width // 256:02X}"
-            height_low = f"{height % 256:02X}"
-            height_high = f"{height // 256:02X}"
-            self.print_job_builder += f"1B2A{width_low}{width_high}{height_low}{height_high}{image_hex}"
+                # Convert transparency to white background
+                image = Image.open(temp_file.name)
+                if image.mode in ('RGBA', 'LA') or (image.mode == 'P' and 'transparency' in image.info):
+                    # Create white background
+                    background = Image.new('RGB', image.size, (255, 255, 255))
+                    if image.mode == 'P':
+                        image = image.convert('RGBA')
+                    # Paste image on white background using alpha channel as mask
+                    background.paste(image, mask=image.split()[-1] if image.mode == 'RGBA' else None)
+                    image = background
+
+                # Save processed image
+                processed_file = tempfile.NamedTemporaryFile(delete=False, suffix='.png')
+                image.save(processed_file.name, 'PNG')
+                processed_file.close()
+
+                # Convert using CPUtil
+                from cloudprnt.cputil_wrapper import convert_image_to_starline
+                image_hex = convert_image_to_starline(
+                    processed_file.name,
+                    options={
+                        'printer_width': 3,  # 80mm
+                        'dither': True,
+                        'scale_to_fit': True,
+                        'partial_cut': True  # Use partial cut (will be removed below)
+                    }
+                )
+
+                # Remove cut commands from end of hex since we're in middle of a job
+                # Star Line Mode cut commands: 1B64XX (ESC d + cut type)
+                # Remove last occurrence of cut command
+                import re
+                image_hex = re.sub(r'1B64[0-9A-F]{2}$', '', image_hex, flags=re.IGNORECASE)
+
+                # Add hex to job builder
+                self.print_job_builder += image_hex
+
+                # Cleanup
+                os.unlink(temp_file.name)
+                os.unlink(processed_file.name)
+
+            except Exception as e:
+                print(f"Error adding image from URL {url}: {e}")
+                # Don't fail the whole job, just skip the image
+                pass
 
     def cut(self):
         self.print_job_builder += self.SLM_FEED_PARTIAL_CUT_HEX
-
-    def _get_cputil_options_from_settings(self):
-        """
-        Récupère les options CPUtil depuis CloudPRNT Settings
-
-        :return: Dict d'options pour CPUtil
-        """
-        try:
-            settings = frappe.get_single("CloudPRNT Settings")
-
-            return {
-                'printer_width': int(settings.get('default_printer_width') or 3),
-                'dither': bool(settings.get('enable_image_dithering', 1)),
-                'scale_to_fit': bool(settings.get('enable_scale_to_fit', 0)),
-                'partial_cut': bool(settings.get('partial_cut_default', 1)),
-            }
-        except Exception as e:
-            frappe.logger().warning(f"Could not load CPUtil settings: {e}, using defaults")
-            return {
-                'printer_width': 3,
-                'dither': True,
-                'scale_to_fit': False,
-                'partial_cut': True,
-            }
-
-    def build_job_from_markup(self, markup_text):
-        """
-        Build print job from Star Document Markup
-
-        Automatically chooses between CPUtil and Python Native based on settings:
-        1. Try CPUtil if enabled
-        2. Fallback to Python Native if CPUtil fails or disabled
-
-        :param markup_text: Star Document Markup text
-        :return: True if successful
-        """
-        if self.use_cputil:
-            try:
-                from cloudprnt.cputil_wrapper import convert_markup_to_starline
-
-                # Get options from settings
-                options = self._get_cputil_options_from_settings()
-
-                # Convert with CPUtil
-                hex_data = convert_markup_to_starline(markup_text, options)
-
-                if hex_data and len(hex_data) > 0:
-                    self.print_job_builder = hex_data
-                    frappe.logger().info(f"✅ Job generated with CPUtil ({len(hex_data)} hex chars)")
-                    return True
-                else:
-                    raise Exception("CPUtil returned empty result")
-
-            except Exception as e:
-                frappe.logger().warning(f"CPUtil failed: {e}, falling back to Python Native")
-                frappe.log_error(str(e), "CPUtil Fallback")
-                # Continue to Python Native fallback below
-
-        # Python Native fallback (or if CPUtil disabled)
-        # Note: This is a placeholder - actual implementation would parse markup
-        frappe.logger().info("Using Python Native job generation")
-
-        # For now, just log that we would use Python native
-        # In production, this would call existing Python markup parsing code
-        return False  # Return False to indicate CPUtil was not used
 
 @frappe.whitelist()
 def call_execute_cputil(command, args):
@@ -341,70 +282,3 @@ def create_log_entry(doctype, docname, datetime_obj):
         frappe.db.commit()
     except Exception as e:
         neolog("Error creating log entry", str(e), reference_doctype=doctype, reference_name=docname)
-
-def generate_receipt_png(markup_text, width_pixels=576):
-    """
-    Generate PNG image from receipt text for CloudPRNT
-
-    :param markup_text: Receipt text content (plain text, no Star Markup)
-    :param width_pixels: Image width in pixels (576 for 80mm printer, 832 for 112mm)
-    :return: PNG binary data
-    """
-    try:
-        # Font settings - use default PIL font
-        font_size = 24
-        line_height = 30
-
-        # Calculate image dimensions
-        lines = markup_text.split('\n')
-        height_pixels = len(lines) * line_height + 40  # Extra padding
-
-        # Create white background image
-        image = Image.new('RGB', (width_pixels, height_pixels), 'white')
-        draw = ImageDraw.Draw(image)
-
-        # Try to load a monospace font, fallback to default
-        try:
-            font = ImageFont.truetype("/System/Library/Fonts/Monaco.ttf", font_size)
-        except:
-            try:
-                font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf", font_size)
-            except:
-                font = ImageFont.load_default()
-
-        # Draw text line by line
-        y_position = 20
-        for line in lines:
-            # Handle alignment markers (simplified)
-            text = line.strip()
-
-            # Remove Star Markup commands if present
-            text = text.replace('[bold: on]', '').replace('[bold: off]', '')
-            text = text.replace('[align: centre]', '').replace('[align: center]', '')
-            text = text.replace('[align: left]', '').replace('[align: right]', '')
-
-            # Skip empty lines and special commands
-            if not text or text.startswith('['):
-                y_position += line_height // 2
-                continue
-
-            # Center text if it looks centered (less than 40 chars)
-            if len(text) < 40:
-                bbox = draw.textbbox((0, 0), text, font=font)
-                text_width = bbox[2] - bbox[0]
-                x_position = (width_pixels - text_width) // 2
-            else:
-                x_position = 10
-
-            # Draw text
-            draw.text((x_position, y_position), text, fill='black', font=font)
-            y_position += line_height
-
-        # Convert to PNG bytes
-        buffer = BytesIO()
-        image.save(buffer, format='PNG')
-        return buffer.getvalue()
-
-    except Exception as e:
-        neolog("Error generating PNG receipt", str(e))
-        raise

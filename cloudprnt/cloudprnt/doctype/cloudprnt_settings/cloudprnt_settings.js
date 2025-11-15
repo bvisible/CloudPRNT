@@ -126,9 +126,15 @@ frappe.ui.form.on("CloudPRNT Settings", {
                         default: frm.doc.default_printer
                     },
                     {
+                        label: __('Lien de l\'image'),
+                        fieldname: 'image_link',
+                        fieldtype: 'Data',
+                        description: __('URL de l\'image à imprimer (optionnel)')
+                    },
+                    {
                         label: __('Texte à imprimer'),
                         fieldname: 'test_text',
-                        fieldtype: 'Data',
+                        fieldtype: 'Small Text',
                         default: 'Ceci est un test d\'impression CloudPRNT'
                     }
                 ],
@@ -138,7 +144,8 @@ frappe.ui.form.on("CloudPRNT Settings", {
                         method: 'cloudprnt.cloudprnt.doctype.cloudprnt_settings.cloudprnt_settings.test_print',
                         args: {
                             printer: values.printer,
-                            test_text: values.test_text
+                            test_text: values.test_text,
+                            image_link: values.image_link
                         },
                         callback: function(r) {
                             if (r.message && r.message.success) {

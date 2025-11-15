@@ -88,46 +88,73 @@ def mac_to_dots(mac_address):
 
 def get_next_job_for_printer(printer_mac):
     """
-    Get next job for printer from database queue using direct SQL
+    Get next job for printer from database queue using raw MySQL
 
     :param printer_mac: Printer MAC address
     :return: Job dict or None
     """
     try:
         import json
+        import pymysql
 
-        print(f"[DEBUG] Searching for jobs for printer: {printer_mac.upper()}")
+        # Normalize MAC address to uppercase with colons
+        printer_mac_normalized = printer_mac.upper()
+        print(f"[CloudPRNT] Looking for jobs for printer MAC: {printer_mac_normalized}")
 
-        # Direct SQL query to avoid module import issues
-        jobs = frappe.db.sql("""
-            SELECT name, job_token, invoice_name, job_data, media_types
-            FROM `tabCloudPRNT Print Queue`
-            WHERE printer_mac = %s AND status = 'Pending'
-            ORDER BY creation ASC
-            LIMIT 1
-        """, (printer_mac.upper(),), as_dict=True)
+        # Get database config from Frappe site_config
+        import os
+        site_config_path = os.path.join(bench_path, "sites", "prod.local", "site_config.json")
+        with open(site_config_path, 'r') as f:
+            site_config = json.load(f)
 
-        print(f"[DEBUG] Found {len(jobs)} jobs")
-        if not jobs:
-            return None
+        # Connect directly to MySQL
+        conn = pymysql.connect(
+            host=site_config.get('db_host', 'localhost'),
+            user=site_config.get('db_user', site_config.get('db_name', 'root')),
+            password=site_config.get('db_password', ''),
+            database=site_config.get('db_name'),
+            charset='utf8mb4'
+        )
 
-        job = jobs[0]
-
-        # Parse media types
         try:
-            media_types = json.loads(job.get("media_types") or "[]")
-        except:
-            media_types = ["image/png", "application/vnd.star.line", "text/vnd.star.markup"]
+            with conn.cursor(pymysql.cursors.DictCursor) as cursor:
+                # Use UPPER() in SQL to ensure case-insensitive comparison
+                cursor.execute("""
+                    SELECT name, job_token, invoice_name, job_data, media_types, printer_mac
+                    FROM `tabCloudPRNT Print Queue`
+                    WHERE UPPER(printer_mac) = %s AND status = 'Pending'
+                    ORDER BY creation ASC
+                    LIMIT 1
+                """, (printer_mac_normalized,))
 
-        return {
-            "name": job.name,
-            "token": job.job_token,
-            "invoice": job.invoice_name,
-            "job_data": job.job_data,
-            "media_types": media_types
-        }
+                job = cursor.fetchone()
+
+                if not job:
+                    print(f"[CloudPRNT] No jobs found for {printer_mac_normalized}")
+                    return None
+
+                print(f"[CloudPRNT] Found job: {job['job_token']} for printer {job['printer_mac']}")
+
+                # Parse media types
+                try:
+                    media_types = json.loads(job.get("media_types") or "[]")
+                except:
+                    media_types = ["application/vnd.star.line", "text/vnd.star.markup"]
+
+                return {
+                    "name": job["name"],
+                    "token": job["job_token"],
+                    "invoice": job["invoice_name"],
+                    "job_data": job["job_data"],
+                    "media_types": media_types,
+                    "printer_mac": printer_mac_normalized
+                }
+        finally:
+            conn.close()
+
     except Exception as e:
-        print(f"Error getting next job: {e}")
+        # Log the error instead of silently failing
+        print(f"[CloudPRNT ERROR] Failed to get job for {printer_mac}: {str(e)}")
         import traceback
         traceback.print_exc()
         return None
@@ -167,15 +194,17 @@ async def poll(request: Request):
         printing_in_progress = data.get("printingInProgress", False)
         client_type = data.get("clientType", "")
 
-        print(f"[DEBUG] Poll request from {client_ip}, MAC: {printer_mac_dots}")
 
         # Normalize MAC address
         printer_mac = normalize_mac_address(printer_mac_dots)
 
+        print(f"[CloudPRNT] Poll from {client_ip}, MAC: {printer_mac_dots} -> normalized: {printer_mac}, status: {status_code}")
+
         if not printer_mac:
+            print(f"[CloudPRNT WARNING] Invalid MAC address: {printer_mac_dots}")
             return JSONResponse({
                 "jobReady": False,
-                "mediaTypes": ["image/png", "application/vnd.star.line", "text/vnd.star.markup"]
+                "mediaTypes": ["application/vnd.star.line", "text/vnd.star.markup"]
             })
 
         # Track for discovery
@@ -195,16 +224,20 @@ async def poll(request: Request):
         # Check for jobs in database queue
         job = get_next_job_for_printer(printer_mac)
 
+        print(f"[CloudPRNT] Job result: {job}")
+
         if job:
+            print(f"[CloudPRNT] Returning jobReady=True for token: {job['token']}")
             return JSONResponse({
                 "jobReady": True,
-                "mediaTypes": job.get("media_types", ["image/png", "application/vnd.star.line", "text/vnd.star.markup"]),
+                "mediaTypes": job.get("media_types", ["application/vnd.star.line", "text/vnd.star.markup"]),
                 "jobToken": job["token"]
             })
         else:
+            print(f"[CloudPRNT] Returning jobReady=False (no job found)")
             return JSONResponse({
                 "jobReady": False,
-                "mediaTypes": ["image/png", "application/vnd.star.line", "text/vnd.star.markup"]
+                "mediaTypes": ["application/vnd.star.line", "text/vnd.star.markup"]
             })
 
     except Exception as e:
@@ -213,7 +246,7 @@ async def poll(request: Request):
         traceback.print_exc()
         return JSONResponse({
             "jobReady": False,
-            "mediaTypes": ["image/png", "application/vnd.star.line", "text/vnd.star.markup"]
+            "mediaTypes": ["application/vnd.star.line", "text/vnd.star.markup"]
         })
 
 
@@ -243,18 +276,71 @@ async def get_job(mac: str = Query(..., description="Printer MAC address in dot 
 
         job_token = job["token"]
 
-        # Mark job as fetched using direct SQL
+        # Mark job as fetched using direct MySQL
         try:
-            frappe.db.sql("""
-                UPDATE `tabCloudPRNT Print Queue`
-                SET status = 'Fetched'
-                WHERE job_token = %s
-            """, (job_token,))
-            frappe.db.commit()
+            import pymysql
+            import json
+            import os
+
+            site_config_path = os.path.join(bench_path, "sites", "prod.local", "site_config.json")
+            with open(site_config_path, 'r') as f:
+                site_config = json.load(f)
+
+            conn = pymysql.connect(
+                host=site_config.get('db_host', 'localhost'),
+                user=site_config.get('db_user', site_config.get('db_name', 'root')),
+                password=site_config.get('db_password', ''),
+                database=site_config.get('db_name'),
+                charset='utf8mb4'
+            )
+
+            try:
+                with conn.cursor() as cursor:
+                    cursor.execute("""
+                        UPDATE `tabCloudPRNT Print Queue`
+                        SET status = 'Fetched'
+                        WHERE job_token = %s
+                    """, (job_token,))
+                    conn.commit()
+            finally:
+                conn.close()
         except Exception as e:
             print(f"Error marking job as fetched: {e}")
 
-        # Generate Star Line Mode binary for all jobs (test and invoice)
+        # Check if job contains pre-converted hex data (from CPUtil image conversion or custom jobs)
+        # These jobs have job_data as raw hex string that should be sent directly to printer
+        media_types = job.get("media_types", [])
+
+        # If job has job_data and it looks like hex data (no markup tags), return it directly
+        if job.get("job_data"):
+            job_data = job["job_data"]
+
+            # Check if this is raw hex data (no Star Markup tags like [align:], [cut:], etc.)
+            # Hex data will only contain [0-9A-Fa-f] characters
+            is_hex_only = all(c in '0123456789ABCDEFabcdef\n\r ' for c in job_data[:100])
+
+            if is_hex_only and len(job_data) > 100:  # Raw hex data (image or pre-converted)
+                try:
+                    binary_data = bytes.fromhex(job_data)
+
+                    # Use first media type from the list
+                    media_type = media_types[0] if media_types else "application/vnd.star.line"
+
+                    return Response(
+                        content=binary_data,
+                        media_type=media_type,
+                        headers={
+                            "Content-Type": media_type,
+                            "Content-Length": str(len(binary_data))
+                        }
+                    )
+                except Exception as e:
+                    print(f"Error converting hex to binary: {e}")
+                    import traceback
+                    traceback.print_exc()
+                    return Response(content=f"Error processing hex job: {str(e)}", status_code=500)
+
+        # Generate Star Line Mode binary for markup jobs (test and invoice)
         try:
             # Import print_job dynamically to avoid hooks errors
             import importlib.util
@@ -388,21 +474,34 @@ async def delete_job(
                 job_token = job["token"]
 
         if job_token:
-            # Mark job as printed (delete from queue) using direct SQL
+            # Mark job as printed (delete from queue) using direct MySQL
             try:
-                # Delete the job using pure SQL to avoid module import issues
-                result = frappe.db.sql("""
-                    DELETE FROM `tabCloudPRNT Print Queue`
-                    WHERE job_token = %s
-                """, (job_token,))
-                frappe.db.commit()
+                import pymysql
+                import json
+                import os
 
-                if result:
-                    print(f"[DEBUG] Job {job_token} printed and deleted successfully")
-                    return JSONResponse({"message": "ok"})
-                else:
-                    print(f"[DEBUG] Job {job_token} not found for deletion")
-                    return JSONResponse({"message": "ok"})  # Return ok anyway
+                site_config_path = os.path.join(bench_path, "sites", "prod.local", "site_config.json")
+                with open(site_config_path, 'r') as f:
+                    site_config = json.load(f)
+
+                conn = pymysql.connect(
+                    host=site_config.get('db_host', 'localhost'),
+                    user=site_config.get('db_user', site_config.get('db_name', 'root')),
+                    password=site_config.get('db_password', ''),
+                    database=site_config.get('db_name'),
+                    charset='utf8mb4'
+                )
+
+                try:
+                    with conn.cursor() as cursor:
+                        cursor.execute("""
+                            DELETE FROM `tabCloudPRNT Print Queue`
+                            WHERE job_token = %s
+                        """, (job_token,))
+                        conn.commit()
+                        return JSONResponse({"message": "ok"})
+                finally:
+                    conn.close()
 
             except Exception as e:
                 print(f"Error marking job as printed: {e}")
