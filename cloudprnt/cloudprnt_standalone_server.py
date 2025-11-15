@@ -342,8 +342,19 @@ async def get_job(mac: str = Query(..., description="Printer MAC address in dot 
 
         # Generate Star Line Mode binary for markup jobs (test and invoice)
         try:
-            # Import print_job dynamically to avoid hooks errors
+            # Import cputil_wrapper dynamically first (needed by print_job)
             import importlib.util
+            import sys
+
+            spec_cputil = importlib.util.spec_from_file_location("cputil_wrapper",
+                os.path.join(cloudprnt_path, "cputil_wrapper.py"))
+            cputil_module = importlib.util.module_from_spec(spec_cputil)
+
+            # Inject into sys.modules so print_job.py can find it
+            sys.modules['cloudprnt.cputil_wrapper'] = cputil_module
+            spec_cputil.loader.exec_module(cputil_module)
+
+            # Import print_job dynamically to avoid hooks errors
             spec = importlib.util.spec_from_file_location("print_job",
                 os.path.join(cloudprnt_path, "print_job.py"))
             print_job_module = importlib.util.module_from_spec(spec)
