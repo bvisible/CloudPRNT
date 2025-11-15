@@ -31,17 +31,23 @@ def add_job_to_queue(job_token, printer_mac, invoice_name=None, job_data=None, m
 		if not media_types:
 			media_types = ["image/png", "application/vnd.star.line", "text/vnd.star.markup"]
 
-		# Create queue entry
-		queue_doc = frappe.get_doc({
-			"doctype": "CloudPRNT Print Queue",
-			"job_token": job_token,
-			"printer_mac": printer_mac.upper(),
-			"invoice_name": invoice_name,
-			"status": "Pending",
-			"job_data": job_data,
-			"media_types": json.dumps(media_types)
+		# Create queue entry using direct SQL to avoid module loading issues
+		frappe.db.sql("""
+			INSERT INTO `tabCloudPRNT Print Queue`
+			(name, creation, modified, modified_by, owner, docstatus, idx,
+			 job_token, printer_mac, invoice_name, status, job_data, media_types)
+			VALUES
+			(%(name)s, NOW(), NOW(), %(user)s, %(user)s, 0, 0,
+			 %(job_token)s, %(printer_mac)s, %(invoice_name)s, 'Pending', %(job_data)s, %(media_types)s)
+		""", {
+			'name': frappe.generate_hash(length=10),
+			'user': frappe.session.user or 'Administrator',
+			'job_token': job_token,
+			'printer_mac': printer_mac.upper(),
+			'invoice_name': invoice_name,
+			'job_data': job_data,
+			'media_types': json.dumps(media_types)
 		})
-		queue_doc.insert(ignore_permissions=True)
 		frappe.db.commit()
 
 
