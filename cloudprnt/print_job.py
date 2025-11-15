@@ -61,7 +61,15 @@ class StarCloudPRNTStarLineModeJob:
         self.set_codepage("1252")
 
     def str_to_hex(self, string):
-        return ''.join(format(ord(c), '02x') for c in string).upper()
+        # Encode string to Windows-1252 (cp1252) for Star printer compatibility
+        # This handles special characters like œ, é, à correctly
+        try:
+            encoded_bytes = string.encode('cp1252')
+            return encoded_bytes.hex().upper()
+        except UnicodeEncodeError:
+            # Fallback: replace unencodable characters with '?'
+            encoded_bytes = string.encode('cp1252', errors='replace')
+            return encoded_bytes.hex().upper()
     
     def set_text_emphasized(self):
         self.print_job_builder += self.SLM_SET_EMPHASIZED_HEX
