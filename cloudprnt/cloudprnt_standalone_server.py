@@ -408,8 +408,10 @@ async def get_job(mac: str = Query(..., description="Printer MAC address in dot 
                         image_url = img_match.group(1)
                         try:
                             star_job.add_image_from_url(image_url)
+                            print(f"[CloudPRNT] Successfully added image from {image_url}")
                         except Exception as e:
-                            print(f"Error adding image from URL {image_url}: {e}")
+                            print(f"[CloudPRNT] Skipping image from {image_url}: {e}")
+                            # Skip image but continue processing the rest of the job
                     continue
 
                 # Feed tags - handle both [feed] and [feed: length Xmm]
@@ -438,7 +440,15 @@ async def get_job(mac: str = Query(..., description="Printer MAC address in dot 
 
             # Get binary data from job builder
             hex_data = star_job.print_job_builder
-            binary_data = bytes.fromhex(hex_data)
+
+            # Debug: check if hex_data is valid hex
+            try:
+                binary_data = bytes.fromhex(hex_data)
+            except ValueError as hex_error:
+                print(f"[CloudPRNT ERROR] Invalid hex data at position {str(hex_error)}")
+                print(f"[CloudPRNT ERROR] Hex data length: {len(hex_data)}")
+                print(f"[CloudPRNT ERROR] Sample around error: {hex_data[max(0, 1170):min(len(hex_data), 1200)]}")
+                raise
 
             return Response(
                 content=binary_data,
