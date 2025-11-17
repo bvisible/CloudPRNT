@@ -29,9 +29,17 @@ def print_pos_invoice(invoice_name, printer=None, use_mqtt=False):
         mac_address = None
 
         if not printer:
-            # Get default printer
-            printer = frappe.db.get_single_value("CloudPRNT Settings", "default_printer")
-            if not printer:
+            # Get default printer from database (bypassing controller)
+            default_printer = frappe.db.sql("""
+                SELECT default_printer
+                FROM `tabSingles`
+                WHERE doctype = 'CloudPRNT Settings'
+                AND field = 'default_printer'
+            """, as_dict=True)
+
+            if default_printer and default_printer[0].get('default_printer'):
+                printer = default_printer[0]['default_printer']
+            else:
                 return {"success": False, "message": "Aucune imprimante par défaut configurée"}
 
         # Resolve MAC address
@@ -39,22 +47,23 @@ def print_pos_invoice(invoice_name, printer=None, use_mqtt=False):
             # MAC address provided directly
             mac_address = printer.replace(".", ":")
         else:
-            # Printer label or name provided - find in settings
-            settings = frappe.get_single("CloudPRNT Settings")
-            printer_row = None
-            for p in settings.printers:
-                # Check both label and name (for backward compatibility)
-                if p.label == printer or p.name == printer:
-                    printer_row = p
-                    break
+            # Printer label or name provided - find in database (bypassing controller)
+            printer_row = frappe.db.sql("""
+                SELECT name, label, mac_address, use_mqtt
+                FROM `tabCloudPRNT Printers`
+                WHERE parent = 'CloudPRNT Settings'
+                AND (label = %s OR name = %s)
+                LIMIT 1
+            """, (printer, printer), as_dict=True)
 
             if not printer_row:
                 return {"success": False, "message": f"Imprimante {printer} non trouvée"}
 
+            printer_row = printer_row[0]
             mac_address = printer_row.mac_address
 
             # Check if printer has MQTT enabled
-            if hasattr(printer_row, 'use_mqtt') and printer_row.use_mqtt:
+            if printer_row.get('use_mqtt'):
                 use_mqtt = True
 
         # Determine print method
@@ -98,7 +107,7 @@ def print_pos_invoice(invoice_name, printer=None, use_mqtt=False):
             printer_mac=mac_address,
             invoice_name=invoice_name,
             job_data=job_data,  # Pre-generated binary data
-            media_types=["application/vnd.star.line", "text/vnd.star.markup"]
+            media_types=["application/vnd.star.starprnt", "application/vnd.star.line", "text/vnd.star.markup"]
         )
 
         if result.get("success"):

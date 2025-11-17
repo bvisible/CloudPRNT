@@ -49,6 +49,10 @@ app = FastAPI(title="CloudPRNT Standalone Server", version="1.0.0")
 # Global variables for queue (will be populated from Redis)
 PRINT_QUEUE = {}
 
+# Cache site config to avoid opening file on every request
+SITE_CONFIG_CACHE = None
+SITE_CONFIG_LAST_LOADED = 0
+
 
 def init_frappe():
     """Initialize Frappe connection for this request"""
@@ -86,6 +90,24 @@ def mac_to_dots(mac_address):
     return mac_address.replace(":", ".")
 
 
+def get_site_config():
+    """Load site config with caching to avoid file descriptor leak"""
+    global SITE_CONFIG_CACHE, SITE_CONFIG_LAST_LOADED
+    import time
+    import json
+    import os
+
+    now = time.time()
+    # Reload config every 60 seconds
+    if SITE_CONFIG_CACHE is None or (now - SITE_CONFIG_LAST_LOADED) > 60:
+        site_config_path = os.path.join(bench_path, "sites", "prod.local", "site_config.json")
+        with open(site_config_path, 'r') as f:
+            SITE_CONFIG_CACHE = json.load(f)
+        SITE_CONFIG_LAST_LOADED = now
+
+    return SITE_CONFIG_CACHE
+
+
 def get_next_job_for_printer(printer_mac):
     """
     Get next job for printer from database queue using raw MySQL
@@ -101,11 +123,8 @@ def get_next_job_for_printer(printer_mac):
         printer_mac_normalized = printer_mac.upper()
         print(f"[CloudPRNT] Looking for jobs for printer MAC: {printer_mac_normalized}")
 
-        # Get database config from Frappe site_config
-        import os
-        site_config_path = os.path.join(bench_path, "sites", "prod.local", "site_config.json")
-        with open(site_config_path, 'r') as f:
-            site_config = json.load(f)
+        # Get database config from cache
+        site_config = get_site_config()
 
         # Connect directly to MySQL
         conn = pymysql.connect(
@@ -193,7 +212,10 @@ async def poll(request: Request):
         status_code = data.get("statusCode", "")
         printing_in_progress = data.get("printingInProgress", False)
         client_type = data.get("clientType", "")
+        client_action = data.get("clientAction", [])
 
+        # DEBUG: Log full POST data
+        print(f"[CloudPRNT DEBUG] POST data: {data}")
 
         # Normalize MAC address
         printer_mac = normalize_mac_address(printer_mac_dots)
@@ -228,16 +250,26 @@ async def poll(request: Request):
 
         if job:
             print(f"[CloudPRNT] Returning jobReady=True for token: {job['token']}")
+            # Use job's media_types if specified, otherwise use default list with all formats
+            media_types = job.get("media_types") or [
+                "application/vnd.star.starprnt",
+                "application/vnd.star.line",
+                "text/vnd.star.markup"
+            ]
             return JSONResponse({
                 "jobReady": True,
-                "mediaTypes": job.get("media_types", ["application/vnd.star.line", "text/vnd.star.markup"]),
+                "mediaTypes": media_types,
                 "jobToken": job["token"]
             })
         else:
             print(f"[CloudPRNT] Returning jobReady=False (no job found)")
             return JSONResponse({
                 "jobReady": False,
-                "mediaTypes": ["application/vnd.star.line", "text/vnd.star.markup"]
+                "mediaTypes": [
+                    "application/vnd.star.starprnt",
+                    "application/vnd.star.line",
+                    "text/vnd.star.markup"
+                ]
             })
 
     except Exception as e:
@@ -250,16 +282,21 @@ async def poll(request: Request):
         })
 
 
-@app.get("/job")
-async def get_job(mac: str = Query(..., description="Printer MAC address in dot format")):
+async def get_job_handler(request: Request, mac: str = Query(..., description="Printer MAC address in dot format")):
     """
-    CloudPRNT Job Endpoint
-    Accepts both / and /job paths
+    CloudPRNT Job Endpoint Handler
+    Handles both / and /job paths
 
     Returns the job data for printing
     """
     try:
         init_frappe()
+
+        # Get media type from query params
+        media_type = request.query_params.get("type")
+
+        # Log requested media type
+        print(f"[CloudPRNT] GET /job request - MAC: {mac}, requested type: {media_type}")
 
         # Normalize MAC
         printer_mac_dots = mac
@@ -279,12 +316,8 @@ async def get_job(mac: str = Query(..., description="Printer MAC address in dot 
         # Mark job as fetched using direct MySQL
         try:
             import pymysql
-            import json
-            import os
 
-            site_config_path = os.path.join(bench_path, "sites", "prod.local", "site_config.json")
-            with open(site_config_path, 'r') as f:
-                site_config = json.load(f)
+            site_config = get_site_config()
 
             conn = pymysql.connect(
                 host=site_config.get('db_host', 'localhost'),
@@ -323,14 +356,15 @@ async def get_job(mac: str = Query(..., description="Printer MAC address in dot 
                 try:
                     binary_data = bytes.fromhex(job_data)
 
-                    # Use first media type from the list
-                    media_type = media_types[0] if media_types else "application/vnd.star.line"
+                    # Use requested media type or first from the list
+                    content_type = media_type or (media_types[0] if media_types else "application/vnd.star.line")
+                    print(f"[CloudPRNT] Returning hex job with Content-Type: {content_type}")
 
                     return Response(
                         content=binary_data,
-                        media_type=media_type,
+                        media_type=content_type,
                         headers={
-                            "Content-Type": media_type,
+                            "Content-Type": content_type,
                             "Content-Length": str(len(binary_data))
                         }
                     )
@@ -459,11 +493,15 @@ async def get_job(mac: str = Query(..., description="Printer MAC address in dot 
                 print(f"[CloudPRNT ERROR] Sample around error: {hex_data[max(0, error_pos-20):min(len(hex_data), error_pos+20)]}")
                 raise
 
+            # Use requested media type or default to Star Line Mode
+            content_type = media_type or "application/vnd.star.line"
+            print(f"[CloudPRNT] Returning job with Content-Type: {content_type}")
+
             return Response(
                 content=binary_data,
-                media_type="application/vnd.star.line",
+                media_type=content_type,
                 headers={
-                    "Content-Type": "application/vnd.star.line",
+                    "Content-Type": content_type,
                     "Content-Length": str(len(binary_data))
                 }
             )
@@ -478,6 +516,14 @@ async def get_job(mac: str = Query(..., description="Printer MAC address in dot 
         import traceback
         traceback.print_exc()
         return Response(content=f"Error: {str(e)}", status_code=500)
+
+
+# Register both / and /job paths for GET requests
+@app.get("/")
+@app.get("/job")
+async def get_job(request: Request, mac: str = Query(..., description="Printer MAC address in dot format")):
+    """Wrapper that calls the actual handler"""
+    return await get_job_handler(request, mac)
 
 
 @app.delete("/job")
@@ -513,12 +559,8 @@ async def delete_job(
             # Mark job as printed (delete from queue) using direct MySQL
             try:
                 import pymysql
-                import json
-                import os
 
-                site_config_path = os.path.join(bench_path, "sites", "prod.local", "site_config.json")
-                with open(site_config_path, 'r') as f:
-                    site_config = json.load(f)
+                site_config = get_site_config()
 
                 conn = pymysql.connect(
                     host=site_config.get('db_host', 'localhost'),

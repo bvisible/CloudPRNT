@@ -60,7 +60,10 @@ def _get_all_discovered_keys():
             return json.loads(keys_list)
         return []
     except Exception as e:
-        frappe.logger().error(f"Error getting discovered keys: {str(e)}")
+        try:
+            frappe.logger().error(f"Error getting discovered keys: {str(e)}")
+        except:
+            print(f"[Discovery] Error getting discovered keys: {str(e)}")
         return []
 
 def _add_to_master_list(mac_address):
@@ -77,7 +80,10 @@ def _add_to_master_list(mac_address):
             keys.append(mac_address)
             frappe.cache().set_value(master_key, json.dumps(keys), expires_in_sec=CACHE_TTL)
     except Exception as e:
-        frappe.logger().error(f"Error adding to master list: {str(e)}")
+        try:
+            frappe.logger().error(f"Error adding to master list: {str(e)}")
+        except:
+            print(f"[Discovery] Error adding to master list: {str(e)}")
 
 def track_printer_poll(mac_address, ip_address=None, client_type=None, status_code=None):
     """
@@ -124,7 +130,10 @@ def track_printer_poll(mac_address, ip_address=None, client_type=None, status_co
                 "last_seen": now.isoformat(),
                 "poll_count": 1
             }
-            frappe.logger().info(f"🔍 New printer discovered: {mac_address} ({client_type})")
+            try:
+                frappe.logger().info(f"🔍 New printer discovered: {mac_address} ({client_type})")
+            except:
+                print(f"[Discovery] 🔍 New printer discovered: {mac_address} ({client_type})")
             
             # Add to master list
             _add_to_master_list(mac_address)
@@ -137,7 +146,10 @@ def track_printer_poll(mac_address, ip_address=None, client_type=None, status_co
         )
         
     except Exception as e:
-        frappe.logger().error(f"Error tracking printer poll: {str(e)}")
+        try:
+            frappe.logger().error(f"Error tracking printer poll: {str(e)}")
+        except:
+            print(f"[Discovery] Error tracking printer poll: {str(e)}")
 
 
 def clean_old_discoveries():
@@ -173,7 +185,10 @@ def clean_old_discoveries():
             frappe.cache().set_value(master_key, json.dumps(valid_keys), expires_in_sec=CACHE_TTL)
         
     except Exception as e:
-        frappe.logger().error(f"Error cleaning discoveries: {str(e)}")
+        try:
+            frappe.logger().error(f"Error cleaning discoveries: {str(e)}")
+        except:
+            print(f"[Discovery] Error cleaning discoveries: {str(e)}")
 
 
 @frappe.whitelist()
@@ -187,10 +202,15 @@ def get_discovered_printers():
         # Clean old discoveries first
         clean_old_discoveries()
 
-        # Get existing printers from settings
-        settings = frappe.get_single("CloudPRNT Settings")
+        # Get existing printers from database (bypassing controller)
         existing_macs = set()
-        for printer in settings.printers:
+        printers = frappe.db.sql("""
+            SELECT mac_address
+            FROM `tabCloudPRNT Printers`
+            WHERE parent = 'CloudPRNT Settings'
+        """, as_dict=True)
+
+        for printer in printers:
             existing_macs.add(printer.mac_address.upper())
 
         # Get all discovered printers from cache
@@ -228,7 +248,10 @@ def get_discovered_printers():
                     "time_since_first_seen": f"{seconds}s ago"
                 })
             except Exception as e:
-                frappe.logger().error(f"Error parsing printer data for {mac}: {str(e)}")
+                try:
+                    frappe.logger().error(f"Error parsing printer data for {mac}: {str(e)}")
+                except:
+                    print(f"[Discovery] Error parsing printer data for {mac}: {str(e)}")
                 continue
 
         return {
@@ -316,7 +339,10 @@ def add_discovered_printer(mac_address, label=None):
                 keys.remove(mac_address)
                 frappe.cache().set_value(master_key, json.dumps(keys), expires_in_sec=CACHE_TTL)
 
-        frappe.logger().info(f"✅ Added printer: {label} ({mac_address})")
+        try:
+            frappe.logger().info(f"✅ Added printer: {label} ({mac_address})")
+        except:
+            print(f"[Discovery] ✅ Added printer: {label} ({mac_address})")
 
         return {
             "success": True,
