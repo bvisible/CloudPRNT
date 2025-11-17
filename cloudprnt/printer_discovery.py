@@ -304,27 +304,36 @@ def add_discovered_printer(mac_address, label=None):
             # Add MAC last 4 chars to make unique
             label = f"{label} ({mac_address[-5:]})"
 
-        # Get settings
-        settings = frappe.get_single("CloudPRNT Settings")
+        # Check if already exists (using direct SQL)
+        existing = frappe.db.sql("""
+            SELECT name
+            FROM `tabCloudPRNT Printers`
+            WHERE parent = 'CloudPRNT Settings'
+            AND mac_address = %s
+        """, (mac_address,), as_dict=True)
 
-        # Check if already exists
-        for printer in settings.printers:
-            if printer.mac_address == mac_address:
-                return {
-                    "success": False,
-                    "message": f"Printer {mac_address} already exists"
-                }
+        if existing:
+            return {
+                "success": False,
+                "message": f"Printer {mac_address} already exists"
+            }
 
-        # Add new printer row
-        settings.append("printers", {
-            "mac_address": mac_address,
-            "label": label,
-            "ip_address": printer_data.get("ip_address"),
-            "online": 1,
-            "status_code": printer_data.get("status_code", "200 OK")
+        # Add new printer row using SQL
+        frappe.db.sql("""
+            INSERT INTO `tabCloudPRNT Printers`
+            (name, creation, modified, modified_by, owner, docstatus, parent, parenttype, parentfield, idx,
+             mac_address, label, ip_address, online, status_code)
+            VALUES
+            (%(name)s, NOW(), NOW(), %(user)s, %(user)s, 0, 'CloudPRNT Settings', 'CloudPRNT Settings', 'printers', 0,
+             %(mac_address)s, %(label)s, %(ip_address)s, 1, %(status_code)s)
+        """, {
+            'name': frappe.generate_hash(length=10),
+            'user': frappe.session.user or 'Administrator',
+            'mac_address': mac_address,
+            'label': label,
+            'ip_address': printer_data.get("ip_address"),
+            'status_code': printer_data.get("status_code", "200 OK")
         })
-
-        settings.save(ignore_permissions=True)
         frappe.db.commit()
 
         # Remove from cache

@@ -80,15 +80,16 @@ def update_printer_status(mac_address, status_code=None, printing_in_progress=No
     :param kwargs: Additional fields to update
     """
     try:
-        # Find printer in CloudPRNT Settings
-        settings = frappe.get_single("CloudPRNT Settings")
+        # Find printer in database (bypassing controller)
+        normalized_mac = normalize_mac_address(mac_address)
 
-        # Find printer row
-        printer_row = None
-        for printer in settings.printers:
-            if normalize_mac_address(printer.mac_address) == normalize_mac_address(mac_address):
-                printer_row = printer
-                break
+        printer_row = frappe.db.sql("""
+            SELECT name
+            FROM `tabCloudPRNT Printers`
+            WHERE parent = 'CloudPRNT Settings'
+            AND REPLACE(REPLACE(UPPER(mac_address), ':', ''), '.', '') = %s
+            LIMIT 1
+        """, (normalized_mac.replace(':', '').replace('.', '').upper(),), as_dict=True)
 
         if not printer_row:
             frappe.log_error(
@@ -97,23 +98,25 @@ def update_printer_status(mac_address, status_code=None, printing_in_progress=No
             )
             return
 
-        # Update fields
-        printer_row.online = 1
-        printer_row.last_activity = frappe.utils.now_datetime().timestamp()
+        printer_name = printer_row[0].name
+
+        # Build update fields
+        update_fields = {
+            'online': 1,
+            'last_activity': frappe.utils.now_datetime().timestamp()
+        }
 
         if status_code is not None:
-            printer_row.status_code = status_code
+            update_fields['status_code'] = status_code
 
         if printing_in_progress is not None:
-            printer_row.printing_in_progress = 1 if printing_in_progress else 0
+            update_fields['printing_in_progress'] = 1 if printing_in_progress else 0
 
-        # Update additional fields from kwargs
-        for key, value in kwargs.items():
-            if hasattr(printer_row, key):
-                setattr(printer_row, key, value)
+        # Add additional fields from kwargs
+        update_fields.update(kwargs)
 
-        # Save
-        settings.save(ignore_permissions=True)
+        # Update using SQL
+        frappe.db.set_value("CloudPRNT Printers", printer_name, update_fields)
         frappe.db.commit()
 
     except Exception as e:
@@ -241,13 +244,20 @@ def create_print_log(invoice_name):
     :param invoice_name: POS Invoice name
     """
     try:
-        log_entry = frappe.get_doc({
-            "doctype": "CloudPRNT Logs",
-            "doctype_link": "POS Invoice",
-            "document_link": invoice_name,
-            "datetime": frappe.utils.now_datetime()
+        # Create log entry using SQL to avoid module loading issues
+        frappe.db.sql("""
+            INSERT INTO `tabCloudPRNT Logs`
+            (name, creation, modified, modified_by, owner, docstatus, idx,
+             doctype_link, document_link, datetime)
+            VALUES
+            (%(name)s, NOW(), NOW(), %(user)s, %(user)s, 0, 0,
+             'POS Invoice', %(document_link)s, %(datetime)s)
+        """, {
+            'name': frappe.generate_hash(length=10),
+            'user': frappe.session.user or 'Administrator',
+            'document_link': invoice_name,
+            'datetime': frappe.utils.now_datetime()
         })
-        log_entry.insert(ignore_permissions=True)
         frappe.db.commit()
     except Exception as e:
         frappe.log_error(f"Error creating print log: {str(e)}", "create_print_log")
@@ -613,29 +623,36 @@ def add_print_job(invoice_name, printer_mac=None):
 
         # Get printer MAC
         if not printer_mac:
-            # Get default printer
-            default_printer = frappe.db.get_single_value("CloudPRNT Settings", "default_printer")
-            if not default_printer:
+            # Get default printer from database (bypassing controller)
+            default_printer = frappe.db.sql("""
+                SELECT value
+                FROM `tabSingles`
+                WHERE doctype = 'CloudPRNT Settings'
+                AND field = 'default_printer'
+            """, as_dict=True)
+
+            if not default_printer or not default_printer[0].get('value'):
                 return {
                     "success": False,
                     "message": "No default printer configured"
                 }
 
             # Get MAC from printer
-            settings = frappe.get_single("CloudPRNT Settings")
-            printer_row = None
-            for printer in settings.printers:
-                if printer.label == default_printer:
-                    printer_row = printer
-                    break
+            printer_row = frappe.db.sql("""
+                SELECT mac_address
+                FROM `tabCloudPRNT Printers`
+                WHERE parent = 'CloudPRNT Settings'
+                AND label = %s
+                LIMIT 1
+            """, (default_printer[0]['value'],), as_dict=True)
 
             if not printer_row:
                 return {
                     "success": False,
-                    "message": f"Printer {default_printer} not found"
+                    "message": f"Printer {default_printer[0]['value']} not found"
                 }
 
-            printer_mac = printer_row.mac_address
+            printer_mac = printer_row[0].mac_address
 
         # Normalize MAC
         printer_mac = normalize_mac_address(printer_mac)
