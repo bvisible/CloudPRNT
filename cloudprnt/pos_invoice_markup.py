@@ -117,12 +117,18 @@ def get_pos_invoice_markup(invoice_name):
     # Cartes-cadeaux générées
     for item in doc.items:
         if item.item_code == "giftcard":
-            giftcard_numbers = frappe.get_all('Neoffice Giftcard', 
-                filters={"pos_invoice": doc.name}, 
-                fields=["name", "value"])
-            
-            for giftcard in giftcard_numbers:
-                markup.append(f"{_('Gift card with a value of')} {fmt_money(giftcard.value, currency=doc.currency)}: {giftcard.name}")
+            try:
+                # Check if the DocType exists before querying
+                if frappe.db.exists("DocType", "Neoffice Giftcard"):
+                    giftcard_numbers = frappe.get_all('Neoffice Giftcard',
+                        filters={"pos_invoice": doc.name},
+                        fields=["name", "value"])
+
+                    for giftcard in giftcard_numbers:
+                        markup.append(f"{_('Gift card with a value of')} {fmt_money(giftcard.value, currency=doc.currency)}: {giftcard.name}")
+            except Exception:
+                # Silently ignore if gift card info is not available
+                pass
     
     # Separator line (centered)
     markup.append("")
