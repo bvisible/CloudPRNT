@@ -115,13 +115,15 @@ def get_pos_invoice_markup(invoice_name):
     markup.append("")
 
     # Cartes-cadeaux générées (Gift cards are stored as Coupon Codes with coupon_type="Gift Card")
+    # For POS Invoices, the link is stored in the description field as "Created from POS Invoice: XXX"
     for item in doc.items:
         if item.item_code == "giftcard":
             try:
+                # First try to find by description (for POS Invoices)
                 giftcard_coupons = frappe.get_all('Coupon Code',
                     filters={
-                        "sales_invoice": doc.name,
-                        "coupon_type": "Gift Card"
+                        "coupon_type": "Gift Card",
+                        "description": ["like", f"%{doc.name}%"]
                     },
                     fields=["coupon_code", "gift_card_amount"])
 
