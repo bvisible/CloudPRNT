@@ -4,6 +4,7 @@
 # import frappe
 from frappe.model.document import Document
 import frappe
+from frappe import _
 import os
 from datetime import datetime
 from cloudprnt.print_job import StarCloudPRNTStarLineModeJob, neolog
@@ -14,10 +15,10 @@ class CloudPRNTSettings(Document):
 		"""Validate settings"""
 		# Vérifier que les URLs des logos sont valides
 		if self.header_logo_url and not self.header_logo_url.startswith(('http://', 'https://')):
-			frappe.msgprint("L'URL du logo d'en-tête doit commencer par http:// ou https://")
-		
+			frappe.msgprint(_("Header logo URL must start with http:// or https://"))
+
 		if self.footer_logo_url and not self.footer_logo_url.startswith(('http://', 'https://')):
-			frappe.msgprint("L'URL du logo de pied de page doit commencer par http:// ou https://")
+			frappe.msgprint(_("Footer logo URL must start with http:// or https://"))
 
 @frappe.whitelist()
 def get_settings():
@@ -32,7 +33,7 @@ def get_settings():
 	}
 
 @frappe.whitelist()
-def test_print(printer, test_text="Test d'impression CloudPRNT", image_link=None):
+def test_print(printer, test_text=None, image_link=None):
 	"""
 	Test print function using new Python CloudPRNT server
 
@@ -45,8 +46,11 @@ def test_print(printer, test_text="Test d'impression CloudPRNT", image_link=None
 	:return: Result dict with success status
 	"""
 	try:
+		if test_text is None:
+			test_text = _("CloudPRNT print test")
+
 		if not printer:
-			return {"success": False, "message": "Aucune imprimante spécifiée"}
+			return {"success": False, "message": _("No printer specified")}
 
 		# Get MAC address
 		mac_address = None
@@ -63,7 +67,7 @@ def test_print(printer, test_text="Test d'impression CloudPRNT", image_link=None
 					break
 
 			if not mac_address:
-				return {"success": False, "message": f"Imprimante {printer} non trouvée"}
+				return {"success": False, "message": _("Printer {0} not found").format(printer)}
 
 		# Handle image printing if URL provided
 		image_hex = None
@@ -114,10 +118,10 @@ def test_print(printer, test_text="Test d'impression CloudPRNT", image_link=None
 				os.unlink(processed_file.name)
 
 			except Exception as img_error:
-				frappe.log_error(f"Image download/conversion error: {str(img_error)}", "test_print")
+				frappe.log_error("Image download/conversion error", str(img_error))
 				return {
 					"success": False,
-					"message": f"Erreur lors du traitement de l'image: {str(img_error)}"
+					"message": _("Error processing image: {0}").format(str(img_error))
 				}
 
 		# If we have an image, print it with Star Line Mode format
@@ -169,7 +173,7 @@ MAC: {mac_address}
 
 			return {
 				"success": True,
-				"message": f"Test d'impression (image + texte) envoyé à la queue",
+				"message": _("Test print (image + text) sent to queue"),
 				"job_token": test_job_token,
 				"queue_position": result.get("queue_position", 1)
 			}
@@ -211,7 +215,7 @@ MAC: {mac_address}
 
 		return {
 			"success": True,
-			"message": f"Test d'impression envoyé à la queue (job: {test_job_token})",
+			"message": _("Test print sent to queue (job: {0})").format(test_job_token),
 			"job_token": test_job_token,
 			"queue_position": result.get("queue_position", 1)
 		}

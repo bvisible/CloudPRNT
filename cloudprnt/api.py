@@ -20,10 +20,10 @@ def print_pos_invoice(invoice_name, printer=None, use_mqtt=False):
     """
     try:
         if not invoice_name:
-            return {"success": False, "message": "Aucune facture spécifiée"}
+            return {"success": False, "message": translate("No invoice specified")}
 
         if not frappe.db.exists("POS Invoice", invoice_name):
-            return {"success": False, "message": f"Facture POS {invoice_name} non trouvée"}
+            return {"success": False, "message": translate("POS Invoice {0} not found").format(invoice_name)}
 
         # Get MAC address
         mac_address = None
@@ -40,7 +40,7 @@ def print_pos_invoice(invoice_name, printer=None, use_mqtt=False):
             if default_printer and default_printer[0].get('default_printer'):
                 printer = default_printer[0]['default_printer']
             else:
-                return {"success": False, "message": "Aucune imprimante par défaut configurée"}
+                return {"success": False, "message": translate("No default printer configured")}
 
         # Resolve MAC address
         if ":" in printer or "." in printer:
@@ -57,7 +57,7 @@ def print_pos_invoice(invoice_name, printer=None, use_mqtt=False):
             """, (printer, printer), as_dict=True)
 
             if not printer_row:
-                return {"success": False, "message": f"Imprimante {printer} non trouvée"}
+                return {"success": False, "message": translate("Printer {0} not found").format(printer)}
 
             printer_row = printer_row[0]
             mac_address = printer_row.mac_address
@@ -82,13 +82,13 @@ def print_pos_invoice(invoice_name, printer=None, use_mqtt=False):
 
                 return {
                     "success": True,
-                    "message": f"Impression de la facture {invoice_name} envoyée via MQTT",
+                    "message": translate("Invoice {0} print sent via MQTT").format(invoice_name),
                     "method": "mqtt",
                     "printer": printer
                 }
             except Exception as mqtt_error:
                 # Fallback to HTTP if MQTT fails
-                frappe.log_error(f"MQTT failed, falling back to HTTP: {str(mqtt_error)}", "print_pos_invoice")
+                frappe.log_error("MQTT failed, falling back to HTTP", str(mqtt_error))
                 use_mqtt = False
 
         # HTTP Mode (database queue)
@@ -99,7 +99,7 @@ def print_pos_invoice(invoice_name, printer=None, use_mqtt=False):
             markup_text = get_pos_invoice_markup(invoice_name)
             job_data = markup_text  # Store markup directly, will be converted by standalone server
         except Exception as e:
-            frappe.log_error(f"Error generating markup: {str(e)}", "print_pos_invoice")
+            frappe.log_error("Error generating markup", str(e))
             job_data = None
 
         result = add_job_to_queue(
@@ -113,7 +113,7 @@ def print_pos_invoice(invoice_name, printer=None, use_mqtt=False):
         if result.get("success"):
             return {
                 "success": True,
-                "message": f"Impression de la facture {invoice_name} ajoutée à la queue",
+                "message": translate("Invoice {0} print added to queue").format(invoice_name),
                 "method": "http",
                 "printer": printer,
                 "queue_position": result.get("queue_position", 1)

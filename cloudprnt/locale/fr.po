@@ -1,0 +1,302 @@
+# French translations for CloudPRNT
+# Copyright (C) 2024 Neoffice
+# This file is distributed under the same license as the CloudPRNT package.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: CloudPRNT\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2024-12-20 12:00+0000\n"
+"PO-Revision-Date: 2024-12-20 12:00+0000\n"
+"Last-Translator: \n"
+"Language-Team: French\n"
+"Language: fr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.py
+msgid "Header logo URL must start with http:// or https://"
+msgstr "L'URL du logo d'en-tête doit commencer par http:// ou https://"
+
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.py
+msgid "Footer logo URL must start with http:// or https://"
+msgstr "L'URL du logo de pied de page doit commencer par http:// ou https://"
+
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.py
+msgid "CloudPRNT print test"
+msgstr "Test d'impression CloudPRNT"
+
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.py
+msgid "No printer specified"
+msgstr "Aucune imprimante spécifiée"
+
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.py
+msgid "Printer {0} not found"
+msgstr "Imprimante {0} non trouvée"
+
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.py
+msgid "Error processing image: {0}"
+msgstr "Erreur lors du traitement de l'image : {0}"
+
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.py
+msgid "Test print (image + text) sent to queue"
+msgstr "Test d'impression (image + texte) envoyé à la queue"
+
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.py
+msgid "Test print sent to queue (job: {0})"
+msgstr "Test d'impression envoyé à la queue (job : {0})"
+
+#: cloudprnt/api.py
+msgid "No invoice specified"
+msgstr "Aucune facture spécifiée"
+
+#: cloudprnt/api.py
+msgid "POS Invoice {0} not found"
+msgstr "Facture POS {0} non trouvée"
+
+#: cloudprnt/api.py
+msgid "No default printer configured"
+msgstr "Aucune imprimante par défaut configurée"
+
+#: cloudprnt/api.py
+msgid "Invoice {0} print sent via MQTT"
+msgstr "Impression de la facture {0} envoyée via MQTT"
+
+#: cloudprnt/api.py
+msgid "Invoice {0} print added to queue"
+msgstr "Impression de la facture {0} ajoutée à la queue"
+
+#: cloudprnt/api.py
+msgid "CPUtil n'est pas disponible. Impossible de convertir l'image."
+msgstr "CPUtil n'est pas disponible. Impossible de convertir l'image."
+
+#: cloudprnt/api.py
+msgid "Image ajoutée à la queue d'impression ({0} bytes)"
+msgstr "Image ajoutée à la queue d'impression ({0} octets)"
+
+#: cloudprnt/api.py
+msgid "Fichier image introuvable: {0}"
+msgstr "Fichier image introuvable : {0}"
+
+#: cloudprnt/api.py
+msgid "Erreur lors de l'impression de l'image: {0}"
+msgstr "Erreur lors de l'impression de l'image : {0}"
+
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js
+msgid "Discover Printers"
+msgstr "Découvrir les imprimantes"
+
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js
+msgid "No new printer"
+msgstr "Aucune nouvelle imprimante"
+
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js
+msgid "No new printer detected. Make sure the printer is polling the server with the correct URL."
+msgstr "Aucune nouvelle imprimante détectée. Assurez-vous que l'imprimante poll le serveur avec l'URL correcte."
+
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js
+msgid "Discovered Printers"
+msgstr "Imprimantes découvertes"
+
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js
+msgid "Close"
+msgstr "Fermer"
+
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js
+msgid "Add"
+msgstr "Ajouter"
+
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js
+msgid "Printer name"
+msgstr "Nom de l'imprimante"
+
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js
+msgid "Printer added successfully!"
+msgstr "Imprimante ajoutée avec succès !"
+
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js
+msgid "Error"
+msgstr "Erreur"
+
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js
+msgid "Error adding printer"
+msgstr "Erreur lors de l'ajout"
+
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js
+msgid "Add Printer"
+msgstr "Ajouter une imprimante"
+
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js
+msgid "Error retrieving printers"
+msgstr "Erreur lors de la récupération des imprimantes"
+
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js
+msgid "Test Printer"
+msgstr "Tester l'imprimante"
+
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js
+msgid "Print test"
+msgstr "Test d'impression"
+
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js
+msgid "Printer"
+msgstr "Imprimante"
+
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js
+msgid "Image link"
+msgstr "Lien de l'image"
+
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js
+msgid "URL of the image to print (optional)"
+msgstr "URL de l'image à imprimer (optionnel)"
+
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js
+msgid "Text to print"
+msgstr "Texte à imprimer"
+
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js
+msgid "Print"
+msgstr "Imprimer"
+
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js
+msgid "Test print sent to printer"
+msgstr "Test d'impression envoyé à l'imprimante"
+
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js
+msgid "Error: "
+msgstr "Erreur : "
+
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js
+msgid "Unknown error"
+msgstr "Erreur inconnue"
+
+#: cloudprnt/public/js/pos_invoice.js
+msgid "Thermal Ticket"
+msgstr "Ticket thermique"
+
+#: cloudprnt/public/js/pos_invoice.js
+msgid "Ticket sent to printer"
+msgstr "Ticket envoyé à l'imprimante"
+
+#: cloudprnt/public/js/pos_invoice.js
+msgid "Print"
+msgstr "Imprimer"
+
+#: cloudprnt/pos_invoice_markup.py
+msgid "Invoice"
+msgstr "Facture"
+
+#: cloudprnt/pos_invoice_markup.py
+msgid "Date"
+msgstr "Date"
+
+#: cloudprnt/pos_invoice_markup.py
+msgid "Time"
+msgstr "Heure"
+
+#: cloudprnt/pos_invoice_markup.py
+msgid "Customer"
+msgstr "Client"
+
+#: cloudprnt/pos_invoice_markup.py
+msgid "Cashier"
+msgstr "Caissier"
+
+#: cloudprnt/pos_invoice_markup.py
+msgid "Currency"
+msgstr "Devise"
+
+#: cloudprnt/pos_invoice_markup.py
+msgid "Serial number"
+msgstr "Numéro de série"
+
+#: cloudprnt/pos_invoice_markup.py
+msgid "Batch No"
+msgstr "N° de lot"
+
+#: cloudprnt/pos_invoice_markup.py
+msgid "Gift card with a value of"
+msgstr "Carte cadeau d'une valeur de"
+
+#: cloudprnt/pos_invoice_markup.py
+msgid "Discount"
+msgstr "Remise"
+
+#: cloudprnt/pos_invoice_markup.py
+msgid "Net Total"
+msgstr "Total net"
+
+#: cloudprnt/pos_invoice_markup.py
+msgid "Grand Total"
+msgstr "Total général"
+
+#: cloudprnt/pos_invoice_markup.py
+msgid "Rounded Total"
+msgstr "Total arrondi"
+
+#: cloudprnt/pos_invoice_markup.py
+msgid "Change Amount"
+msgstr "Monnaie rendue"
+
+#: cloudprnt/pos_invoice_markup.py
+msgid "Total product"
+msgstr "Total produits"
+
+#: cloudprnt/pos_invoice_markup.py
+msgid "on"
+msgstr "sur"
+
+#: cloudprnt/pos_invoice_markup.py
+msgid "Total"
+msgstr "Total"
+
+#: DocType labels
+msgid "CloudPRNT Settings"
+msgstr "Paramètres CloudPRNT"
+
+msgid "CloudPRNT Printers"
+msgstr "Imprimantes CloudPRNT"
+
+msgid "CloudPRNT Logs"
+msgstr "Journaux CloudPRNT"
+
+msgid "CloudPRNT Print Queue"
+msgstr "File d'impression CloudPRNT"
+
+msgid "Header Logo URL"
+msgstr "URL du logo d'en-tête"
+
+msgid "Footer Logo URL"
+msgstr "URL du logo de pied de page"
+
+msgid "Default Printer"
+msgstr "Imprimante par défaut"
+
+msgid "Enable Auto Print"
+msgstr "Activer l'impression automatique"
+
+msgid "Default Paper Width"
+msgstr "Largeur de papier par défaut"
+
+msgid "MAC Address"
+msgstr "Adresse MAC"
+
+msgid "Label"
+msgstr "Libellé"
+
+msgid "Use MQTT"
+msgstr "Utiliser MQTT"
+
+msgid "IP Address"
+msgstr "Adresse IP"
+
+msgid "Last Poll"
+msgstr "Dernier poll"
+
+msgid "Poll Count"
+msgstr "Nombre de polls"
+
+msgid "Client Type"
+msgstr "Type de client"

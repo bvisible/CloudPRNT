@@ -54,7 +54,7 @@ frappe.ui.form.on("CloudPRNT Settings", {
                             html += `<td>${printer.client_type}</td>`;
                             html += `<td>${printer.ip_address}</td>`;
                             html += `<td>${printer.poll_count}</td>`;
-                            html += `<td><button class="btn btn-sm btn-primary add-printer" data-mac="${printer.mac_address}">Ajouter</button></td>`;
+                            html += `<td><button class="btn btn-sm btn-primary add-printer" data-mac="${printer.mac_address}">${__('Add')}</button></td>`;
                             html += '</tr>';
                         });
 
