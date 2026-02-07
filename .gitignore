@@ -3,3 +3,4 @@ __pycache__/
 *.pyc
 *.pyo
 nginx.conf
+CLAUDE.md
