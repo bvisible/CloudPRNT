@@ -23,6 +23,16 @@ from cloudprnt.cputil_wrapper import (
 from cloudprnt.print_job import StarCloudPRNTStarLineModeJob
 
 
+def _log(msg):
+    # Diagnostic logging inside tests must never fail the test. On a fresh CI
+    # bench there is no logs/ directory, so frappe.logger() raises
+    # FileNotFoundError -- swallow anything logging throws.
+    try:
+        frappe.logger().info(msg)
+    except Exception:
+        pass
+
+
 class TestCPUtilDetection(unittest.TestCase):
     """Tests for CPUtil detection and availability"""
 
@@ -33,9 +43,9 @@ class TestCPUtilDetection(unittest.TestCase):
         if path:
             self.assertIsInstance(path, str)
             self.assertTrue(len(path) > 0)
-            frappe.logger().info(f"CPUtil found at: {path}")
+            _log(f"CPUtil found at: {path}")
         else:
-            frappe.logger().warning("CPUtil not found - install tests will be skipped")
+            _log("CPUtil not found - install tests will be skipped")
 
     def test_02_is_cputil_available(self):
         """Test CPUtil availability check"""
@@ -43,9 +53,9 @@ class TestCPUtilDetection(unittest.TestCase):
         self.assertIsInstance(available, bool)
 
         if available:
-            frappe.logger().info("✅ CPUtil is available")
+            _log("✅ CPUtil is available")
         else:
-            frappe.logger().warning("❌ CPUtil is not available")
+            _log("❌ CPUtil is not available")
 
     def test_03_check_cputil_status(self):
         """Test CPUtil status check API"""
@@ -56,8 +66,8 @@ class TestCPUtilDetection(unittest.TestCase):
         self.assertIn('status', status)
         self.assertIn('message', status)
 
-        frappe.logger().info(f"CPUtil Status: {status['status']}")
-        frappe.logger().info(f"Message: {status['message']}")
+        _log(f"CPUtil Status: {status['status']}")
+        _log(f"Message: {status['message']}")
 
 
 class TestCPUtilConversion(unittest.TestCase):
@@ -68,7 +78,7 @@ class TestCPUtilConversion(unittest.TestCase):
         """Check if CPUtil is available before running tests"""
         cls.cputil_available = is_cputil_available()
         if not cls.cputil_available:
-            frappe.logger().warning("CPUtil not available - conversion tests will be skipped")
+            _log("CPUtil not available - conversion tests will be skipped")
 
     def setUp(self):
         """Skip tests if CPUtil not available"""
@@ -86,7 +96,7 @@ class TestCPUtilConversion(unittest.TestCase):
         self.assertTrue(len(result) > 0)
         self.assertTrue(all(c in '0123456789ABCDEF' for c in result), "Result should be hex")
 
-        frappe.logger().info(f"Converted {len(markup)} chars of markup to {len(result)} hex chars")
+        _log(f"Converted {len(markup)} chars of markup to {len(result)} hex chars")
 
     def test_02_conversion_with_options(self):
         """Test conversion with various options"""
@@ -103,7 +113,7 @@ class TestCPUtilConversion(unittest.TestCase):
         self.assertIsNotNone(result)
         self.assertTrue(len(result) > 0)
 
-        frappe.logger().info(f"Conversion with options successful: {len(result)} hex chars")
+        _log(f"Conversion with options successful: {len(result)} hex chars")
 
     def test_03_utf8_characters(self):
         """Test UTF-8 characters (€, é, è, etc.)"""
@@ -114,7 +124,7 @@ class TestCPUtilConversion(unittest.TestCase):
         self.assertIsNotNone(result)
         self.assertTrue(len(result) > 0)
 
-        frappe.logger().info("UTF-8 conversion successful")
+        _log("UTF-8 conversion successful")
 
     def test_04_barcode_markup(self):
         """Test barcode markup"""
@@ -125,7 +135,7 @@ class TestCPUtilConversion(unittest.TestCase):
         self.assertIsNotNone(result)
         self.assertTrue(len(result) > 0)
 
-        frappe.logger().info("Barcode markup conversion successful")
+        _log("Barcode markup conversion successful")
 
 
 class TestPrintJobIntegration(unittest.TestCase):
@@ -144,20 +154,20 @@ class TestPrintJobIntegration(unittest.TestCase):
 
         if self.cputil_available:
             self.assertTrue(job.use_cputil)
-            frappe.logger().info("Job initialized with CPUtil")
+            _log("Job initialized with CPUtil")
         else:
             self.assertFalse(job.use_cputil)
-            frappe.logger().info("Job initialized - CPUtil not available")
+            _log("Job initialized - CPUtil not available")
 
     def test_02_job_init_python_native(self):
         """Test job initialization with Python Native (CPUtil disabled)"""
         printer_meta = {'printerMAC': '00:11:62:12:34:56'}
 
         # Force Python Native
-        job = StarCloudPRNTStarLineModeJob(printer_meta)
+        job = StarCloudPRNTStarLineModeJob(printer_meta, use_cputil=False)
 
         self.assertFalse(job.use_cputil)
-        frappe.logger().info("Job initialized with Python Native")
+        _log("Job initialized with Python Native")
 
     def test_03_job_build_from_markup(self):
         """Test building job from markup with auto-selection"""
@@ -173,9 +183,9 @@ class TestPrintJobIntegration(unittest.TestCase):
 
         if result:
             self.assertTrue(len(job.print_job_builder) > 0)
-            frappe.logger().info(f"✅ Job built with CPUtil: {len(job.print_job_builder)} hex chars")
+            _log(f"✅ Job built with CPUtil: {len(job.print_job_builder)} hex chars")
         else:
-            frappe.logger().warning("Job build returned False (Python fallback)")
+            _log("Job build returned False (Python fallback)")
 
 
 class TestCPUtilFallback(unittest.TestCase):
@@ -199,19 +209,19 @@ class TestCPUtilFallback(unittest.TestCase):
         # Should not crash - fallback to Python
         try:
             result = job.build_job_from_markup(invalid_markup)
-            frappe.logger().info("Fallback mechanism tested - no crash on invalid markup")
+            _log("Fallback mechanism tested - no crash on invalid markup")
         except Exception as e:
             self.fail(f"Fallback failed: {e}")
 
     def test_02_fallback_when_cputil_disabled(self):
         """Test that Python Native works when CPUtil disabled"""
         printer_meta = {'printerMAC': '00:11:62:12:34:56'}
-        job = StarCloudPRNTStarLineModeJob(printer_meta)
+        job = StarCloudPRNTStarLineModeJob(printer_meta, use_cputil=False)
 
         # Should use Python Native
         self.assertFalse(job.use_cputil)
 
-        frappe.logger().info("Python Native mode verified")
+        _log("Python Native mode verified")
 
 
 class TestCPUtilPerformance(unittest.TestCase):
@@ -236,7 +246,7 @@ class TestCPUtilPerformance(unittest.TestCase):
         self.assertIsNotNone(result)
         self.assertLess(elapsed_time, 500, f"Conversion took {elapsed_time:.2f}ms (should be < 500ms)")
 
-        frappe.logger().info(f"⚡ Conversion time: {elapsed_time:.2f}ms")
+        _log(f"⚡ Conversion time: {elapsed_time:.2f}ms")
 
     def test_02_large_receipt_performance(self):
         """Test performance with large receipt (50 lines)"""
@@ -253,7 +263,7 @@ class TestCPUtilPerformance(unittest.TestCase):
         self.assertIsNotNone(result)
         self.assertLess(elapsed_time, 1000, f"Large receipt took {elapsed_time:.2f}ms (should be < 1000ms)")
 
-        frappe.logger().info(f"⚡ Large receipt time: {elapsed_time:.2f}ms")
+        _log(f"⚡ Large receipt time: {elapsed_time:.2f}ms")
 
 
 class TestCPUtilWithRealInvoice(unittest.TestCase):
@@ -291,8 +301,8 @@ class TestCPUtilWithRealInvoice(unittest.TestCase):
             self.assertIsNotNone(result)
             self.assertTrue(len(result) > 100, "Invoice should produce substantial output")
 
-            frappe.logger().info(f"✅ Real invoice converted: {invoice_name}")
-            frappe.logger().info(f"   Markup: {len(markup)} chars → Hex: {len(result)} chars")
+            _log(f"✅ Real invoice converted: {invoice_name}")
+            _log(f"   Markup: {len(markup)} chars → Hex: {len(result)} chars")
 
         except Exception as e:
             self.fail(f"Real invoice conversion failed: {e}")

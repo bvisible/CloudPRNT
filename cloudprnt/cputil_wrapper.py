@@ -228,45 +228,58 @@ def build_cputil_command(options=None):
 
 def convert_markup_to_starline(markup_text, options=None):
     """
-    Convertit Star Document Markup vers Star Line Mode (hex)
+    Convert Star Document Markup to Star Line Mode (hex).
 
-    Utilise CPUtil avec stdin/stdout pour éviter les fichiers temporaires.
-    Commande: cputil [options] decode application/vnd.star.line - [stdout]
+    CPUtil's `decode` verb infers the INPUT media type from the input file's
+    extension; there is no flag to declare it. Feeding markup through stdin
+    (`-`) therefore fails with "Unrecognised file type extension" because the
+    stdin pseudo-file has no extension. We instead write the markup to a
+    temporary file with a `.stm` extension (recognised as text/vnd.star.markup)
+    and hand that path to CPUtil, streaming the binary result on stdout.
+    Command: cputil [options] decode application/vnd.star.line <input.stm> -
 
-    :param markup_text: Texte en format Star Document Markup
-    :param options: Dict d'options (printer_width, dither, etc.)
-    :return: String hex (uppercase) du job Star Line Mode
-    :raises: Exception si conversion échoue
+    :param markup_text: Text in Star Document Markup format
+    :param options: Dict of options (printer_width, dither, etc.)
+    :return: Uppercase hex string of the Star Line Mode job
+    :raises: Exception if conversion fails
     """
+    markup_file = None
     try:
-        # Construire la commande
+        # Star markup input must be a real file whose extension identifies it.
+        with tempfile.NamedTemporaryFile(
+            mode='wb', suffix='.stm', delete=False
+        ) as tmp:
+            tmp.write(markup_text.encode('utf-8'))
+            markup_file = tmp.name
+
+        # Build the command
         cmd = build_cputil_command(options)
 
-        # Ajouter la commande decode
+        # Append the decode verb: <output-format> <input-file> <output>
         cmd.extend([
             'decode',
-            'application/vnd.star.line',  # Format de sortie
-            '-',                          # Input depuis stdin
-            '[stdout]'                    # Output vers stdout
+            'application/vnd.star.line',  # Output format
+            markup_file,                  # Input markup file (extension = type)
+            '-'                           # Output to stdout
         ])
 
         _log("debug", f"CPUtil command: {' '.join(cmd)}")
 
-        # Exécuter avec timeout de 30 secondes
+        # Run with a 30 second timeout. Status text ("Wrote output to...") is
+        # emitted on stderr, so result.stdout holds only the binary job.
         result = subprocess.run(
             cmd,
-            input=markup_text.encode('utf-8'),  # Envoyer markup via stdin
             capture_output=True,
             timeout=30
         )
 
-        # Vérifier le code de retour
+        # Check the return code
         if result.returncode != 0:
             error_msg = result.stderr.decode('utf-8', errors='replace')
             _log("error", f"CPUtil conversion failed: {error_msg}")
             raise Exception(f"CPUtil returned error code {result.returncode}: {error_msg}")
 
-        # Convertir la sortie binaire en hex uppercase
+        # Convert the binary output to uppercase hex
         binary_output = result.stdout
         hex_output = binascii.hexlify(binary_output).decode('ascii').upper()
 
@@ -282,6 +295,14 @@ def convert_markup_to_starline(markup_text, options=None):
     except Exception as e:
         _log("error", f"Error in CPUtil conversion: {str(e)}")
         raise
+
+    finally:
+        # Always clean up the temporary markup file.
+        if markup_file:
+            try:
+                os.unlink(markup_file)
+            except OSError:
+                pass
 
 
 def convert_image_to_starline(image_path, options=None):

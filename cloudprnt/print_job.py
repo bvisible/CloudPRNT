@@ -54,11 +54,102 @@ class StarCloudPRNTStarLineModeJob:
     SLM_OPEN_CASH_DRAWER_HEX = "1B70001450"
     SLM_SET_LINE_SPACING_HEX = "1B33"  #
     
-    def __init__(self, printer_meta):
+    def __init__(self, printer_meta, use_cputil=None):
         self.printer_meta = printer_meta
         self.printer_mac = printer_meta['printerMAC']
         self.print_job_builder = ""
+        # Whether markup for this job is rendered through Star's CPUtil binary.
+        # None means "auto" (use CPUtil whenever it is actually available); an
+        # explicit True/False lets a caller force the choice. Resolution is
+        # deferred to the `use_cputil` property so the common image/text print
+        # path -- which never renders markup -- pays no CPUtil detection cost.
+        self._use_cputil_arg = use_cputil
+        self._use_cputil_resolved = None
         self.set_codepage("1252")
+
+    @property
+    def use_cputil(self):
+        """Lazily resolve whether this job should use CPUtil for markup.
+
+        An explicit constructor value is honoured but still gated on the binary
+        being available; auto (None) simply mirrors CPUtil availability.
+        """
+        if self._use_cputil_resolved is None:
+            self._use_cputil_resolved = self._resolve_use_cputil(self._use_cputil_arg)
+        return self._use_cputil_resolved
+
+    def _resolve_use_cputil(self, use_cputil):
+        from cloudprnt.cputil_wrapper import is_cputil_available
+        available = is_cputil_available()
+        if use_cputil is None:
+            return available
+        return bool(use_cputil) and available
+
+    def _get_cputil_options_from_settings(self):
+        """Build the CPUtil option dict from CloudPRNT Settings.
+
+        Missing single / missing optional fields fall back to safe defaults, so
+        this is usable both inside a site and from the standalone server.
+        """
+        options = {
+            'printer_width': 3,
+            'dither': True,
+            'scale_to_fit': False,
+            'partial_cut': True,
+        }
+        try:
+            settings = frappe.get_cached_doc("CloudPRNT Settings")
+        except Exception:
+            return options
+        for key in (
+            'printer_width', 'dither', 'scale_to_fit', 'partial_cut',
+            'resolution_300dpi', 'text_mag_1_5x', 'drawer',
+            'buzzer_start', 'buzzer_end',
+        ):
+            value = settings.get(key)
+            if value is not None:
+                options[key] = value
+        return options
+
+    def build_job_from_markup(self, markup_text):
+        """Render Star Document Markup into this job.
+
+        Uses CPUtil when enabled and available; on any CPUtil failure it falls
+        back to a plain-text rendering so a job is still produced. Returns True
+        when CPUtil produced the output, False when the Python fallback ran.
+        """
+        if self.use_cputil:
+            try:
+                from cloudprnt.cputil_wrapper import convert_markup_to_starline
+                hex_output = convert_markup_to_starline(
+                    markup_text, self._get_cputil_options_from_settings()
+                )
+                if hex_output:
+                    self.print_job_builder += hex_output
+                    return True
+            except Exception as e:
+                # Best-effort log; must never raise (e.g. no logs/ dir in CI).
+                try:
+                    frappe.logger().warning(
+                        f"build_job_from_markup: CPUtil failed, using Python fallback: {e}"
+                    )
+                except Exception:
+                    pass
+        # Python-native fallback: drop inline [tag] directives, honour [cut],
+        # and print the remaining text lines.
+        self._append_markup_as_plain_text(markup_text)
+        return False
+
+    def _append_markup_as_plain_text(self, markup_text):
+        import re
+        for raw_line in (markup_text or "").splitlines():
+            line = raw_line.rstrip("\r")
+            has_cut = "[cut]" in line.lower()
+            text = re.sub(r"\[[^\]]*\]", "", line).strip()
+            if text:
+                self.add_text_line(text)
+            if has_cut:
+                self.cut()
 
     def str_to_hex(self, string):
         # Encode string to Windows-1252 (cp1252) for Star printer compatibility
