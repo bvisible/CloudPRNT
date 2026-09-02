@@ -39,7 +39,14 @@ cloudprnt_path = os.path.join(bench_path, "apps", "cloudprnt", "cloudprnt")
 if cloudprnt_path not in sys.path:
     sys.path.insert(0, cloudprnt_path)
 
-os.chdir(bench_path)
+# NOTE: do NOT os.chdir() at import time. This module is imported for its
+# `app` object during test discovery (cloudprnt.tests.test_standalone_server),
+# and changing the process cwd there breaks Frappe, whose sites_path is the
+# relative ".": bench runs from <bench>/sites, so get_all_apps() reads
+# "./apps.txt"; a chdir to the bench root makes that path vanish and the
+# end-of-run clear_cache() dies with 'apps.txt Not Found' (exit 1) even though
+# every test passed. The server sets its own cwd in the __main__ block below,
+# and init_frappe() uses an absolute sites path, so nothing here needs it.
 
 # Frappe will be initialized per-request to avoid connection issues
 import frappe
@@ -632,6 +639,10 @@ async def health_check():
 
 
 if __name__ == "__main__":
+    # Run from the bench root when launched as a standalone process. Done here
+    # (not at import) so importing this module for its `app` never changes the
+    # cwd of an unrelated process such as the test runner.
+    os.chdir(bench_path)
     print("=" * 80)
     print("CloudPRNT Standalone Server")
     print("=" * 80)
