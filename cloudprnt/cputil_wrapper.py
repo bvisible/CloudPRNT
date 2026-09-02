@@ -19,6 +19,16 @@ from frappe import _
 import binascii
 
 
+def _log(level, msg):
+    # Printer detection and conversion must never fail because logging is not
+    # set up (e.g. a fresh CI bench with no logs/ dir, where frappe.logger()
+    # raises FileNotFoundError): logging here is strictly best-effort.
+    try:
+        getattr(frappe.logger(), level)(msg)
+    except Exception:
+        pass
+
+
 # Mapping des largeurs d'imprimante vers les options CPUtil
 PRINTER_WIDTH_MAP = {
     2: 'thermal2',    # 58mm / 2 inch - 384 dots
@@ -44,19 +54,19 @@ def get_cputil_path():
         app_dir = os.path.dirname(os.path.abspath(__file__))
         embedded_cputil = os.path.join(app_dir, 'bin', 'cputil')
         if os.path.isfile(embedded_cputil) and os.access(embedded_cputil, os.X_OK):
-            frappe.logger().debug(f"CPUtil found in app: {embedded_cputil}")
+            _log("debug", f"CPUtil found in app: {embedded_cputil}")
             return embedded_cputil
 
         # 2. Vérifier settings
         custom_path = frappe.db.get_single_value("CloudPRNT Settings", "cputil_path")
         if custom_path and os.path.isfile(custom_path) and os.access(custom_path, os.X_OK):
-            frappe.logger().debug(f"CPUtil found in settings: {custom_path}")
+            _log("debug", f"CPUtil found in settings: {custom_path}")
             return custom_path
 
         # 3. Chercher dans PATH
         result = shutil.which("cputil")
         if result:
-            frappe.logger().debug(f"CPUtil found in PATH: {result}")
+            _log("debug", f"CPUtil found in PATH: {result}")
             return result
 
         # 3. Chemins standards
@@ -69,14 +79,14 @@ def get_cputil_path():
 
         for path in standard_paths:
             if os.path.isfile(path) and os.access(path, os.X_OK):
-                frappe.logger().debug(f"CPUtil found at: {path}")
+                _log("debug", f"CPUtil found at: {path}")
                 return path
 
-        frappe.logger().debug("CPUtil not found in any standard location")
+        _log("debug", "CPUtil not found in any standard location")
         return None
 
     except Exception as e:
-        frappe.logger().error(f"Error finding CPUtil: {str(e)}")
+        _log("error", f"Error finding CPUtil: {str(e)}")
         return None
 
 
@@ -103,17 +113,17 @@ def is_cputil_available():
 
         # Si succès et contient "text/vnd.star.markup"
         if result.returncode == 0 and "text/vnd.star.markup" in result.stdout:
-            frappe.logger().debug("CPUtil is available and functional")
+            _log("debug", "CPUtil is available and functional")
             return True
 
-        frappe.logger().warning(f"CPUtil test failed: {result.stderr}")
+        _log("warning", f"CPUtil test failed: {result.stderr}")
         return False
 
     except subprocess.TimeoutExpired:
-        frappe.logger().error("CPUtil test timed out")
+        _log("error", "CPUtil test timed out")
         return False
     except Exception as e:
-        frappe.logger().error(f"Error testing CPUtil: {str(e)}")
+        _log("error", f"Error testing CPUtil: {str(e)}")
         return False
 
 
@@ -143,7 +153,7 @@ def get_supported_input_types():
         return None
 
     except Exception as e:
-        frappe.logger().error(f"Error getting supported input types: {str(e)}")
+        _log("error", f"Error getting supported input types: {str(e)}")
         return None
 
 
@@ -240,7 +250,7 @@ def convert_markup_to_starline(markup_text, options=None):
             '[stdout]'                    # Output vers stdout
         ])
 
-        frappe.logger().debug(f"CPUtil command: {' '.join(cmd)}")
+        _log("debug", f"CPUtil command: {' '.join(cmd)}")
 
         # Exécuter avec timeout de 30 secondes
         result = subprocess.run(
@@ -253,24 +263,24 @@ def convert_markup_to_starline(markup_text, options=None):
         # Vérifier le code de retour
         if result.returncode != 0:
             error_msg = result.stderr.decode('utf-8', errors='replace')
-            frappe.logger().error(f"CPUtil conversion failed: {error_msg}")
+            _log("error", f"CPUtil conversion failed: {error_msg}")
             raise Exception(f"CPUtil returned error code {result.returncode}: {error_msg}")
 
         # Convertir la sortie binaire en hex uppercase
         binary_output = result.stdout
         hex_output = binascii.hexlify(binary_output).decode('ascii').upper()
 
-        frappe.logger().info(f"CPUtil conversion successful: {len(hex_output)} hex chars")
+        _log("info", f"CPUtil conversion successful: {len(hex_output)} hex chars")
 
         return hex_output
 
     except subprocess.TimeoutExpired:
         error_msg = "CPUtil conversion timed out after 30 seconds"
-        frappe.logger().error(error_msg)
+        _log("error", error_msg)
         raise Exception(error_msg)
 
     except Exception as e:
-        frappe.logger().error(f"Error in CPUtil conversion: {str(e)}")
+        _log("error", f"Error in CPUtil conversion: {str(e)}")
         raise
 
 
@@ -298,7 +308,7 @@ def convert_image_to_starline(image_path, options=None):
             '[stdout]'
         ])
 
-        frappe.logger().debug(f"CPUtil image command: {' '.join(cmd)}")
+        _log("debug", f"CPUtil image command: {' '.join(cmd)}")
 
         # Exécuter
         result = subprocess.run(
@@ -314,14 +324,14 @@ def convert_image_to_starline(image_path, options=None):
         # Convertir en hex
         hex_output = binascii.hexlify(result.stdout).decode('ascii').upper()
 
-        frappe.logger().info(f"CPUtil image conversion successful: {len(hex_output)} hex chars")
+        _log("info", f"CPUtil image conversion successful: {len(hex_output)} hex chars")
 
         return hex_output
 
     except subprocess.TimeoutExpired:
         raise Exception("CPUtil image conversion timed out after 30 seconds")
     except Exception as e:
-        frappe.logger().error(f"Error in CPUtil image conversion: {str(e)}")
+        _log("error", f"Error in CPUtil image conversion: {str(e)}")
         raise
 
 
@@ -432,7 +442,7 @@ def convert_png_to_starprnt(png_path, options=None):
             '-'                                # Output vers stdout (binaire)
         ])
         
-        frappe.logger().debug(f"Converting PNG to StarPRNT: {' '.join(cmd)}")
+        _log("debug", f"Converting PNG to StarPRNT: {' '.join(cmd)}")
         
         # Exécuter CPUtil avec timeout de 30 secondes
         result = subprocess.run(
@@ -445,13 +455,13 @@ def convert_png_to_starprnt(png_path, options=None):
         # Vérifier le succès
         if result.returncode != 0:
             error_msg = result.stderr.decode('utf-8', errors='ignore')
-            frappe.logger().error(f"CPUtil PNG conversion failed: {error_msg}")
+            _log("error", f"CPUtil PNG conversion failed: {error_msg}")
             raise Exception(_("Échec de conversion PNG: {0}").format(error_msg))
         
         # Retourner les données binaires
         binary_data = result.stdout
         
-        frappe.logger().info(
+        _log("info", 
             f"PNG converted to StarPRNT successfully: "
             f"{len(binary_data)} bytes from {os.path.basename(png_path)}"
         )
@@ -459,11 +469,11 @@ def convert_png_to_starprnt(png_path, options=None):
         return binary_data
         
     except subprocess.TimeoutExpired:
-        frappe.logger().error(f"CPUtil PNG conversion timeout after 30s: {png_path}")
+        _log("error", f"CPUtil PNG conversion timeout after 30s: {png_path}")
         raise Exception(_("Timeout lors de la conversion PNG (30s)"))
     
     except Exception as e:
-        frappe.logger().error(f"PNG to StarPRNT conversion error: {str(e)}")
+        _log("error", f"PNG to StarPRNT conversion error: {str(e)}")
         raise
 
 
