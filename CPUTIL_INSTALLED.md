@@ -1,7 +1,7 @@
-# CPUtil Installation Confirmée - develop.neoffice.me
+# CPUtil Installation Confirmée
 
 **Date**: 2025-11-13
-**Serveur**: develop.neoffice.me
+**Serveur**: une instance de la flotte
 **CPUtil Version**: 2.0.1
 **Emplacement**: `/home/frappe/.local/bin/cputil`
 
@@ -9,7 +9,7 @@
 
 ## ✅ Installation Réussie
 
-CPUtil a été installé avec succès sur le serveur develop.neoffice.me.
+CPUtil a été installé avec succès sur le serveur cible.
 
 ### Détails de l'installation
 
@@ -253,7 +253,7 @@ Les tests CPUtil passeraient alors automatiquement.
 
 ## 🎉 Conclusion
 
-CPUtil v2.0.1 est **installé et opérationnel** sur develop.neoffice.me.
+CPUtil v2.0.1 est **installé et opérationnel** sur l'instance cible.
 
 **Statut**:
 - ✅ CPUtil installé et détecté

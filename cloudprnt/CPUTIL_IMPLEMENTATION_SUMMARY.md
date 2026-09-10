@@ -328,7 +328,7 @@ git push origin main
 
 ```bash
 # SSH vers develop
-ssh develop.neoffice.me
+ssh votre-instance.neoffice.me
 
 # Pull les changements
 cd /home/neoffice/frappe-bench/apps/cloudprnt
@@ -355,7 +355,7 @@ bash cloudprnt/install_cputil.sh
 
 ### Étape 4: Activer dans Settings
 
-1. Aller sur https://develop.neoffice.me
+1. Aller sur https://votre-instance.neoffice.me
 2. Ouvrir **CloudPRNT Settings**
 3. Cocher **"Use CPUtil for Job Generation"**
 4. Vérifier CPUtil Status = "✅ Available"
