@@ -106,7 +106,7 @@ def test_cputil_conversion():
 
 ## Recommandation
 
-### Pour develop.neoffice.me
+### Pour votre-instance.neoffice.me
 
 **Option recommandée**: Fonctionner sans CPUtil
 
@@ -169,7 +169,7 @@ subprocess.run([
 
 ## Conclusion
 
-**CPUtil n'est PAS requis** pour le fonctionnement de CloudPRNT sur develop.neoffice.me. Le système actuel génère les commandes d'impression directement en Python et fonctionne parfaitement.
+**CPUtil n'est PAS requis** pour le fonctionnement de CloudPRNT sur votre-instance.neoffice.me. Le système actuel génère les commandes d'impression directement en Python et fonctionne parfaitement.
 
 Si vous souhaitez installer CPUtil pour les fonctionnalités avancées, suivez l'Option 1 (téléchargement manuel) car les binaires pré-compilés ne sont pas disponibles via URL directe.
 
