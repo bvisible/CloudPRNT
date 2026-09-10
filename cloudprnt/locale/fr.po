@@ -521,10 +521,13 @@ msgstr "Code de statut"
 msgid "Sync Settings"
 msgstr "Paramètres de synchronisation"
 
+# no opinion on purpose: repeating the source erases the translation another
+# app ships (neoffice-maintenance#335)
 #. Name of a role
 #: cloudprnt/cloudprnt/doctype/cloudprnt_logs/cloudprnt_logs.json
 #: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json
 #: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.json
+#, fuzzy
 msgid "System Manager"
 msgstr "System Manager"
 
