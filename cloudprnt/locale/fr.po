@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: CloudPRNT\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-14 03:01+0000\n"
+"POT-Creation-Date: 2026-09-15 03:00+0000\n"
 "PO-Revision-Date: 2024-12-20 12:00+0000\n"
 "Last-Translator: \n"
 "Language-Team: French\n"
@@ -57,12 +57,6 @@ msgstr "Ajouter"
 #: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:101
 msgid "Ajouter Imprimante"
 msgstr "Ajouter Imprimante"
-
-#. Name of a role
-#: cloudprnt/cloudprnt/doctype/cloudprnt_logs/cloudprnt_logs.json
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.json
-msgid "All"
-msgstr "Tous"
 
 #. Description of the 'Enable Image Dithering' (Check) field in DocType
 #. 'CloudPRNT Settings'
@@ -189,6 +183,12 @@ msgstr "Date"
 #: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.json
 msgid "Default Printer Width"
 msgstr "Largeur d'imprimante par défaut"
+
+#. Name of a role
+#: cloudprnt/cloudprnt/doctype/cloudprnt_logs/cloudprnt_logs.json
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.json
+msgid "Desk User"
+msgstr "Utilisateur Desk"
 
 #: cloudprnt/pos_invoice_markup.py:154
 msgid "Discount"
