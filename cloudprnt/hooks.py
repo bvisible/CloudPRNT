@@ -6,7 +6,7 @@ app_publisher = "Neoffice"
 app_description = "Star CloudPRNT Integration for Frappe"
 app_icon = "octicon octicon-file-directory"
 app_color = "grey"
-app_email = "support@neoffice.app"
+app_email = "hello@neoservice.ai"
 app_license = "MIT"
 # required_apps = []
 
