@@ -546,7 +546,6 @@ def cloudprnt_delete():
 # PUBLIC API - Add jobs to queue
 # ============================================================================
 
-@frappe.whitelist()
 def add_print_job(invoice_name, printer_mac=None):
     """
     Add a print job to the queue
@@ -636,7 +635,6 @@ def add_print_job(invoice_name, printer_mac=None):
         }
 
 
-@frappe.whitelist()
 def get_queue_status(printer_mac=None):
     """
     Get queue status for debugging
@@ -660,7 +658,6 @@ def get_queue_status(printer_mac=None):
         return {"error": str(e)}
 
 
-@frappe.whitelist()
 def clear_queue(printer_mac=None):
     """
     Clear print queue (for debugging)

@@ -372,7 +372,6 @@ def init_mqtt_bridge():
 # WHITELISTED API METHODS
 # ============================================================================
 
-@frappe.whitelist()
 def test_mqtt_connection():
     """
     Test MQTT connection
@@ -407,7 +406,6 @@ def test_mqtt_connection():
         }
 
 
-@frappe.whitelist()
 def send_test_print_mqtt(mac_address, invoice_name):
     """
     Send test print job via MQTT

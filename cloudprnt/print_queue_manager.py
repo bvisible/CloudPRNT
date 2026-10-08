@@ -180,7 +180,6 @@ def get_queue_position(printer_mac, job_token):
 		return 0
 
 
-@frappe.whitelist()
 def get_queue_status(printer_mac=None):
 	"""
 	Get queue status for debugging
@@ -216,7 +215,6 @@ def get_queue_status(printer_mac=None):
 		return {"error": str(e)}
 
 
-@frappe.whitelist()
 def clear_queue(printer_mac=None):
 	"""
 	Clear print queue

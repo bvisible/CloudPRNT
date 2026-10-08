@@ -9,7 +9,10 @@ anywhere and were removed. These tests keep it that way:
 * no code of the app runs a shell (`shell=True`, `os.system`, `os.popen`);
 * the removed methods stay gone;
 * what an anonymous visitor may call is the CloudPRNT protocol a Star printer speaks without a Frappe session,
-  and nothing else: a new `allow_guest` method fails here until it has been reviewed and added below.
+  and nothing else: a new `allow_guest` method fails here until it has been reviewed and added below;
+* every method a signed-in account may call says who may, by calling guards.require (the review that followed
+  the report found fifteen that any portal customer could call: the four the desk and the POS use are guarded,
+  the eleven nothing called over HTTP are no longer exposed).
 """
 
 import ast
@@ -101,11 +104,32 @@ class TestExposedEndpoints(unittest.TestCase):
 		guest = {name for name, allow_guest in _methods().items() if allow_guest}
 		self.assertEqual(guest, GUEST_METHODS)
 
+	def test_every_signed_in_method_says_who_may_call_it(self):
+		"""A plain whitelisted method answers any signed-in account, a portal customer included: each one calls
+		guards.require before anything else it does, or it is not exposed at all."""
+		unguarded = []
+		for path, tree in _sources():
+			for node in ast.walk(tree):
+				if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+					continue
+				flags = [_whitelist(d) for d in node.decorator_list]
+				if not any(whitelisted and not guest for whitelisted, guest in flags):
+					continue
+				called = {
+					call.func.attr if isinstance(call.func, ast.Attribute) else getattr(call.func, "id", None)
+					for call in ast.walk(node)
+					if isinstance(call, ast.Call)
+				}
+				if "require" not in called:
+					unguarded.append(f"{_dotted(path)}.{node.name}")
+		self.assertEqual(unguarded, [])
+
 	def test_the_reading_finds_the_methods_it_judges(self):
-		"""Guards the three tests above against reading nothing (a moved folder, a renamed decorator)."""
+		"""Guards the tests above against reading nothing (a moved folder, a renamed decorator)."""
 		methods = _methods()
-		self.assertGreater(len(methods), 10, methods)
+		self.assertGreaterEqual(len(methods), 7, methods)
 		self.assertIn("api.print_pos_invoice", methods)
+		self.assertIn("printer_discovery.add_discovered_printer", methods)
 
 
 if __name__ == "__main__":

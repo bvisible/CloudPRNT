@@ -646,18 +646,22 @@ if __name__ == "__main__":
     print("=" * 80)
     print("CloudPRNT Standalone Server")
     print("=" * 80)
-    print(f"Starting server on http://0.0.0.0:8001")
+    # Loopback only: a printer reaches the protocol through nginx, which proxies to this port. Listening on
+    # every interface served the site's print jobs, read with the site's database account, to whatever else
+    # shares the private network. CLOUDPRNT_BIND_HOST opens it again where a deployment really needs it.
+    host = os.environ.get("CLOUDPRNT_BIND_HOST", "127.0.0.1")
+    print(f"Starting server on http://{host}:8001")
     print(f"Site: prod.local")
     print(f"Endpoints:")
-    print(f"  - POST http://0.0.0.0:8001/poll")
-    print(f"  - GET  http://0.0.0.0:8001/job?mac=XX.XX.XX.XX.XX.XX")
-    print(f"  - DELETE http://0.0.0.0:8001/job?mac=XX.XX.XX.XX.XX.XX")
-    print(f"  - GET  http://0.0.0.0:8001/health")
+    print(f"  - POST http://{host}:8001/poll")
+    print(f"  - GET  http://{host}:8001/job?mac=XX.XX.XX.XX.XX.XX")
+    print(f"  - DELETE http://{host}:8001/job?mac=XX.XX.XX.XX.XX.XX")
+    print(f"  - GET  http://{host}:8001/health")
     print("=" * 80)
 
     uvicorn.run(
         app,
-        host="0.0.0.0",
+        host=host,
         port=8001,
         log_level="info",
         access_log=True

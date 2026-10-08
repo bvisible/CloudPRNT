@@ -9,6 +9,7 @@ Uses Frappe cache (Redis/DB) for multi-worker support
 import frappe
 from datetime import datetime, timedelta
 import json
+from cloudprnt import guards
 
 # Cache key prefix
 CACHE_KEY_PREFIX = "cloudprnt_discovered_"
@@ -198,6 +199,8 @@ def get_discovered_printers():
 
     :return: List of discovered printers
     """
+    # Lists printers with their network addresses: whoever may read the CloudPRNT settings.
+    guards.require("CloudPRNT Settings", "read")
     try:
         # Clean old discoveries first
         clean_old_discoveries()
@@ -278,6 +281,8 @@ def add_discovered_printer(mac_address, label=None):
     :param label: Optional label (will auto-generate if not provided)
     :return: Success/error dict
     """
+    # Writes a printer into the settings: whoever may change them.
+    guards.require("CloudPRNT Settings", "write")
     try:
         # Check if printer was discovered
         cache_key = _get_cache_key(mac_address)
@@ -367,7 +372,6 @@ def add_discovered_printer(mac_address, label=None):
         }
 
 
-@frappe.whitelist()
 def clear_discoveries():
     """
     Clear all discovered printers (for testing)

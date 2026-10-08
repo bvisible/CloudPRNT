@@ -356,7 +356,6 @@ def convert_image_to_starline(image_path, options=None):
         raise
 
 
-@frappe.whitelist()
 def check_cputil_status():
     """
     API endpoint pour vérifier le status de CPUtil

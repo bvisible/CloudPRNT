@@ -8,6 +8,7 @@ from frappe import _
 import os
 from datetime import datetime
 from cloudprnt.print_job import StarCloudPRNTStarLineModeJob, neolog
+from cloudprnt import guards
 
 
 class CloudPRNTSettings(Document):
@@ -20,7 +21,6 @@ class CloudPRNTSettings(Document):
 		if self.footer_logo_url and not self.footer_logo_url.startswith(('http://', 'https://')):
 			frappe.msgprint(_("Footer logo URL must start with http:// or https://"))
 
-@frappe.whitelist()
 def get_settings():
 	"""Return CloudPRNT settings as a dict"""
 	settings = frappe.get_single("CloudPRNT Settings")
@@ -45,6 +45,10 @@ def test_print(printer, test_text=None, image_link=None):
 	:param image_link: URL of image to print (optional, PNG/JPEG/BMP/GIF)
 	:return: Result dict with success status
 	"""
+	# Sends a print and fetches a URL from the server: whoever may change the CloudPRNT settings.
+	guards.require("CloudPRNT Settings", "write")
+	if image_link and not str(image_link).strip().lower().startswith(("http://", "https://")):
+		return {"success": False, "message": _("The image link must start with http:// or https://")}
 	try:
 		if test_text is None:
 			test_text = _("CloudPRNT print test")

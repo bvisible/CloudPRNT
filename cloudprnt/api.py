@@ -6,6 +6,7 @@ from frappe import _ as translate
 from frappe.utils import get_bench_path
 from cloudprnt.pos_invoice_markup import get_pos_invoice_markup
 from datetime import datetime
+from cloudprnt import guards
 
 @frappe.whitelist()
 def print_pos_invoice(invoice_name, printer=None, use_mqtt=False):
@@ -18,6 +19,10 @@ def print_pos_invoice(invoice_name, printer=None, use_mqtt=False):
     :param use_mqtt: Force MQTT mode (optional)
     :return: Success message
     """
+    # Any signed-in account could print any POS Invoice, a portal customer included.
+    guards.require("POS Invoice", "read")
+    if invoice_name and frappe.db.exists("POS Invoice", invoice_name):
+        guards.require("POS Invoice", "read", invoice_name)
     try:
         if not invoice_name:
             return {"success": False, "message": translate("No invoice specified")}
@@ -126,7 +131,6 @@ def print_pos_invoice(invoice_name, printer=None, use_mqtt=False):
         return {"success": False, "message": str(e)}
 
 
-@frappe.whitelist()
 def print_image_to_cloudprnt(image_path, printer_mac, printer_width=3, dither=True, scale_to_fit=True, drawer_end=False, buzzer_end=0):
     """
     Print an image (PNG/JPEG/BMP/GIF) to a CloudPRNT printer
