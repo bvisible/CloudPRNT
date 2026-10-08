@@ -1,11 +1,7 @@
 import os
 import frappe
-import subprocess
 import binascii
-import json
-from datetime import datetime
 import time
-from frappe.utils import get_bench_path
 from frappe import as_unicode, get_traceback
 import requests
 import io
@@ -326,58 +322,3 @@ class StarCloudPRNTStarLineModeJob:
 
     def cut(self):
         self.print_job_builder += self.SLM_FEED_PARTIAL_CUT_HEX
-
-@frappe.whitelist()
-def call_execute_cputil(command, args):
-    path = os.path.join(get_bench_path(), "apps", "cloudprnt", "cloudprnt", "cputil", "cputil")
-    # Parse args from JSON string to list
-    try:
-        args_list = json.loads(args)
-    except json.JSONDecodeError as e:
-        raise Exception(f"Invalid JSON in args: {args}") from e
-    
-    # Construire la commande avec les arguments inclus directement
-    args_str = ' '.join(args_list)
-    cmd = f'{path} {command} "{args_str}"'
-    
-    env = os.environ.copy()
-    env['DOTNET_SYSTEM_GLOBALIZATION_INVARIANT'] = '1'
-
-    result = subprocess.run(cmd, capture_output=True, text=True, shell=True, env=env)
-    
-    if result.returncode != 0:
-        raise Exception(f"cputil failed: {result.stderr}")
-    return result.stdout
-
-@frappe.whitelist(allow_guest=True)
-def process_order_history_from_php(order_history):
-    lines = order_history.splitlines()
-
-    for line in lines:
-        try:
-            doctype, docname, datetime_str = line.strip().split('|')
-            # Remove .slt from datetime_str
-            datetime_str = datetime_str.replace('.slt', '')
-            # Extract only the necessary part of the datetime string
-            datetime_part = datetime_str.split('_')[0]
-            datetime_obj = datetime.strptime(datetime_part, "%d-%m-%Y %H:%M:%S")
-            create_log_entry(doctype, docname, datetime_obj)
-        except Exception as e:
-            neolog("Error processing line", f"{line[:140]}\n{str(e)}", reference_doctype="Error Log")
-
-def create_log_entry(doctype, docname, datetime_obj):
-    if not frappe.db.exists(doctype, docname):
-        neolog("Document Not Found", f"Could not find Document: {docname}", reference_doctype=doctype)
-        return
-
-    try:
-        log_entry = frappe.get_doc({
-            "doctype": "CloudPRNT Logs",
-            "doctype_link": doctype,
-            "document_link": docname,
-            "datetime": datetime_obj
-        })
-        log_entry.insert(ignore_permissions=True)
-        frappe.db.commit()
-    except Exception as e:
-        neolog("Error creating log entry", str(e), reference_doctype=doctype, reference_name=docname)
