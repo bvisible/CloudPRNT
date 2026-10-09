@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: CloudPRNT\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-08 03:04+0000\n"
+"POT-Creation-Date: 2026-10-09 03:05+0000\n"
 "PO-Revision-Date: 2024-12-20 12:00+0000\n"
 "Last-Translator: \n"
 "Language-Team: French\n"
@@ -106,7 +106,7 @@ msgstr "Options CPUtil"
 msgid "CPUtil Status"
 msgstr "Statut CPUtil"
 
-#: cloudprnt/cputil_wrapper.py:448
+#: cloudprnt/cputil_wrapper.py:447
 msgid ""
 "CPUtil n'est pas disponible. Le binaire embarqué est peut-être corrompu."
 msgstr ""
@@ -140,7 +140,7 @@ msgstr "Imprimantes CloudPRNT"
 msgid "CloudPRNT Settings"
 msgstr "Paramètres CloudPRNT"
 
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.py:50
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.py:54
 msgid "CloudPRNT print test"
 msgstr "Test d'impression CloudPRNT"
 
@@ -256,7 +256,7 @@ msgstr "Erreur: "
 msgid "Error"
 msgstr "Erreur"
 
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.py:124
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.py:128
 msgid "Error processing image: {0}"
 msgstr "Erreur lors du traitement de l'image : {0}"
 
@@ -269,7 +269,7 @@ msgstr "Fermer"
 msgid "Fetched"
 msgstr "Récupéré"
 
-#: cloudprnt/cputil_wrapper.py:452
+#: cloudprnt/cputil_wrapper.py:451
 msgid "Fichier PNG introuvable: {0}"
 msgstr "Fichier PNG introuvable: {0}"
 
@@ -278,7 +278,7 @@ msgstr "Fichier PNG introuvable: {0}"
 msgid "Footer Logo URL"
 msgstr "URL du logo de pied de page"
 
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.py:21
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.py:22
 msgid "Footer logo URL must start with http:// or https://"
 msgstr "L'URL du logo de pied de page doit commencer par http:// ou https://"
 
@@ -295,7 +295,7 @@ msgstr "Total général"
 msgid "Header Logo URL"
 msgstr "URL du logo d'en-tête"
 
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.py:18
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.py:19
 msgid "Header logo URL must start with http:// or https://"
 msgstr "L'URL du logo d'en-tête doit commencer par http:// ou https://"
 
@@ -393,13 +393,17 @@ msgstr "Types de support"
 msgid "Net Total"
 msgstr "Total net"
 
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.py:53
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.py:57
 msgid "No printer specified"
 msgstr "Aucune imprimante spécifiée"
 
 #: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:72
 msgid "Nom de l'imprimante"
 msgstr "Nom de l'imprimante"
+
+#: cloudprnt/guards.py:15
+msgid "Not permitted"
+msgstr ""
 
 #: cloudprnt/pos_invoice_markup.py:178
 msgid "N°"
@@ -460,7 +464,7 @@ msgstr "Imprimé"
 msgid "Printer MAC"
 msgstr "Adresse MAC de l'imprimante"
 
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.py:70
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.py:74
 msgid "Printer {0} not found"
 msgstr "Imprimante {0} non trouvée"
 
@@ -539,11 +543,11 @@ msgstr "Test d'impression"
 msgid "Test d'impression envoyé à l'imprimante"
 msgstr "Test d'impression envoyé à l'imprimante"
 
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.py:176
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.py:180
 msgid "Test print (image + text) sent to queue"
 msgstr "Test d'impression (image + texte) envoyé à la queue"
 
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.py:218
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.py:222
 msgid "Test print sent to queue (job: {0})"
 msgstr "Test d'impression envoyé à la queue (job : {0})"
 
@@ -554,6 +558,10 @@ msgstr "Tester Imprimante"
 #: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:135
 msgid "Texte à imprimer"
 msgstr "Texte à imprimer"
+
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.py:51
+msgid "The image link must start with http:// or https://"
+msgstr "Le lien de l'image doit commencer par http:// ou https://"
 
 #: cloudprnt/public/js/pos_invoice.js:4
 msgid "Ticket Thermique"
@@ -567,7 +575,7 @@ msgstr "Ticket envoyé à l'imprimante"
 msgid "Time"
 msgstr "Heure"
 
-#: cloudprnt/cputil_wrapper.py:494
+#: cloudprnt/cputil_wrapper.py:493
 msgid "Timeout lors de la conversion PNG (30s)"
 msgstr "Timeout lors de la conversion PNG (30s)"
 
@@ -624,6 +632,6 @@ msgstr "Erreur de tension"
 msgid "on"
 msgstr "sur"
 
-#: cloudprnt/cputil_wrapper.py:480
+#: cloudprnt/cputil_wrapper.py:479
 msgid "Échec de conversion PNG: {0}"
 msgstr "Échec de conversion PNG: {0}"
