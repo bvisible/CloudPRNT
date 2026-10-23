@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: CloudPRNT\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-22 03:00+0000\n"
+"POT-Creation-Date: 2026-10-23 03:01+0000\n"
 "PO-Revision-Date: 2024-12-20 12:00+0000\n"
 "Last-Translator: \n"
 "Language-Team: French\n"
@@ -15,34 +15,34 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
-"Generated-By: Babel 2.13.1\n"
+"Generated-By: Babel 2.18.0\n"
 
 #. Option for the 'Largeur de papier par défaut' (Select) field in DocType
 #. 'CloudPRNT Settings'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.json
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.json:79
 msgid "112mm"
 msgstr "112mm"
 
 #. Description of the 'Default Printer Width' (Select) field in DocType
 #. 'CloudPRNT Settings'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.json
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.json:131
 msgid "2 = 58mm, 3 = 80mm, 4 = 112mm"
 msgstr "2 = 58mm, 3 = 80mm, 4 = 112mm"
 
 #. Option for the 'Largeur de papier par défaut' (Select) field in DocType
 #. 'CloudPRNT Settings'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.json
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.json:79
 msgid "58mm"
 msgstr "58mm"
 
 #. Option for the 'Largeur de papier par défaut' (Select) field in DocType
 #. 'CloudPRNT Settings'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.json
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.json:79
 msgid "80mm"
 msgstr "80mm"
 
 #. Label of a Check field in DocType 'CloudPRNT Settings'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.json
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.json:85
 msgid "Activer l'impression automatique"
 msgstr "Activer l'impression automatique"
 
@@ -60,7 +60,7 @@ msgstr "Ajouter Imprimante"
 
 #. Description of the 'Enable Image Dithering' (Check) field in DocType
 #. 'CloudPRNT Settings'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.json
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.json:139
 msgid "Apply dithering to images for better print quality"
 msgstr ""
 "Applique le tramage aux images pour une meilleure qualité d'impression"
@@ -82,27 +82,27 @@ msgid "Batch No"
 msgstr "N° de lot"
 
 #. Label of a Check field in DocType 'CloudPRNT Printers'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json
+#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json:74
 msgid "Black Mark Error"
 msgstr "Erreur de marque noire"
 
 #. Label of a Data field in DocType 'CloudPRNT Settings'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.json
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.json:113
 msgid "CPUtil Binary Path"
 msgstr "Chemin du binaire CPUtil"
 
 #. Label of a Section Break field in DocType 'CloudPRNT Settings'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.json
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.json:90
 msgid "CPUtil Integration (Star Official Tool)"
 msgstr "Intégration CPUtil (outil officiel Star)"
 
 #. Label of a Section Break field in DocType 'CloudPRNT Settings'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.json
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.json:120
 msgid "CPUtil Options"
 msgstr "Options CPUtil"
 
 #. Label of a Data field in DocType 'CloudPRNT Settings'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.json
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.json:102
 msgid "CPUtil Status"
 msgstr "Statut CPUtil"
 
@@ -121,22 +121,22 @@ msgid "Change Amount"
 msgstr "Monnaie rendue"
 
 #. Name of a DocType
-#: cloudprnt/cloudprnt/doctype/cloudprnt_logs/cloudprnt_logs.json
+#: cloudprnt/cloudprnt/doctype/cloudprnt_logs/cloudprnt_logs.json:36
 msgid "CloudPRNT Logs"
 msgstr "Journaux CloudPRNT"
 
 #. Name of a DocType
-#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json
+#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:68
 msgid "CloudPRNT Print Queue"
 msgstr "File d'impression CloudPRNT"
 
 #. Name of a DocType
-#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json
+#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json:195
 msgid "CloudPRNT Printers"
 msgstr "Imprimantes CloudPRNT"
 
 #. Name of a DocType
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.json
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.json:164
 msgid "CloudPRNT Settings"
 msgstr "Paramètres CloudPRNT"
 
@@ -145,12 +145,12 @@ msgid "CloudPRNT print test"
 msgstr "Test d'impression CloudPRNT"
 
 #. Label of a Check field in DocType 'CloudPRNT Printers'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json
+#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json:81
 msgid "Compulsion Switch"
 msgstr "Commutateur de compulsion"
 
 #. Label of a Check field in DocType 'CloudPRNT Printers'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json
+#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json:88
 msgid "Cover Open"
 msgstr "Couvercle ouvert"
 
@@ -160,7 +160,7 @@ msgstr "Devise"
 
 #. Description of the 'CPUtil Status' (Data) field in DocType 'CloudPRNT
 #. Settings'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.json
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.json:104
 msgid "Current CPUtil availability status"
 msgstr "Statut de disponibilité actuel de CPUtil"
 
@@ -169,24 +169,24 @@ msgid "Customer"
 msgstr "Client"
 
 #. Label of a Check field in DocType 'CloudPRNT Printers'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json
+#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json:95
 msgid "Cutter Error"
 msgstr "Erreur du massicot"
 
 #. Label of a Datetime field in DocType 'CloudPRNT Logs'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_logs/cloudprnt_logs.json
+#: cloudprnt/cloudprnt/doctype/cloudprnt_logs/cloudprnt_logs.json:16
 #: cloudprnt/pos_invoice_markup.py:56
 msgid "Date"
 msgstr "Date"
 
 #. Label of a Select field in DocType 'CloudPRNT Settings'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.json
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.json:128
 msgid "Default Printer Width"
 msgstr "Largeur d'imprimante par défaut"
 
 #. Name of a role
-#: cloudprnt/cloudprnt/doctype/cloudprnt_logs/cloudprnt_logs.json
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.json
+#: cloudprnt/cloudprnt/doctype/cloudprnt_logs/cloudprnt_logs.json:59
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.json:183
 msgid "Desk User"
 msgstr "Utilisateur Desk"
 
@@ -195,12 +195,12 @@ msgid "Discount"
 msgstr "Remise"
 
 #. Label of a Link field in DocType 'CloudPRNT Logs'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_logs/cloudprnt_logs.json
+#: cloudprnt/cloudprnt/doctype/cloudprnt_logs/cloudprnt_logs.json:21
 msgid "Doctype"
 msgstr "Doctype"
 
 #. Label of a Dynamic Link field in DocType 'CloudPRNT Logs'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_logs/cloudprnt_logs.json
+#: cloudprnt/cloudprnt/doctype/cloudprnt_logs/cloudprnt_logs.json:27
 msgid "Document"
 msgstr "Document"
 
@@ -210,7 +210,7 @@ msgstr "Découvrir Imprimantes"
 
 #. Description of the 'Use CPUtil for Job Generation' (Check) field in DocType
 #. 'CloudPRNT Settings'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.json
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.json:97
 msgid ""
 "Enable CPUtil (Star Micronics official tool) for converting markup to "
 "printer commands. Falls back to Python if unavailable."
@@ -219,12 +219,12 @@ msgstr ""
 "commandes d'imprimante. Utilise Python si non disponible."
 
 #. Label of a Check field in DocType 'CloudPRNT Settings'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.json
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.json:137
 msgid "Enable Image Dithering"
 msgstr "Activer le tramage des images"
 
 #. Description of the 'Use MQTT' (Check) field in DocType 'CloudPRNT Printers'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json
+#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json:59
 msgid "Enable MQTT push notifications for this printer (requires MQTT broker)"
 msgstr ""
 "Active les notifications push MQTT pour cette imprimante (nécessite un "
@@ -252,11 +252,12 @@ msgid "Erreur: "
 msgstr "Erreur: "
 
 #. Option for the 'Status' (Select) field in DocType 'CloudPRNT Print Queue'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json
+#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:40
 msgid "Error"
 msgstr "Erreur"
 
 #: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.py:128
+#, python-brace-format
 msgid "Error processing image: {0}"
 msgstr "Erreur lors du traitement de l'image : {0}"
 
@@ -265,16 +266,17 @@ msgid "Fermer"
 msgstr "Fermer"
 
 #. Option for the 'Status' (Select) field in DocType 'CloudPRNT Print Queue'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json
+#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:40
 msgid "Fetched"
 msgstr "Récupéré"
 
 #: cloudprnt/cputil_wrapper.py:451
+#, python-brace-format
 msgid "Fichier PNG introuvable: {0}"
 msgstr "Fichier PNG introuvable: {0}"
 
 #. Label of a Data field in DocType 'CloudPRNT Settings'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.json
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.json:60
 msgid "Footer Logo URL"
 msgstr "URL du logo de pied de page"
 
@@ -291,7 +293,7 @@ msgid "Grand Total"
 msgstr "Total général"
 
 #. Label of a Data field in DocType 'CloudPRNT Settings'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.json
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.json:54
 msgid "Header Logo URL"
 msgstr "URL du logo d'en-tête"
 
@@ -300,7 +302,7 @@ msgid "Header logo URL must start with http:// or https://"
 msgstr "L'URL du logo d'en-tête doit commencer par http:// ou https://"
 
 #. Label of a Data field in DocType 'CloudPRNT Printers'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json
+#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json:51
 msgid "IP Address"
 msgstr "Adresse IP"
 
@@ -327,23 +329,23 @@ msgid "Imprimer"
 msgstr "Imprimer"
 
 #. Label of a Data field in DocType 'CloudPRNT Print Queue'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json
+#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:34
 #: cloudprnt/pos_invoice_markup.py:50
 msgid "Invoice"
 msgstr "Facture"
 
 #. Label of a Long Text field in DocType 'CloudPRNT Print Queue'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json
+#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:47
 msgid "Job Data"
 msgstr "Données de la tâche"
 
 #. Label of a Data field in DocType 'CloudPRNT Print Queue'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json
+#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:21
 msgid "Job Token"
 msgstr "Jeton de tâche"
 
 #. Label of a Data field in DocType 'CloudPRNT Printers'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json
+#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json:44
 msgid "Label"
 msgstr "Libellé"
 
@@ -353,13 +355,13 @@ msgid "Largeur de papier par défaut"
 msgstr "Largeur de papier par défaut"
 
 #. Label of a Float field in DocType 'CloudPRNT Printers'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json
+#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json:178
 msgid "Last Activity"
 msgstr "Dernière activité"
 
 #. Description of the 'CPUtil Binary Path' (Data) field in DocType 'CloudPRNT
 #. Settings'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.json
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.json:115
 msgid "Leave empty for auto-detection. Example: /home/user/.local/bin/cputil"
 msgstr ""
 "Laisser vide pour la détection automatique. Exemple : "
@@ -370,22 +372,22 @@ msgid "Lien de l'image"
 msgstr "Lien de l'image"
 
 #. Label of a Section Break field in DocType 'CloudPRNT Settings'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.json
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.json:49
 msgid "Logo Configuration"
 msgstr "Configuration du logo"
 
 #. Label of a Data field in DocType 'CloudPRNT Printers'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json
+#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json:37
 msgid "MAC Address"
 msgstr "Adresse MAC"
 
 #. Label of a Check field in DocType 'CloudPRNT Printers'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json
+#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json:102
 msgid "Mechanical Error"
 msgstr "Erreur mécanique"
 
 #. Label of a Small Text field in DocType 'CloudPRNT Print Queue'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json
+#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:52
 msgid "Media Types"
 msgstr "Types de support"
 
@@ -410,22 +412,22 @@ msgid "N°"
 msgstr "N°"
 
 #. Label of a Check field in DocType 'CloudPRNT Printers'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json
+#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json:67
 msgid "Online"
 msgstr "En ligne"
 
 #. Label of a Check field in DocType 'CloudPRNT Printers'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json
+#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json:109
 msgid "Over Temperature"
 msgstr "Surchauffe"
 
 #. Label of a Check field in DocType 'CloudPRNT Printers'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json
+#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json:116
 msgid "Paper Empty"
 msgstr "Papier épuisé"
 
 #. Label of a Check field in DocType 'CloudPRNT Printers'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json
+#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json:123
 msgid "Paper Low"
 msgstr "Niveau de papier bas"
 
@@ -435,56 +437,57 @@ msgid "Paramètres d'Impression"
 msgstr "Paramètres d'Impression"
 
 #. Label of a Check field in DocType 'CloudPRNT Settings'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.json
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.json:153
 msgid "Partial Cut (Default)"
 msgstr "Coupe partielle (par défaut)"
 
 #. Option for the 'Status' (Select) field in DocType 'CloudPRNT Print Queue'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json
+#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:40
 msgid "Pending"
 msgstr "En attente"
 
 #. Label of a Int field in DocType 'CloudPRNT Printers'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json
+#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json:172
 msgid "Poll Interval"
 msgstr "Intervalle d'interrogation"
 
 #. Label of a Check field in DocType 'CloudPRNT Printers'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json
+#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json:130
 msgid "Presenter Paper Jam"
 msgstr "Bourrage papier (présentateur)"
 
 #. Option for the 'Status' (Select) field in DocType 'CloudPRNT Print Queue'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json
+#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:40
 msgid "Printed"
 msgstr "Imprimé"
 
 #. Label of a Data field in DocType 'CloudPRNT Print Queue'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json
+#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:28
 msgid "Printer MAC"
 msgstr "Adresse MAC de l'imprimante"
 
 #: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.py:74
+#, python-brace-format
 msgid "Printer {0} not found"
 msgstr "Imprimante {0} non trouvée"
 
 #. Label of a Table field in DocType 'CloudPRNT Settings'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.json
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.json:34
 msgid "Printers"
 msgstr "Imprimantes"
 
 #. Label of a Check field in DocType 'CloudPRNT Printers'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json
+#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json:185
 msgid "Printing In Progress"
 msgstr "Impression en cours"
 
 #. Label of a Check field in DocType 'CloudPRNT Printers'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json
+#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json:137
 msgid "Receive Buffer Overflow"
 msgstr "Débordement du tampon de réception"
 
 #. Label of a Check field in DocType 'CloudPRNT Printers'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json
+#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json:144
 msgid "Recoverable"
 msgstr "Récupérable"
 
@@ -493,14 +496,14 @@ msgid "Rounded Total"
 msgstr "Total arrondi"
 
 #. Label of a Check field in DocType 'CloudPRNT Settings'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.json
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.json:145
 msgid "Scale Images to Fit"
 msgstr "Adapter les images à la taille"
 
 #. Description of the 'Scale Images to Fit' (Check) field in DocType
 #. 'CloudPRNT
 #. Settings'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.json
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.json:147
 msgid "Scale oversized images instead of cropping"
 msgstr "Redimensionner les images surdimensionnées au lieu de les rogner"
 
@@ -510,27 +513,27 @@ msgstr "Numéro de série"
 
 #. Label of a Select field in DocType 'CloudPRNT Print Queue'
 #. Label of a Data field in DocType 'CloudPRNT Printers'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json
-#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json
+#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:39
+#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json:157
 msgid "Status"
 msgstr "Statut"
 
 #. Label of a Data field in DocType 'CloudPRNT Printers'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json
+#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json:164
 msgid "Status Code"
 msgstr "Code de statut"
 
 #. Label of a Section Break field in DocType 'CloudPRNT Settings'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.json
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.json:44
 msgid "Sync Settings"
 msgstr "Paramètres de synchronisation"
 
 # no opinion on purpose: repeating the source erases the translation another
 # app ships (neoffice-maintenance#335)
 #. Name of a role
-#: cloudprnt/cloudprnt/doctype/cloudprnt_logs/cloudprnt_logs.json
-#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.json
+#: cloudprnt/cloudprnt/doctype/cloudprnt_logs/cloudprnt_logs.json:47
+#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:79
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.json:173
 #, fuzzy
 msgid "System Manager"
 msgstr "System Manager"
@@ -548,6 +551,7 @@ msgid "Test print (image + text) sent to queue"
 msgstr "Test d'impression (image + texte) envoyé à la queue"
 
 #: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.py:222
+#, python-brace-format
 msgid "Test print sent to queue (job: {0})"
 msgstr "Test d'impression envoyé à la queue (job : {0})"
 
@@ -604,18 +608,18 @@ msgid "URL de l'image à imprimer en haut du ticket"
 msgstr "URL de l'image à imprimer en haut du ticket"
 
 #. Label of a Check field in DocType 'CloudPRNT Settings'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.json
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.json:96
 msgid "Use CPUtil for Job Generation"
 msgstr "Utiliser CPUtil pour la génération des tâches"
 
 #. Label of a Check field in DocType 'CloudPRNT Printers'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json
+#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json:58
 msgid "Use MQTT"
 msgstr "Utiliser MQTT"
 
 #. Description of the 'Partial Cut (Default)' (Check) field in DocType
 #. 'CloudPRNT Settings'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.json
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.json:155
 msgid "Use partial cut instead of full cut"
 msgstr "Utiliser une coupe partielle plutôt qu'une coupe complète"
 
@@ -624,7 +628,7 @@ msgid "VAT number"
 msgstr "Numéro de TVA"
 
 #. Label of a Check field in DocType 'CloudPRNT Printers'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json
+#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json:151
 msgid "Voltage Error"
 msgstr "Erreur de tension"
 
@@ -633,5 +637,6 @@ msgid "on"
 msgstr "sur"
 
 #: cloudprnt/cputil_wrapper.py:479
+#, python-brace-format
 msgid "Échec de conversion PNG: {0}"
 msgstr "Échec de conversion PNG: {0}"
