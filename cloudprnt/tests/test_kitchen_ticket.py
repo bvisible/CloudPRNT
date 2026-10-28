@@ -26,7 +26,16 @@ def order():
 		restaurant_table="Table 5",
 		customer_name="Walk-in",
 		items=[
-			line(item_name="Steak [rare]", qty=2, rate=38.5, posa_item_modifiers="Fries\nNo salt", kds_batch=1),
+			line(
+				item_name="Steak [rare]",
+				qty=2,
+				rate=38.5,
+				# as POS Next keeps a line's options
+				posa_item_modifiers='[{"group": "Cooking", "options": [{"name": "Medium", "price_adjustment": 0}]},'
+				' {"group": "Side", "options": [{"name": "Fries", "price_adjustment": 0}, {"name": "Salad"}]}]',
+				posa_special_instructions="No salt",
+				kds_batch=1,
+			),
 			line(item_name="Wine", qty=1, preparation_station="Bar", kds_batch=1),
 			line(item_name="Tiramisu", qty=1, kds_batch=2, posa_special_instructions="For the birthday"),
 		],
@@ -46,7 +55,9 @@ class TestKitchenTicket(FrappeTestCase):
 		self.assertIn("Table 5", markup)
 		self.assertIn("KITCHEN", markup)
 		self.assertIn("2 x Steak \\[rare\\]", markup, "the brackets of a name are printed, not read as tags")
-		self.assertIn("> Fries", markup)
+		self.assertIn("> Cooking: Medium", markup, "options are read out of POS Next's JSON")
+		self.assertIn("> Side: Fries, Salad", markup)
+		self.assertNotIn("price_adjustment", markup)
 		self.assertIn("> No salt", markup)
 		self.assertIn("> For the birthday", markup)
 		self.assertNotIn("38.5", markup)

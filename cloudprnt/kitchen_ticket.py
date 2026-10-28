@@ -8,6 +8,8 @@ quantities and the remarks are what the cook reads first.
 Unlike a till receipt, a kitchen ticket never expires: an order waits for its printer for as long as it takes.
 """
 
+import json
+
 import frappe
 from frappe import _
 from frappe.utils import flt, format_datetime, get_datetime
@@ -67,13 +69,37 @@ def get_kitchen_ticket_markup(doc, station, lines, batch=None, paper_width=80, t
 		qty = flt(line.qty)
 		qty_text = str(int(qty)) if qty == int(qty) else f"{qty:g}"
 		out.append(f"[magnify: width 2; height 2][bold: on]{qty_text} x {_text(line.item_name or line.item_code)}[bold: off][magnify]")
-		for extra in (line.get("posa_item_modifiers"), line.get("posa_special_instructions")):
-			extra = (extra or "").strip()
-			if extra:
-				for part in extra.splitlines():
-					out.append(f"   [magnify: width 1; height 2]> {_text(part.strip())}[magnify]")
+		remarks = _modifiers(line.get("posa_item_modifiers")) + _plain(line.get("posa_special_instructions"))
+		for remark in remarks:
+			out.append(f"   [magnify: width 1; height 2]> {_text(remark)}[magnify]")
 	out += ["-" * chars, "[cut: feed; partial]"]
 	return "\n".join(out)
+
+
+def _modifiers(value):
+	"""A line's options as the cook reads them: POS Next keeps them as JSON, [{"group": "Cooking", "options":
+	[{"name": "Medium", "price_adjustment": 0}]}], printed "Cooking: Medium"; plain text is printed as it is."""
+	text = (value or "").strip()
+	if not text.startswith(("[", "{")):
+		return _plain(text)
+	try:
+		groups = json.loads(text)
+	except ValueError:
+		return _plain(text)
+	remarks = []
+	for group in groups if isinstance(groups, list) else [groups]:
+		if not isinstance(group, dict):
+			continue
+		names = [str(o.get("name")).strip() for o in group.get("options") or [] if isinstance(o, dict) and o.get("name")]
+		if not names:
+			continue
+		label = str(group.get("group") or "").strip()
+		remarks.append(f"{label}: {', '.join(names)}" if label else ", ".join(names))
+	return remarks
+
+
+def _plain(value):
+	return [part.strip() for part in (value or "").splitlines() if part.strip()]
 
 
 def _lines(doc, station, batch):
