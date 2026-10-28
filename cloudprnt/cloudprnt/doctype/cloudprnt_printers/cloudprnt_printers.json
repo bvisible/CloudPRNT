@@ -11,6 +11,7 @@
   "pos_profile",
   "auto_print",
   "open_drawer",
+  "preparation_station",
   "column_break_status",
   "online",
   "status",
@@ -83,6 +84,12 @@
    "options": "Cash payments\nAlways\nNever",
    "default": "Cash payments",
    "description": "When a receipt prints"
+  },
+  {
+   "fieldname": "preparation_station",
+   "fieldtype": "Data",
+   "label": "Preparation Station",
+   "description": "The station whose kitchen tickets this printer prints (in the POS restaurant: Kitchen, Bar…)"
   },
   {
    "fieldname": "column_break_status",
@@ -277,7 +284,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-10-28 12:00:00.000000",
+ "modified": "2026-10-28 14:00:00.000000",
  "modified_by": "Administrator",
  "module": "CloudPRNT",
  "name": "CloudPRNT Printers",
