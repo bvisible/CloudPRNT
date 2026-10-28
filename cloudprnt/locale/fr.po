@@ -1173,3 +1173,42 @@ msgstr "Session de caisse"
 #: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:81
 msgid "What this kitchen ticket printed, as quantity per dish: a dish at the kitchen is printed once"
 msgstr "Quantité par plat imprimée sur ce ticket de cuisine : un plat en cuisine n'est imprimé qu'une fois"
+
+#. Label of a Data field in DocType 'CloudPRNT Printers'
+#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json:141
+msgid "Broker Account"
+msgstr "Compte broker"
+
+#. Label of a Small Text field in DocType 'CloudPRNT Printers'
+#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json:148
+msgid "Broker Connection"
+msgstr "Connexion au broker"
+
+#. Label of a Check field in DocType 'CloudPRNT Printers'
+#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json:134
+msgid "Can Print Instantly"
+msgstr "Peut imprimer instantanément"
+
+#. Label of a Section Break field in DocType 'CloudPRNT Settings'
+#. Label of a Check field in DocType 'CloudPRNT Settings'
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.json:30
+msgid "Instant Printing"
+msgstr "Impression instantanée"
+
+#. Description of the 'Broker Account' (Data) field in DocType 'CloudPRNT
+#. Printers'
+#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json:143
+msgid "Its account on the broker of instant printing"
+msgstr "Son compte sur le broker de l'impression instantanée"
+
+#. Description of the 'Instant Printing' (Check) field in DocType 'CloudPRNT
+#. Settings'
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.json:37
+msgid "Printers that can (Star mC-Print3 CI/CBI, TSP100IV) are told the moment a job is queued, through the hosting platform's broker, instead of asking the site every few seconds. Takes effect when a printer restarts or within an hour. Other printers keep asking as before."
+msgstr "Les imprimantes qui le permettent (Star mC-Print3 CI/CBI, TSP100IV) sont averties dès qu'un travail est mis en file, par le broker de la plateforme d'hébergement, au lieu d'interroger le site toutes les quelques secondes. Le changement prend effet au redémarrage d'une imprimante ou dans l'heure. Les autres imprimantes continuent d'interroger le site comme avant."
+
+#. Description of the 'Can Print Instantly' (Check) field in DocType 'CloudPRNT
+#. Printers'
+#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json:136
+msgid "The printer asked for cloudprnt-setting.json: it can be told of a job at once (CloudPRNT Version MQTT)"
+msgstr "L'imprimante a demandé cloudprnt-setting.json : elle peut être avertie d'un travail immédiatement (CloudPRNT Version MQTT)"
