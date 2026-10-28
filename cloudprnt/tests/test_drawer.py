@@ -171,52 +171,59 @@ class TestTillPrinting(FrappeTestCase):
 
 
 class TestKitchenSend(FrappeTestCase):
-	def test_each_station_with_a_printer_gets_its_sent_lines_once(self):
+	def test_each_station_with_a_printer_gets_what_is_new_at_the_kitchen_once(self):
 		pair = pair_printer(label="_Test CloudPRNT kitchen")
 		invoice = "ACC-SINV-TEST-0003"
+
+		def line(name, item, qty, station, status, batch=0):
+			return frappe._dict(name=name, item_name=item, item_code=item.lower(), uom="Nos", qty=qty, preparation_station=station, kds_status=status, kds_batch=batch)
+
+		order = SimpleNamespace(
+			name=invoice,
+			owner="Administrator",
+			restaurant_table="Table 9",
+			customer_name="Walk-in",
+			get=lambda key, default=None: {"restaurant_table": "Table 9"}.get(key, default),
+			items=[],
+		)
+		real_get_doc = frappe.get_doc
+
+		def get_doc(*args, **kwargs):
+			if args and args[0] == "Sales Invoice":
+				return order
+			return real_get_doc(*args, **kwargs)
+
+		def tickets():
+			return frappe.get_all(jobs.DOCTYPE, filters={"printer": pair["printer"]}, pluck="job_data", order_by="creation")
+
 		try:
 			update_printer(pair["printer"], {"preparation_station": "_Kitchen", "mac_address": "00:11:62:AA:00:31"})
-			lines = [
-				frappe._dict(name="row-soup", item_name="Soup", item_code="soup", qty=1, preparation_station="_Kitchen", kds_status="Pending", kds_batch=0),
-				frappe._dict(name="row-beer", item_name="Beer", item_code="beer", qty=2, preparation_station="_Bar", kds_status="Pending", kds_batch=0),
-				frappe._dict(name="row-cake", item_name="Cake", item_code="cake", qty=1, preparation_station="_Kitchen", kds_status="Waiting", kds_batch=0),
-			]
-			order = SimpleNamespace(
-				name=invoice,
-				owner="Administrator",
-				restaurant_table="Table 9",
-				customer_name="Walk-in",
-				get=lambda key, default=None: {"restaurant_table": "Table 9"}.get(key, default),
-				items=lines,
-			)
-			real_get_doc = frappe.get_doc
-
-			def get_doc(*args, **kwargs):
-				if args and args[0] == "Sales Invoice":
-					return order
-				return real_get_doc(*args, **kwargs)
-
-			def tickets():
-				return frappe.get_all(jobs.DOCTYPE, filters={"printer": pair["printer"]}, pluck="job_data", order_by="creation")
-
 			with patch.object(kitchen_ticket.frappe, "get_doc", side_effect=get_doc):
-				# A line sent with the order's first save carries no send number: it prints all the same.
+				# A soup sent with the order's first save carries no send number: it prints all the same.
+				order.items = [
+					line("row-1", "Soup", 1, "_Kitchen", "Pending"),
+					line("row-2", "Beer", 2, "_Bar", "Pending"),
+					line("row-3", "Cake", 1, "_Kitchen", "Waiting"),
+				]
 				kitchen_ticket.on_kitchen_send(invoice, 1)
 				self.assertEqual(len(tickets()), 1, "the bar has no printer: its lines stay on its screen")
-				self.assertIn("Soup", tickets()[0])
+				self.assertIn("1 x Soup", tickets()[0])
 				self.assertNotIn("Cake", tickets()[0], "a line still waiting is not at the kitchen")
 				self.assertNotIn("Beer", tickets()[0])
-				# The order is saved again: nothing new at the kitchen, nothing printed.
-				kitchen_ticket.on_kitchen_send(invoice, 1)
-				self.assertEqual(len(tickets()), 1, "a line is printed once")
-				# The cake is sent later, as send 2: only it prints.
-				lines[2].kds_status, lines[2].kds_batch = "Pending", 2
+				# A second soup, sent alone; then the till saves the order again under new line names, merged.
+				order.items = [line("row-4", "Soup", 1, "_Kitchen", "Preparing"), line("row-5", "Soup", 1, "_Kitchen", "Pending")]
 				kitchen_ticket.on_kitchen_send(invoice, 2)
+				order.items = [line("row-6", "Soup", 2, "_Kitchen", "Pending"), line("row-7", "Cake", 1, "_Kitchen", "Waiting")]
+				kitchen_ticket.on_kitchen_send(invoice, 2)
+				# The cake goes later, as send 3.
+				order.items[1] = line("row-8", "Cake", 1, "_Kitchen", "Pending", batch=3)
+				kitchen_ticket.on_kitchen_send(invoice, 3)
 			printed = tickets()
-			self.assertEqual(len(printed), 2)
-			self.assertIn("Cake", printed[1])
-			self.assertNotIn("Soup", printed[1])
-			self.assertEqual(kitchen_ticket.printed_lines(invoice), {"row-soup", "row-cake"})
+			self.assertEqual(len(printed), 3, "renamed or merged lines are not printed again")
+			self.assertIn("1 x Soup", printed[1])
+			self.assertIn("1 x Cake", printed[2])
+			self.assertNotIn("Soup", printed[2])
+			self.assertEqual(sorted(kitchen_ticket.printed_quantities(invoice).values()), [1, 2])
 		finally:
 			_remove_rows([pair["printer"]])
 

@@ -78,7 +78,7 @@
    "fieldtype": "Small Text",
    "label": "Kitchen Lines",
    "read_only": 1,
-   "description": "The order lines this kitchen ticket printed: a line is printed once"
+   "description": "What this kitchen ticket printed, as quantity per dish: a dish at the kitchen is printed once"
   },
   {
    "fieldname": "column_break_1",
@@ -193,7 +193,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-10-28 18:30:00.000000",
+ "modified": "2026-10-28 19:00:00.000000",
  "modified_by": "Administrator",
  "module": "CloudPRNT",
  "name": "CloudPRNT Print Queue",

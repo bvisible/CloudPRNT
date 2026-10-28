@@ -67,8 +67,8 @@ def enqueue(
 ):
 	"""Queue `markup` (Star Document Markup) for `printer` (row, row name, label or MAC; the default printer
 	when empty). open_drawer: "start" or "end" opens the cash drawer at that end of the job. valid_seconds: the
-	job expires if no printer took it by then (None: it waits for as long as it takes). kitchen_rows: the order
-	lines a kitchen ticket prints, remembered so that none is printed twice."""
+	job expires if no printer took it by then (None: it waits for as long as it takes). kitchen_rows: what a
+	kitchen ticket prints, {dish: quantity}, remembered so that nothing is printed twice."""
 	row = printer if isinstance(printer, dict) else find_printer(printer)
 	return _insert(
 		row,
@@ -80,7 +80,7 @@ def enqueue(
 		reference_doctype=reference_doctype,
 		reference_name=reference_name,
 		expires_at=add_to_date(now_datetime(), seconds=valid_seconds) if valid_seconds else None,
-		kitchen_rows=", ".join(kitchen_rows) if kitchen_rows else None,
+		kitchen_rows=json.dumps(kitchen_rows, ensure_ascii=False) if kitchen_rows else None,
 	)
 
 
