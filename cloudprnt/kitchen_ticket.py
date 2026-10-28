@@ -1,9 +1,13 @@
 """The kitchen ticket of a table order, printed at the preparation station that makes it.
 
-A table order in the POS is a draft Sales Invoice: each line names its preparation station (Kitchen, Bar…) and the
-batch it was sent to the kitchen with (POS Next fields `preparation_station` and `kds_batch`). A ticket holds the
-lines of one station, and of one batch when given: what the station has to make now. No prices; the table, the
-quantities and the remarks are what the cook reads first.
+A table order in the POS is a draft Sales Invoice: each line names its preparation station (Kitchen, Bar…), its
+state at the kitchen and the send it went with (POS Next fields `preparation_station`, `kds_status`, `kds_batch`).
+A ticket holds the lines of one station: what the station has to make now. No prices; the table, the quantities
+and the remarks are what the cook reads first.
+
+When lines go to the kitchen, each station with a printer gets one ticket of its lines sent and not printed yet.
+The queue remembers the lines each ticket printed (CloudPRNT Print Queue.kitchen_rows): a line is printed once,
+however often the order is saved afterwards, and whether or not the till numbered its send.
 
 Unlike a till receipt, a kitchen ticket never expires: an order waits for its printer for as long as it takes.
 """
@@ -19,6 +23,8 @@ from cloudprnt import print_queue_manager as jobs
 from cloudprnt.printers import all_printers, find_printer, stations_of
 
 LINE_CHARS = {58: 32, 80: 48, 112: 69}
+#: The state of a line just sent to the kitchen, not started yet (POS Next kds_status).
+SENT = "Pending"
 
 
 @frappe.whitelist()
@@ -47,23 +53,40 @@ def print_kitchen_ticket(invoice, station=None, batch=None, printer=None):
 	return {"success": True, "message": _("Kitchen ticket sent"), "tickets": queued}
 
 
-def on_kitchen_send(invoice, batch):
-	"""Hook pos_next_kitchen_send: send `batch` of table order `invoice` just went to the kitchen. Each station
-	with a printer gets its ticket of that send; a station without one keeps its screen only."""
+def on_kitchen_send(invoice, batch=None):
+	"""Hook pos_next_kitchen_send: lines of table order `invoice` were just put at the kitchen (as send `batch`
+	when the till numbered it). Each station with a printer gets one ticket of its sent lines not printed yet; a
+	station without one keeps its screen only."""
 	doc = frappe.get_doc("Sales Invoice", invoice)
-	stations = sorted(
-		{
-			line.get("preparation_station")
-			for line in doc.items
-			if line.get("preparation_station") and int(line.get("kds_batch") or 0) == int(batch or 0)
-		}
-	)
-	for station in stations:
+	printed = printed_lines(doc.name)
+	waiting = [
+		line
+		for line in doc.items
+		if line.get("preparation_station") and line.get("kds_status") == SENT and line.name not in printed
+	]
+	for station in sorted({line.preparation_station for line in waiting}):
 		row = _printer_for_station(station)
 		if not row:
 			continue
-		markup = get_kitchen_ticket_markup(doc, station, _lines(doc, station, batch), batch, paper_width=row.paper_width)
-		jobs.enqueue(row, markup, reference_doctype="Sales Invoice", reference_name=doc.name)
+		lines = [line for line in waiting if line.preparation_station == station]
+		send = max(int(line.get("kds_batch") or 0) for line in lines) or None
+		jobs.enqueue(
+			row,
+			get_kitchen_ticket_markup(doc, station, lines, send, paper_width=row.paper_width),
+			reference_doctype="Sales Invoice",
+			reference_name=doc.name,
+			kitchen_rows=[line.name for line in lines],
+		)
+
+
+def printed_lines(invoice):
+	"""The lines of table order `invoice` a kitchen ticket already printed."""
+	lists = frappe.get_all(
+		jobs.DOCTYPE,
+		filters={"reference_doctype": "Sales Invoice", "reference_name": invoice, "kitchen_rows": ("is", "set")},
+		pluck="kitchen_rows",
+	)
+	return {name.strip() for names in lists for name in names.split(",") if name.strip()}
 
 
 def get_kitchen_ticket_markup(doc, station, lines, batch=None, paper_width=80, title=None):

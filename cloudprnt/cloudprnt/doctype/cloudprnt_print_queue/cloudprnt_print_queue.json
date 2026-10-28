@@ -10,6 +10,7 @@
   "reference_doctype",
   "reference_name",
   "invoice_name",
+  "kitchen_rows",
   "column_break_1",
   "printer",
   "printer_mac",
@@ -71,6 +72,13 @@
    "label": "Invoice",
    "read_only": 1,
    "hidden": 1
+  },
+  {
+   "fieldname": "kitchen_rows",
+   "fieldtype": "Small Text",
+   "label": "Kitchen Lines",
+   "read_only": 1,
+   "description": "The order lines this kitchen ticket printed: a line is printed once"
   },
   {
    "fieldname": "column_break_1",
@@ -185,7 +193,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-10-28 15:00:00.000000",
+ "modified": "2026-10-28 18:30:00.000000",
  "modified_by": "Administrator",
  "module": "CloudPRNT",
  "name": "CloudPRNT Print Queue",
