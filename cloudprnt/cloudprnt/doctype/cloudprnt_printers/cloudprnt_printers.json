@@ -28,6 +28,7 @@
   "status_code",
   "printing_in_progress",
   "section_status",
+  "drawer_connected",
   "drawer_open",
   "paper_low",
   "paper_empty",
@@ -186,6 +187,13 @@
    "fieldtype": "Section Break",
    "label": "Status Detail",
    "collapsible": 1
+  },
+  {
+   "fieldname": "drawer_connected",
+   "fieldtype": "Check",
+   "label": "Cash Drawer Connected",
+   "read_only": 1,
+   "description": "A cash drawer is wired to the printer's drawer port"
   },
   {
    "fieldname": "drawer_open",

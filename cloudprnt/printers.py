@@ -32,6 +32,7 @@ SERVER_FIELDS = (
 	"cover_open",
 	"paper_empty",
 	"paper_low",
+	"drawer_connected",
 	"drawer_open",
 	"compulsion_switch",
 	"cutter_error",

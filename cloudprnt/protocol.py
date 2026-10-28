@@ -290,6 +290,7 @@ def _status_fields(decoded, code):
 		"voltage_error": decoded.get("VoltageError"),
 		"recoverable": decoded.get("Recoverable"),
 	}
+	flags["drawer_connected"] = detail.get("ExternalDevive1Connected")  # sic: cputil's spelling
 	values = {field: 1 if value else 0 for field, value in flags.items()}
 	if detail.get("Drawer1OpenCloseSignal"):
 		# The printer is set to read a closed drawer as a high signal: the switch reads the other way round.

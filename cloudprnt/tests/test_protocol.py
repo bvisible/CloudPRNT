@@ -26,6 +26,8 @@ STRANGER_MAC = "00:11:62:AA:00:99"
 READY = "2f 8c 0 0 0 0 0 0 0 0 0 0 0 0 0"
 COVER_OPEN = "2f 8c 20 0 0 0 0 0 0 0 0 0 0 0 0"
 PAPER_EMPTY = "2f 8c 0 0 0 8 0 0 0 0 0 0 0 0 0"
+#: As an mC-Print3 reports it with a cash drawer on its drawer port (last byte).
+DRAWER_WIRED = "2f c 0 0 0 0 0 0 0 0 0 0 0 0 40"
 
 
 def printer_request(method, user="Guest", query=None, body=None):
@@ -192,6 +194,9 @@ class TestProtocol(FrappeTestCase):
 		poll(self.first_user, status=PAPER_EMPTY)
 		row = get_printer(self.first["printer"])
 		self.assertEqual((row.cover_open, row.paper_empty, row.status), (0, 1, frappe._("Paper empty")))
+		poll(self.first_user, status=DRAWER_WIRED)
+		row = get_printer(self.first["printer"])
+		self.assertEqual((row.drawer_connected, row.drawer_open, row.status), (1, 0, frappe._("Ready")))
 
 	@unittest.skipUnless(render.cputil_available(), "cputil runs on linux x86-64 only")
 	def test_the_cash_drawer_opens_without_feeding_paper(self):
