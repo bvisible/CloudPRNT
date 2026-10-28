@@ -129,6 +129,8 @@ def _insert(row, token, **values):
 			**values,
 		}
 	)
+	# A print job never fails on the document it names: the paper says what it says.
+	job.flags.ignore_links = True
 	job.insert(ignore_permissions=True)
 	return {"success": True, "job_token": token, "queue_position": queue_position(row, token)}
 

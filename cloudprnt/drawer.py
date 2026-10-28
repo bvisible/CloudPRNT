@@ -140,5 +140,7 @@ def _record(pos_profile, reason, note, pos_opening_shift, row, job_token, refere
 			"result": SENT,
 		}
 	)
+	# A journal line is written whatever became of what it names (a till renamed, a sale deleted since).
+	opening.flags.ignore_links = True
 	opening.insert(ignore_permissions=True)
 	return opening.name
