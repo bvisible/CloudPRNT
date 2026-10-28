@@ -23,11 +23,12 @@ from urllib.parse import unquote
 
 import frappe
 from frappe import _
+from frappe.rate_limiter import rate_limit
 from frappe.utils import now_datetime
 from werkzeug.wrappers import Response
 
+from cloudprnt import broker, render
 from cloudprnt import print_queue_manager as jobs
-from cloudprnt import render
 from cloudprnt.printer_discovery import forget, note_unpaired_printer
 from cloudprnt.printers import normalize_mac, printer_for_mac, printer_for_user, update_printer
 
@@ -58,12 +59,38 @@ def serve():
 
 
 @frappe.whitelist(allow_guest=True, methods=["GET"])
+@rate_limit(limit=60, seconds=60)
 def server_setting():
 	"""cloudprnt-setting.json: what a printer able to use MQTT (CloudPRNT Version MQTT: mC-Print3 MCP31CI/CBI from
-	firmware 5.1, TSP100IV from 2.2) asks when it starts, at the folder of its URL with this file name, which
-	hooks.override_whitelisted_methods sends here. With MQTT the server would signal each job through a broker
-	instead of being polled; the site runs no broker, and 404 is the answer Star specifies for "HTTP only"."""
-	return _text("CloudPRNT HTTP only", 404)
+	firmware 5.1, TSP100IV from 2.2) asks when it starts and every hour, at the folder of its URL with this file name
+	(nginx and hooks.override_whitelisted_methods send it here, ?mac=…&replaced_path=…).
+
+	A paired printer is challenged for its credentials, like its polls (the same answer whether instant printing is on or
+	not). Signed in, it is noted as able to print instantly (instant_capable), and with instant printing on (broker.py)
+	its own account receives the broker, its account and its topic, in Trigger POST mode. Otherwise 404, which is the
+	answer Star specifies for "HTTP only": the printer polls. Nothing is written for an anonymous caller."""
+	try:
+		mac = normalize_mac(frappe.request.args.get("mac"))
+		row = printer_for_mac(mac) if mac else None
+		if row is None:
+			return _text("CloudPRNT HTTP only", 404)
+		printer = _signed_in_printer(mac)
+		if printer is None:
+			if row.device_user and frappe.session.user == "Guest":
+				return _challenge()
+			return _text("CloudPRNT HTTP only", 404)
+		if not printer.instant_capable:
+			update_printer(printer.name, {"instant_capable": 1})
+			printer.instant_capable = 1
+		setting = broker.setting_for(printer) if broker.enabled() else None
+		frappe.db.commit()
+		if not setting:
+			return _text("CloudPRNT HTTP only", 404)
+		return _json(setting)
+	except Exception:
+		frappe.db.rollback()
+		frappe.log_error("CloudPRNT: cloudprnt-setting.json failed", frappe.get_traceback())
+		return _text("CloudPRNT HTTP only", 404)
 
 
 def _poll():

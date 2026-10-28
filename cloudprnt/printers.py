@@ -43,6 +43,9 @@ SERVER_FIELDS = (
 	"black_mark_error",
 	"voltage_error",
 	"recoverable",
+	"instant_capable",
+	"broker_account",
+	"broker_connection",
 )
 
 _MAC = re.compile(r"^[0-9A-F]{12}$")

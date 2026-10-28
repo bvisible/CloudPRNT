@@ -78,10 +78,16 @@ def revoke_credentials(printer_name):
 
 
 def disable_accounts_of_removed_printers(previous_rows, current_names):
-	"""Called when the settings are saved: a printer row removed takes its account with it."""
-	for row in previous_rows:
-		if row.name not in current_names and row.device_user:
+	"""Called when the settings are saved: a printer row removed takes its accounts with it (its sign-in here, and
+	its account on the broker of instant printing)."""
+	removed = [row for row in previous_rows if row.name not in current_names]
+	for row in removed:
+		if row.device_user:
 			_disable(row.device_user)
+	if removed:
+		from cloudprnt import broker
+
+		broker.forget(removed)
 
 
 def _disable(user):

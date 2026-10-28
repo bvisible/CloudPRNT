@@ -17,6 +17,9 @@
   "status",
   "last_seen",
   "device_user",
+  "instant_capable",
+  "broker_account",
+  "broker_connection",
   "section_reported",
   "client_type",
   "client_version",
@@ -124,6 +127,27 @@
    "read_only": 1,
    "options": "User",
    "description": "The account the printer signs in with (Add a printer or Printer credentials)"
+  },
+  {
+   "fieldname": "instant_capable",
+   "fieldtype": "Check",
+   "label": "Can Print Instantly",
+   "read_only": 1,
+   "description": "The printer asked for cloudprnt-setting.json: it can be told of a job at once (CloudPRNT Version MQTT)"
+  },
+  {
+   "fieldname": "broker_account",
+   "fieldtype": "Data",
+   "label": "Broker Account",
+   "read_only": 1,
+   "description": "Its account on the broker of instant printing"
+  },
+  {
+   "fieldname": "broker_connection",
+   "fieldtype": "Small Text",
+   "label": "Broker Connection",
+   "read_only": 1,
+   "hidden": 1
   },
   {
    "fieldname": "section_reported",
@@ -284,7 +308,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-10-28 18:00:00.000000",
+ "modified": "2026-10-28 20:00:00.000000",
  "modified_by": "Administrator",
  "module": "CloudPRNT",
  "name": "CloudPRNT Printers",

@@ -135,6 +135,10 @@ def _insert(row, token, **values):
 	# A print job never fails on the document it names: the paper says what it says.
 	job.flags.ignore_links = True
 	job.insert(ignore_permissions=True)
+	from cloudprnt import broker
+
+	# A printer on the broker hears of the job as soon as it is committed, instead of at its next poll.
+	broker.signal(row)
 	return {"success": True, "job_token": token, "queue_position": queue_position(row, token)}
 
 

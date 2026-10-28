@@ -6,6 +6,8 @@
  "engine": "InnoDB",
  "field_order": [
   "printers",
+  "section_instant",
+  "instant_printing",
   "section_defaults",
   "default_printer",
   "column_break_defaults",
@@ -21,6 +23,18 @@
    "fieldtype": "Table",
    "label": "Printers",
    "options": "CloudPRNT Printers"
+  },
+  {
+   "fieldname": "section_instant",
+   "fieldtype": "Section Break",
+   "label": "Instant Printing"
+  },
+  {
+   "fieldname": "instant_printing",
+   "fieldtype": "Check",
+   "label": "Instant Printing",
+   "default": "0",
+   "description": "Printers that can (Star mC-Print3 CI/CBI, TSP100IV) are told the moment a job is queued, through the hosting platform's broker, instead of asking the site every few seconds. Takes effect when a printer restarts or within an hour. Other printers keep asking as before."
   },
   {
    "fieldname": "section_defaults",
@@ -69,7 +83,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-10-28 12:00:00.000000",
+ "modified": "2026-10-28 20:00:00.000000",
  "modified_by": "Administrator",
  "module": "CloudPRNT",
  "name": "CloudPRNT Settings",
