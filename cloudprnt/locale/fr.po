@@ -1034,3 +1034,31 @@ msgstr "Si l'imprimante ne la prend pas à temps (éteinte ou hors ligne), la t�
 #: cloudprnt/print_queue_manager.py:179
 msgid "Not printed in time"
 msgstr "Pas imprimée à temps"
+
+#: cloudprnt/kitchen_ticket.py:47
+msgid "Kitchen ticket sent"
+msgstr "Ticket cuisine envoyé"
+
+#: cloudprnt/kitchen_ticket.py:41
+#, python-brace-format
+msgid "No CloudPRNT printer prints for the station {0}"
+msgstr "Aucune imprimante CloudPRNT n'imprime pour le poste {0}"
+
+#: cloudprnt/kitchen_ticket.py:46
+msgid "Nothing to send to the kitchen for this order"
+msgstr "Rien à envoyer en cuisine pour cette commande"
+
+#: cloudprnt/kitchen_ticket.py:66
+#, python-brace-format
+msgid "Send no. {0}"
+msgstr "Envoi n° {0}"
+
+#. Description of the 'Preparation Station' (Data) field in DocType 'CloudPRNT
+#. Printers'
+#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json
+msgid "The station whose kitchen tickets this printer prints (in the POS restaurant: Kitchen, Bar…)"
+msgstr "Le poste de préparation dont cette imprimante imprime les tickets de cuisine (au restaurant : Cuisine, Bar…)"
+
+#: cloudprnt/kitchen_ticket.py:64
+msgid "Waiter"
+msgstr "Serveur"
