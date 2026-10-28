@@ -13,7 +13,7 @@ from urllib.parse import unquote
 
 import frappe
 from frappe import _
-from frappe.utils import add_to_date, now_datetime
+from frappe.utils import add_to_date, get_datetime, now_datetime
 
 from cloudprnt import render
 from cloudprnt.printers import find_printer, normalize_mac, printer_for_mac
@@ -24,6 +24,12 @@ COMMANDS = "Printer Commands"
 
 #: A job fetched and never confirmed is marked failed after this long, rather than printed a second time.
 UNCONFIRMED_AFTER_MINUTES = 10
+#: A till receipt not printed within this long (printer off, shop offline) is not printed by surprise later:
+#: the customer is gone, the cashier printed it again or did without. It expires, and can be printed again.
+RECEIPT_VALID_MINUTES = 15
+#: The cash drawer opens only this soon after it was asked to: a drawer never opens late, in front of nobody.
+#: A receipt printed later still prints, without opening the drawer.
+DRAWER_VALID_SECONDS = 60
 #: Printed and failed jobs are kept this long, for support, then deleted.
 KEEP_DAYS = 30
 
@@ -42,15 +48,24 @@ _FIELDS = [
 	"reference_doctype",
 	"reference_name",
 	"attempts",
+	"expires_at",
 	"creation",
 ]
 
 
 def enqueue(
-	printer, markup, reference_doctype=None, reference_name=None, open_drawer=None, buzzer=0, token=None
+	printer,
+	markup,
+	reference_doctype=None,
+	reference_name=None,
+	open_drawer=None,
+	buzzer=0,
+	token=None,
+	valid_seconds=None,
 ):
 	"""Queue `markup` (Star Document Markup) for `printer` (row, row name, label or MAC; the default printer
-	when empty). open_drawer: "start" or "end" opens the cash drawer at that end of the job."""
+	when empty). open_drawer: "start" or "end" opens the cash drawer at that end of the job. valid_seconds: the
+	job expires if no printer took it by then (None: it waits for as long as it takes)."""
 	row = printer if isinstance(printer, dict) else find_printer(printer)
 	return _insert(
 		row,
@@ -61,6 +76,7 @@ def enqueue(
 		buzzer=int(buzzer or 0),
 		reference_doctype=reference_doctype,
 		reference_name=reference_name,
+		expires_at=add_to_date(now_datetime(), seconds=valid_seconds) if valid_seconds else None,
 	)
 
 
@@ -84,12 +100,14 @@ def add_job_to_queue(job_token, printer_mac, invoice_name=None, job_data=None, m
 			from cloudprnt.receipt_markup import get_receipt_markup
 
 			job_data = get_receipt_markup("POS Invoice", invoice_name)
+		# A till receipt (the payments app's card slip, a POS Invoice): it expires like one.
 		return enqueue(
 			row,
 			job_data,
 			reference_doctype="POS Invoice" if invoice_name else None,
 			reference_name=invoice_name,
 			token=job_token,
+			valid_seconds=RECEIPT_VALID_MINUTES * 60,
 		)
 	except Exception as error:
 		frappe.log_error("CloudPRNT: a job could not be queued", frappe.get_traceback())
@@ -123,8 +141,9 @@ def _for_printer(row):
 
 
 def next_job(row):
-	"""The oldest job waiting for printer `row`, or None."""
+	"""The oldest job waiting for printer `row`, or None. Its jobs past their time expire first."""
 	condition, values = _for_printer(row)
+	_expire(condition, values)
 	jobs = frappe.db.sql(
 		f"""select {', '.join(_FIELDS)} from `tab{DOCTYPE}`
 		where status = 'Pending' and {condition} order by creation asc limit 1""",
@@ -146,6 +165,28 @@ def get_job(row, token=None, statuses=("Pending", "Fetched")):
 		as_dict=True,
 	)
 	return jobs[0] if jobs else None
+
+
+def expire_jobs():
+	"""Scheduled: jobs past their time expire even while their printer stays away."""
+	_expire("1 = 1", {})
+
+
+def _expire(condition, values):
+	frappe.db.sql(
+		f"""update `tab{DOCTYPE}` set status = 'Expired', result_code = %(code)s
+		where status = 'Pending' and expires_at is not null and expires_at < %(now)s and {condition}""",
+		{**values, "code": _("Not printed in time"), "now": now_datetime()},
+	)
+
+
+def drawer_for(job):
+	"""When the job opens the cash drawer ("start", "end" or None): never later than DRAWER_VALID_SECONDS after
+	it was queued."""
+	if not job.open_drawer:
+		return None
+	age = (now_datetime() - get_datetime(job.creation)).total_seconds()
+	return job.open_drawer if age <= DRAWER_VALID_SECONDS else None
 
 
 def queue_position(row, token):
@@ -185,7 +226,7 @@ def render_job(job, media_type, row):
 		media_type,
 		paper_width=row.paper_width or frappe.db.get_single_value("CloudPRNT Settings", "default_paper_width"),
 		print_dots=row.print_dots,
-		drawer=job.open_drawer,
+		drawer=drawer_for(job),
 		buzzer=job.buzzer,
 	)
 
@@ -234,16 +275,19 @@ def fail_unconfirmed_jobs():
 
 
 def delete_old_jobs():
-	"""Scheduled: printed and failed jobs go after KEEP_DAYS."""
+	"""Scheduled: printed, failed and expired jobs go after KEEP_DAYS."""
 	frappe.db.delete(
 		DOCTYPE,
-		{"status": ("in", ("Printed", "Failed")), "creation": ("<", add_to_date(now_datetime(), days=-KEEP_DAYS))},
+		{
+			"status": ("in", ("Printed", "Failed", "Expired")),
+			"creation": ("<", add_to_date(now_datetime(), days=-KEEP_DAYS)),
+		},
 	)
 
 
 @frappe.whitelist()
 def print_again(job):
-	"""Queue a printed or failed job once more, as a new job (from the queue's form)."""
+	"""Queue a printed, failed or expired job once more, as a new job (from the queue's form)."""
 	from cloudprnt import guards
 
 	guards.require("CloudPRNT Settings", "write")
@@ -259,6 +303,12 @@ def print_again(job):
 		for field in ("job_format", "job_data", "media_types", "buzzer", "reference_doctype", "reference_name")
 	}
 	# A copy of a receipt does not open the cash drawer a second time.
-	result = _insert(row, token=uuid.uuid4().hex, open_drawer="", **values)
+	result = _insert(
+		row,
+		token=uuid.uuid4().hex,
+		open_drawer="",
+		expires_at=add_to_date(now_datetime(), minutes=RECEIPT_VALID_MINUTES),
+		**values,
+	)
 	frappe.msgprint(_("The job was queued again"), alert=True)
 	return result

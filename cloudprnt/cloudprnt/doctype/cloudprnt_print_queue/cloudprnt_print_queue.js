@@ -3,7 +3,7 @@
 
 frappe.ui.form.on("CloudPRNT Print Queue", {
 	refresh(frm) {
-		if (!["Printed", "Failed"].includes(frm.doc.status)) return;
+		if (!["Printed", "Failed", "Expired"].includes(frm.doc.status)) return;
 		frm.add_custom_button(__("Print again"), () => {
 			frappe.call({
 				method: "cloudprnt.print_queue_manager.print_again",

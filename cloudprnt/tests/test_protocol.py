@@ -9,6 +9,7 @@ import unittest
 
 import frappe
 from frappe.tests.utils import FrappeTestCase
+from frappe.utils import add_to_date, now_datetime
 from werkzeug.test import EnvironBuilder
 from werkzeug.wrappers import Request
 
@@ -213,6 +214,36 @@ class TestProtocol(FrappeTestCase):
 		self.assertIn(b"\x07", data.split(b"\x1b\x07", 1)[1][2:], "and fired (BEL)")
 		self.assertNotIn(b"\x1bd", data, "no cut, so no paper")
 
+
+	def test_a_job_not_taken_in_time_expires_instead_of_printing_late(self):
+		self.bind()
+		jobs.enqueue(get_printer(self.first["printer"]), "Late receipt", token="job-late", valid_seconds=900)
+		frappe.db.set_value(jobs.DOCTYPE, {"job_token": "job-late"}, "expires_at", add_to_date(now_datetime(), minutes=-1))
+		_, answer = poll(self.first_user)
+		self.assertNotEqual(answer.get("jobToken"), "job-late")
+		self.assertEqual(frappe.db.get_value(jobs.DOCTYPE, {"job_token": "job-late"}, "status"), "Expired")
+
+	def test_the_cash_drawer_alone_expires_after_a_minute(self):
+		self.bind()
+		token = open_cash_drawer(self.first["printer"])["job_token"]
+		created, expires = frappe.db.get_value(jobs.DOCTYPE, {"job_token": token}, ["creation", "expires_at"])
+		self.assertLessEqual((expires - created).total_seconds(), jobs.DRAWER_VALID_SECONDS + 1)
+
+	@unittest.skipUnless(render.cputil_available(), "cputil runs on linux x86-64 only")
+	def test_a_receipt_printed_late_does_not_open_the_drawer(self):
+		self.bind()
+		row = get_printer(self.first["printer"])
+		jobs.enqueue(row, "Receipt", open_drawer="end", token="job-drawer-fresh")
+		jobs.enqueue(row, "Receipt", open_drawer="end", token="job-drawer-late")
+		frappe.db.set_value(jobs.DOCTYPE, {"job_token": "job-drawer-late"}, "creation", add_to_date(now_datetime(), minutes=-2))
+		data = {}
+		for token in ("job-drawer-fresh", "job-drawer-late"):
+			response = printer_request(
+				"GET", self.first_user, query={"mac": MAC, "type": "application/vnd.star.starprnt", "token": token}
+			)
+			data[token] = response.get_data()
+		self.assertIn(b"\x1b\x07", data["job-drawer-fresh"], "a receipt printed now opens the drawer")
+		self.assertNotIn(b"\x1b\x07", data["job-drawer-late"], "two minutes later it prints without opening it")
 
 	def test_a_printer_able_to_use_mqtt_is_told_the_site_speaks_http(self):
 		from cloudprnt.protocol import server_setting

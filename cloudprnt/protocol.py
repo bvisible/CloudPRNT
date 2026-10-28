@@ -117,9 +117,10 @@ def _fetch():
 	jobs.mark_fetched(job, media_type)
 	frappe.db.commit()
 	headers = {}
-	if media_type in render.PRINTER_RENDERED and job.open_drawer:
+	drawer = jobs.drawer_for(job)
+	if media_type in render.PRINTER_RENDERED and drawer:
 		# A printer that renders the job itself opens the drawer when the job asks it to in a header.
-		headers["X-Star-CashDrawer"] = job.open_drawer
+		headers["X-Star-CashDrawer"] = drawer
 	return Response(data, status=200, mimetype=media_type, headers=headers)
 
 

@@ -22,7 +22,11 @@ doc_events = {
 }
 
 scheduler_events = {
-	"all": ["cloudprnt.print_queue_manager.fail_unconfirmed_jobs", "cloudprnt.printers.mark_silent_printers_offline"],
+	"all": [
+		"cloudprnt.print_queue_manager.fail_unconfirmed_jobs",
+		"cloudprnt.print_queue_manager.expire_jobs",
+		"cloudprnt.printers.mark_silent_printers_offline",
+	],
 	"daily": ["cloudprnt.print_queue_manager.delete_old_jobs"],
 }
 

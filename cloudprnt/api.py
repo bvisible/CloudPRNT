@@ -43,7 +43,13 @@ def open_cash_drawer(printer=None):
 	"""Open the cash drawer wired to `printer` (the default printer when none), without printing."""
 	guards.require("Sales Invoice", "create")
 	row = find_printer(printer)
-	result = jobs.enqueue(row, "", open_drawer="start", token=f"drawer-{frappe.generate_hash(length=12)}")
+	result = jobs.enqueue(
+		row,
+		"",
+		open_drawer="start",
+		token=f"drawer-{frappe.generate_hash(length=12)}",
+		valid_seconds=jobs.DRAWER_VALID_SECONDS,
+	)
 	return {"success": True, "message": _("Cash drawer opening sent to {0}").format(row.label), **result}
 
 
@@ -73,6 +79,7 @@ def _queue_receipt(doc, row):
 		reference_doctype=doc.doctype,
 		reference_name=doc.name,
 		open_drawer=open_drawer,
+		valid_seconds=jobs.RECEIPT_VALID_MINUTES * 60,
 	)
 	return {
 		"success": True,
