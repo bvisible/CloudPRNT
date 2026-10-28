@@ -88,8 +88,8 @@
   {
    "fieldname": "preparation_station",
    "fieldtype": "Data",
-   "label": "Preparation Station",
-   "description": "The station whose kitchen tickets this printer prints (in the POS restaurant: Kitchen, Bar…)"
+   "label": "Preparation Stations",
+   "description": "The stations whose kitchen tickets this printer prints, separated by commas (in the POS restaurant: Kitchen, Bar…)"
   },
   {
    "fieldname": "column_break_status",

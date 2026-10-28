@@ -50,6 +50,12 @@ def open_cash_drawer(printer=None):
 		token=f"drawer-{frappe.generate_hash(length=12)}",
 		valid_seconds=jobs.DRAWER_VALID_SECONDS,
 	)
+	from cloudprnt import drawer
+
+	# Every opening is journaled, this one from the desk too.
+	drawer._record(
+		row.pos_profile, "Other", _("Opened from the CloudPRNT settings"), "", row, result["job_token"]
+	)
 	return {"success": True, "message": _("Cash drawer opening sent to {0}").format(row.label), **result}
 
 
@@ -81,6 +87,10 @@ def _queue_receipt(doc, row):
 		open_drawer=open_drawer,
 		valid_seconds=jobs.RECEIPT_VALID_MINUTES * 60,
 	)
+	if open_drawer:
+		from cloudprnt import drawer
+
+		drawer.record_sale_opening(doc, row, result["job_token"])
 	return {
 		"success": True,
 		"message": _("Receipt {0} sent to {1}").format(doc.name, row.label),

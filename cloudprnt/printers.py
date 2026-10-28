@@ -102,6 +102,11 @@ def printer_for_user(user):
 	return rows[0] if rows else None
 
 
+def stations_of(row):
+	"""The preparation stations a printer row prints for (one printer may serve the kitchen and the bar)."""
+	return [part.strip() for part in (row.get("preparation_station") or "").split(",") if part.strip()]
+
+
 def update_printer(name, values):
 	"""Write server-owned fields on a row without touching the settings' modified time."""
 	if values:

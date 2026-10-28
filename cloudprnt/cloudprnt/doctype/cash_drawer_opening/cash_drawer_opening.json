@@ -1,0 +1,174 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "hash",
+ "creation": "2026-10-28 15:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "description": "Every opening of a cash drawer wired to a CloudPRNT printer: with a sale, or alone with a reason. Kept, never deleted.",
+ "field_order": [
+  "opened_at",
+  "pos_profile",
+  "user",
+  "pos_opening_shift",
+  "column_break_reason",
+  "reason",
+  "note",
+  "reference_doctype",
+  "reference_name",
+  "section_result",
+  "result",
+  "result_detail",
+  "column_break_printer",
+  "printer",
+  "print_job"
+ ],
+ "fields": [
+  {
+   "fieldname": "opened_at",
+   "fieldtype": "Datetime",
+   "label": "Opened At",
+   "in_list_view": 1,
+   "read_only": 1,
+   "default": "Now"
+  },
+  {
+   "fieldname": "pos_profile",
+   "fieldtype": "Link",
+   "label": "POS Profile",
+   "options": "POS Profile",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "user",
+   "fieldtype": "Link",
+   "label": "User",
+   "options": "User",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "pos_opening_shift",
+   "fieldtype": "Data",
+   "label": "Till Session",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_reason",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "reason",
+   "fieldtype": "Select",
+   "label": "Reason",
+   "options": "Sale\nGive change\nCash float\nChange error\nOther",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "note",
+   "fieldtype": "Small Text",
+   "label": "Note",
+   "read_only": 1
+  },
+  {
+   "fieldname": "reference_doctype",
+   "fieldtype": "Link",
+   "label": "Reference Type",
+   "options": "DocType",
+   "read_only": 1
+  },
+  {
+   "fieldname": "reference_name",
+   "fieldtype": "Dynamic Link",
+   "label": "Sale",
+   "options": "reference_doctype",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_result",
+   "fieldtype": "Section Break",
+   "label": "Printer"
+  },
+  {
+   "fieldname": "result",
+   "fieldtype": "Select",
+   "label": "Result",
+   "options": "Sent\nOpened\nNot opened",
+   "default": "Sent",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "result_detail",
+   "fieldtype": "Data",
+   "label": "Result Detail",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_printer",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "printer",
+   "fieldtype": "Data",
+   "label": "Printer",
+   "read_only": 1
+  },
+  {
+   "fieldname": "print_job",
+   "fieldtype": "Data",
+   "label": "Print Job",
+   "read_only": 1,
+   "search_index": 1
+  }
+ ],
+ "in_create": 1,
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-10-28 15:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "CloudPRNT",
+ "name": "Cash Drawer Opening",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1
+  },
+  {
+   "role": "Admin",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1
+  },
+  {
+   "role": "Accounts Manager",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1
+  },
+  {
+   "role": "Sales Manager",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1
+  }
+ ],
+ "sort_field": "opened_at",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "reason",
+ "track_changes": 0
+}

@@ -35,3 +35,6 @@ after_migrate = ["cloudprnt.devices.ensure_role"]
 # A printer able to use MQTT asks for "cloudprnt-setting.json" beside its CloudPRNT URL when it starts: under
 # /api/method/ that is a method name, routed to the protocol's answer.
 override_whitelisted_methods = {"cloudprnt-setting.json": "cloudprnt.protocol.server_setting"}
+
+# POS Next calls these when a table order's lines go to the kitchen: each station's printer gets its ticket.
+pos_next_kitchen_send = ["cloudprnt.kitchen_ticket.on_kitchen_send"]

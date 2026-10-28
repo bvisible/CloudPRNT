@@ -49,6 +49,7 @@ _FIELDS = [
 	"reference_name",
 	"attempts",
 	"expires_at",
+	"drawer_sent",
 	"creation",
 ]
 
@@ -173,11 +174,19 @@ def expire_jobs():
 
 
 def _expire(condition, values):
+	where = f"status = 'Pending' and expires_at is not null and expires_at < %(now)s and {condition}"
+	values = {**values, "now": now_datetime()}
+	tokens = frappe.db.sql_list(f"select job_token from `tab{DOCTYPE}` where {where}", values)
+	if not tokens:
+		return
+	code = _("Not printed in time")
 	frappe.db.sql(
-		f"""update `tab{DOCTYPE}` set status = 'Expired', result_code = %(code)s
-		where status = 'Pending' and expires_at is not null and expires_at < %(now)s and {condition}""",
-		{**values, "code": _("Not printed in time"), "now": now_datetime()},
+		f"update `tab{DOCTYPE}` set status = 'Expired', result_code = %(code)s where {where} and job_token in %(tokens)s",
+		{**values, "code": code, "tokens": tuple(tokens)},
 	)
+	from cloudprnt import drawer
+
+	drawer.job_finished(tokens, drawer.NOT_OPENED, code)
 
 
 def drawer_for(job):
@@ -240,6 +249,8 @@ def mark_fetched(job, media_type):
 			"media_type": media_type,
 			"fetched_at": now_datetime(),
 			"attempts": (job.attempts or 0) + 1,
+			# whether the bytes just rendered carried the drawer pulse (drawer_for, the same instant)
+			"drawer_sent": 1 if drawer_for(job) else 0,
 		},
 		update_modified=False,
 	)
@@ -259,19 +270,36 @@ def mark_confirmed(job, code):
 		},
 		update_modified=False,
 	)
+	if job.open_drawer:
+		from cloudprnt import drawer
+
+		if printed and job.drawer_sent:
+			drawer.job_finished([job.job_token], drawer.OPENED, code)
+		elif printed:
+			drawer.job_finished([job.job_token], drawer.NOT_OPENED, _("Printed too late: the drawer stayed shut"))
+		else:
+			drawer.job_finished([job.job_token], drawer.NOT_OPENED, code)
 	return printed
 
 
 def fail_unconfirmed_jobs():
 	"""Scheduled: a job fetched long ago and never confirmed did not print as far as anyone knows."""
+	before = add_to_date(now_datetime(), minutes=-UNCONFIRMED_AFTER_MINUTES)
+	tokens = frappe.db.sql_list(
+		f"select job_token from `tab{DOCTYPE}` where status = 'Fetched' and fetched_at < %(before)s",
+		{"before": before},
+	)
+	if not tokens:
+		return
+	code = _("No confirmation from the printer")
 	frappe.db.sql(
 		f"""update `tab{DOCTYPE}` set status = 'Failed', result_code = %(code)s
-		where status = 'Fetched' and fetched_at < %(before)s""",
-		{
-			"code": "No confirmation from the printer",
-			"before": add_to_date(now_datetime(), minutes=-UNCONFIRMED_AFTER_MINUTES),
-		},
+		where status = 'Fetched' and job_token in %(tokens)s""",
+		{"code": code, "tokens": tuple(tokens)},
 	)
+	from cloudprnt import drawer
+
+	drawer.job_finished(tokens, drawer.NOT_OPENED, code)
 
 
 def delete_old_jobs():

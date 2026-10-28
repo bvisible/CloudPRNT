@@ -15,6 +15,7 @@
   "printer_mac",
   "open_drawer",
   "buzzer",
+  "drawer_sent",
   "section_delivery",
   "media_type",
   "attempts",
@@ -104,6 +105,12 @@
    "read_only": 1
   },
   {
+   "fieldname": "drawer_sent",
+   "fieldtype": "Check",
+   "label": "Drawer Pulse Sent",
+   "read_only": 1
+  },
+  {
    "fieldname": "section_delivery",
    "fieldtype": "Section Break",
    "label": "Delivery"
@@ -178,7 +185,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-10-28 13:00:00.000000",
+ "modified": "2026-10-28 15:00:00.000000",
  "modified_by": "Administrator",
  "module": "CloudPRNT",
  "name": "CloudPRNT Print Queue",

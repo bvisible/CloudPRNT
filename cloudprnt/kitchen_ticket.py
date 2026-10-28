@@ -16,7 +16,7 @@ from frappe.utils import flt, format_datetime, get_datetime
 
 from cloudprnt import guards
 from cloudprnt import print_queue_manager as jobs
-from cloudprnt.printers import all_printers, find_printer
+from cloudprnt.printers import all_printers, find_printer, stations_of
 
 LINE_CHARS = {58: 32, 80: 48, 112: 69}
 
@@ -45,6 +45,25 @@ def print_kitchen_ticket(invoice, station=None, batch=None, printer=None):
 	if not queued:
 		frappe.throw(_("Nothing to send to the kitchen for this order"))
 	return {"success": True, "message": _("Kitchen ticket sent"), "tickets": queued}
+
+
+def on_kitchen_send(invoice, batch):
+	"""Hook pos_next_kitchen_send: send `batch` of table order `invoice` just went to the kitchen. Each station
+	with a printer gets its ticket of that send; a station without one keeps its screen only."""
+	doc = frappe.get_doc("Sales Invoice", invoice)
+	stations = sorted(
+		{
+			line.get("preparation_station")
+			for line in doc.items
+			if line.get("preparation_station") and int(line.get("kds_batch") or 0) == int(batch or 0)
+		}
+	)
+	for station in stations:
+		row = _printer_for_station(station)
+		if not row:
+			continue
+		markup = get_kitchen_ticket_markup(doc, station, _lines(doc, station, batch), batch, paper_width=row.paper_width)
+		jobs.enqueue(row, markup, reference_doctype="Sales Invoice", reference_name=doc.name)
 
 
 def get_kitchen_ticket_markup(doc, station, lines, batch=None, paper_width=80, title=None):
@@ -116,7 +135,7 @@ def _lines(doc, station, batch):
 
 def _printer_for_station(station):
 	for row in all_printers():
-		if station and (row.get("preparation_station") or "") == station:
+		if station and station in stations_of(row):
 			return row
 	return None
 
