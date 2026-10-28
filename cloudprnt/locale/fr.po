@@ -640,3 +640,387 @@ msgstr "sur"
 #, python-brace-format
 msgid "Échec de conversion PNG: {0}"
 msgstr "Échec de conversion PNG: {0}"
+
+#. Description of the 'Cash Drawer Connected' (Check) field in DocType
+#. 'CloudPRNT Printers'
+#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json:196
+msgid "A cash drawer is wired to the printer's drawer port"
+msgstr "Un tiroir-caisse est branché sur le port tiroir de l'imprimante"
+
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:13
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:67
+msgid "Add a printer"
+msgstr "Ajouter une imprimante"
+
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:28
+msgid "Add a printer first."
+msgstr "Ajoutez d'abord une imprimante."
+
+#. Option for the 'Open the Cash Drawer' (Select) field in DocType 'CloudPRNT
+#. Printers'
+#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json:83
+msgid "Always"
+msgstr "Toujours"
+
+#. Label of a Int field in DocType 'CloudPRNT Print Queue'
+#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:102
+msgid "Buzzer Rings"
+msgstr "Nombre de bips du buzzer"
+
+#. Label of a Check field in DocType 'CloudPRNT Printers'
+#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json:194
+msgid "Cash Drawer Connected"
+msgstr "Tiroir-caisse branché"
+
+#. Label of a Check field in DocType 'CloudPRNT Printers'
+#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json:201
+msgid "Cash Drawer Open"
+msgstr "Tiroir-caisse ouvert"
+
+#: cloudprnt/api.py:47
+#, python-brace-format
+msgid "Cash drawer opening sent to {0}"
+msgstr "Ouverture du tiroir-caisse envoyée à {0}"
+
+#. Option for the 'Open the Cash Drawer' (Select) field in DocType 'CloudPRNT
+#. Printers'
+#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json:83
+msgid "Cash payments"
+msgstr "Paiements en espèces"
+
+#: cloudprnt/devices.py:37 cloudprnt/printers.py:85
+#, python-brace-format
+msgid "CloudPRNT printer {0} not found"
+msgstr "Imprimante CloudPRNT {0} introuvable"
+
+#. Label of a Data field in DocType 'CloudPRNT Printers'
+#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json:136
+msgid "CloudPRNT Version"
+msgstr "Version CloudPRNT"
+
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:95
+msgid "Configure the printer"
+msgstr "Configurer l'imprimante"
+
+#: cloudprnt/protocol.py:299 cloudprnt/tests/test_protocol.py:193
+msgid "Cover open"
+msgstr "Capot ouvert"
+
+#. Label of a Select field in DocType 'CloudPRNT Settings'
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.json:44
+msgid "Default Paper Width"
+msgstr "Largeur de papier par défaut"
+
+#. Label of a Link field in DocType 'CloudPRNT Settings'
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.json:33
+msgid "Default Printer"
+msgstr "Imprimante par défaut"
+
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:15
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:137
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:155
+msgid "Detected printers"
+msgstr "Imprimantes détectées"
+
+#. Option for the 'Open the Cash Drawer' (Select) field in DocType 'CloudPRNT
+#. Print Queue'
+#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:97
+msgid "end"
+msgstr "fin"
+
+#. Label of a Datetime field in DocType 'CloudPRNT Print Queue'
+#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:135
+msgid "Fetched At"
+msgstr "Reçue le"
+
+#. Label of a Int field in DocType 'CloudPRNT Print Queue'
+#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:119
+msgid "Fetches"
+msgstr "Récupérations"
+
+#. Description of the 'MAC Address' (Data) field in DocType 'CloudPRNT
+#. Printers'
+#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json:61
+msgid "Filled in by the printer the first time it signs in"
+msgstr "Renseignée par l'imprimante lors de sa première connexion"
+
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:55
+msgid "For example: Till 1"
+msgstr "Par exemple : Caisse 1"
+
+#. Label of a Data field in DocType 'CloudPRNT Print Queue'
+#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:113
+msgid "Format Fetched"
+msgstr "Format récupéré"
+
+#. Label of a Small Text field in DocType 'CloudPRNT Printers'
+#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json:154
+msgid "Formats It Prints"
+msgstr "Formats imprimés"
+
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:100
+msgid "From a computer on the same network as the printer, run this command. It finds the printer, asks for its administrator password and configures it:"
+msgstr "Depuis un ordinateur du même réseau que l'imprimante, exécutez cette commande. Elle trouve l'imprimante, demande son mot de passe administrateur et la configure :"
+
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.py:75
+msgid "Give the printer a label"
+msgstr "Donnez un nom à l'imprimante"
+
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:172
+msgid "Image link"
+msgstr "Lien de l'image"
+
+#: cloudprnt/printer_discovery.py:76
+#, python-brace-format
+msgid "Invalid MAC address: {0}"
+msgstr "Adresse MAC invalide : {0}"
+
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:73
+msgid "Issue new credentials"
+msgstr "Générer de nouveaux identifiants"
+
+#. Label of a Select field in DocType 'CloudPRNT Print Queue'
+#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:153
+msgid "Job Format"
+msgstr "Format de la tâche"
+
+#: cloudprnt/printers.py:76
+msgid "No CloudPRNT printer given and no default printer configured"
+msgstr "Aucune imprimante CloudPRNT indiquée et aucune imprimante par défaut configurée"
+
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:149
+msgid "No credentials"
+msgstr "Aucun identifiant"
+
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:139
+msgid "No printer reached this site without credentials in the last day."
+msgstr "Aucune imprimante n'a atteint ce site sans identifiants au cours des dernières 24 heures."
+
+#. Label of a Select field in DocType 'CloudPRNT Print Queue'
+#. Label of a Select field in DocType 'CloudPRNT Printers'
+#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:95
+#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json:82
+msgid "Open the Cash Drawer"
+msgstr "Ouvrir le tiroir-caisse"
+
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:17
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:186
+msgid "Open the cash drawer"
+msgstr "Ouvrir le tiroir-caisse"
+
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:172
+msgid "Optional: the URL of an image to print"
+msgstr "Facultatif : l'adresse (URL) d'une image à imprimer"
+
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:107
+msgid "Or open the printer's web page (its IP address in a browser), sign in, open CloudPRNT and enter these three values, then Save and restart the printer:"
+msgstr "Ou ouvrez la page web de l'imprimante (son adresse IP dans un navigateur), connectez-vous, ouvrez CloudPRNT et saisissez ces trois valeurs, puis enregistrez et redémarrez l'imprimante :"
+
+#: cloudprnt/protocol.py:301 cloudprnt/tests/test_protocol.py:196
+msgid "Paper empty"
+msgstr "Plus de papier"
+
+#: cloudprnt/protocol.py:307
+msgid "Paper low"
+msgstr "Papier bientôt épuisé"
+
+#. Label of a Int field in DocType 'CloudPRNT Printers'
+#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json:142
+msgid "Paper Width (mm)"
+msgstr "Largeur du papier (mm)"
+
+#. Label of a Int field in DocType 'CloudPRNT Printers'
+#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json:170
+msgid "Poll Interval (s)"
+msgstr "Intervalle d'interrogation (s)"
+
+#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.js:7
+msgid "Print again"
+msgstr "Imprimer à nouveau"
+
+#. Label of a Check field in DocType 'CloudPRNT Printers'
+#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json:75
+msgid "Print Receipts Automatically"
+msgstr "Imprimer les tickets automatiquement"
+
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.py:109
+msgid "Print test"
+msgstr "Test d'impression"
+
+#. Description of the 'Print Receipts Automatically' (Check) field in DocType
+#. 'CloudPRNT Printers'
+#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json:77
+msgid "Print the receipt of every sale of this till when it is submitted"
+msgstr "Imprimer le ticket de chaque vente de cette caisse dès sa validation"
+
+#. Label of a Int field in DocType 'CloudPRNT Printers'
+#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json:148
+msgid "Printable Width (dots)"
+msgstr "Largeur imprimable (points)"
+
+#. Label of a Datetime field in DocType 'CloudPRNT Print Queue'
+#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:141
+msgid "Printed At"
+msgstr "Imprimée le"
+
+#. Label of a Link field in DocType 'CloudPRNT Printers'
+#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json:116
+msgid "Printer Account"
+msgstr "Compte de l'imprimante"
+
+#. Option for the 'Job Format' (Select) field in DocType 'CloudPRNT Print
+#. Queue'
+#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:155
+msgid "Printer Commands"
+msgstr "Commandes d'impression"
+
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:14
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:73
+msgid "Printer credentials"
+msgstr "Identifiants de l'imprimante"
+
+#: cloudprnt/protocol.py:303
+msgid "Printer error"
+msgstr "Erreur de l'imprimante"
+
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:55
+msgid "Printer label"
+msgstr "Nom de l'imprimante"
+
+#. Label of a Data field in DocType 'CloudPRNT Print Queue'
+#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:125
+msgid "Printer Result"
+msgstr "Résultat de l'imprimante"
+
+#. Label of a Data field in DocType 'CloudPRNT Print Queue'
+#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:80
+msgid "Printer Row"
+msgstr "Ligne de l'imprimante"
+
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:9
+msgid "Printers are configured with their own credentials: use Add a printer, then follow the steps it shows."
+msgstr "Chaque imprimante est configurée avec ses propres identifiants : utilisez Ajouter une imprimante, puis suivez les étapes affichées."
+
+#. Label of a Section Break field in DocType 'CloudPRNT Settings'
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.json:52
+msgid "Receipt Logos"
+msgstr "Logos des tickets"
+
+#: cloudprnt/api.py:79
+#, python-brace-format
+msgid "Receipt {0} sent to {1}"
+msgstr "Ticket {0} envoyé à {1}"
+
+#: cloudprnt/api.py:23
+#, python-brace-format
+msgid "Receipts are printed for {0} only"
+msgstr "Les tickets ne sont imprimés que pour {0}"
+
+#. Label of a Section Break field in DocType 'CloudPRNT Printers'
+#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json:124
+msgid "Reported by the Printer"
+msgstr "Signalé par l'imprimante"
+
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.py:51
+#, python-brace-format
+msgid "Row {0}: {1} is not a MAC address"
+msgstr "Ligne {0} : {1} n'est pas une adresse MAC"
+
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.py:59
+#, python-brace-format
+msgid "Rows {0} and {1} both print the receipts of {2}"
+msgstr "Les lignes {0} et {1} impriment toutes deux les tickets de {2}"
+
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.py:53
+#, python-brace-format
+msgid "Rows {0} and {1} have the same MAC address"
+msgstr "Les lignes {0} et {1} ont la même adresse MAC"
+
+#. Option for the 'Open the Cash Drawer' (Select) field in DocType 'CloudPRNT
+#. Print Queue'
+#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:97
+msgid "start"
+msgstr "début"
+
+#. Label of a Section Break field in DocType 'CloudPRNT Printers'
+#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json:188
+msgid "Status Detail"
+msgstr "Détail de l'état"
+
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:16
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:170
+msgid "Test print"
+msgstr "Test d'impression"
+
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.py:125
+#, python-brace-format
+msgid "Test print sent to {0}"
+msgstr "Test d'impression envoyé à {0}"
+
+#. Description of the 'Printer Account' (Link) field in DocType 'CloudPRNT
+#. Printers'
+#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json:119
+msgid "The account the printer signs in with (Add a printer or Printer credentials)"
+msgstr "Le compte avec lequel l'imprimante se connecte (Ajouter une imprimante ou Identifiants de l'imprimante)"
+
+#: cloudprnt/print_queue_manager.py:263
+msgid "The job was queued again"
+msgstr "La tâche a été remise en file d'attente"
+
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:116
+msgid "The password is shown only now. Once the printer signs in, it prints a ticket saying it is connected, and its model and paper width appear here by themselves."
+msgstr "Le mot de passe n'est affiché qu'une seule fois. Dès que l'imprimante se connecte, elle imprime un ticket confirmant la connexion, et son modèle ainsi que sa largeur de papier apparaissent ici automatiquement."
+
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:76
+msgid "The printer stops printing until it is configured with the new credentials."
+msgstr "L'imprimante cesse d'imprimer tant qu'elle n'est pas configurée avec les nouveaux identifiants."
+
+#. Description of the 'POS Profile' (Link) field in DocType 'CloudPRNT
+#. Printers'
+#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json:70
+msgid "The till whose receipts this printer prints"
+msgstr "La caisse dont cette imprimante imprime les tickets"
+
+#: cloudprnt/public/js/receipt.js:8
+msgid "Thermal receipt"
+msgstr "Ticket thermique"
+
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:157
+msgid "These printers poll this site without valid credentials. Add a printer, or issue its credentials again, then configure it with them."
+msgstr "Ces imprimantes interrogent ce site sans identifiants valables. Ajoutez une imprimante ou générez à nouveau ses identifiants, puis configurez-la avec ceux-ci."
+
+#: cloudprnt/printer_discovery.py:79
+msgid "This printer is already configured"
+msgstr "Cette imprimante est déjà configurée"
+
+#: cloudprnt/protocol.py:321
+#, python-brace-format
+msgid "This printer is connected to {0}"
+msgstr "Cette imprimante est connectée à {0}"
+
+#. Description of the 'Default Paper Width' (Select) field in DocType
+#. 'CloudPRNT Settings'
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.json:47
+msgid "Used until a printer reports its own"
+msgstr "Utilisée tant qu'une imprimante ne transmet pas la sienne"
+
+#. Description of the 'Default Printer' (Link) field in DocType 'CloudPRNT
+#. Settings'
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.json:35
+msgid "Used when a print names no printer and its till has none"
+msgstr "Utilisée lorsqu'une impression ne désigne aucune imprimante et que sa caisse n'en a pas"
+
+#. Description of the 'Open the Cash Drawer' (Select) field in DocType
+#. 'CloudPRNT Printers'
+#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json:85
+msgid "When a receipt prints"
+msgstr "Au moment de l'impression d'un ticket"
+
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:149
+msgid "Wrong credentials"
+msgstr "Identifiants incorrects"
+
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.py:21
+#, python-brace-format
+msgid "{0} must start with http:// or https://"
+msgstr "{0} doit commencer par http:// ou https://"
