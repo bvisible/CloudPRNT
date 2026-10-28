@@ -23,7 +23,10 @@ class CloudPRNTSettings(Document):
 		self._check_printers()
 
 	def on_update(self):
-		devices.disable_accounts_of_removed_printers(self._rows_before_save, {row.name for row in self.printers})
+		# Not set when the settings are saved without validation (the first save, at app install).
+		previous = getattr(self, "_rows_before_save", None)
+		if previous:
+			devices.disable_accounts_of_removed_printers(previous, {row.name for row in self.printers})
 
 	def _keep_what_printers_reported(self):
 		"""The form carries the fields printers write (status, identity, capabilities) as it loaded them:
