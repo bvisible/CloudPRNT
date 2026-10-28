@@ -28,11 +28,11 @@ from cloudprnt.protocol import server_setting
 
 MAC = "00:11:62:AA:00:41"
 REGISTERED = {
-	"account": "srv-0000-001162aa0041",
+	"account": "instance-a-001162aa0041",
 	"password": "a-test-broker-password",
 	"host": "broker.example.org",
 	"port": 8883,
-	"topic": "star/cloudprnt/to-device/srv-0000-001162aa0041",
+	"topic": "star/cloudprnt/to-device/instance-a-001162aa0041",
 	"poll_seconds": 30,
 	"reload_minutes": 60,
 }
@@ -163,7 +163,7 @@ class TestInstantPrinting(FrappeTestCase):
 
 	def test_the_platform_is_never_called_in_clear(self):
 		with patch("requests.post") as post, patch.dict(
-			frappe.conf, {broker.CREDENTIAL_CONF: "SRV-0000:abc", "cloudprnt_hub_url": "http://hub.example.org"}
+			frappe.conf, {broker.CREDENTIAL_CONF: "INSTANCE-A:abc", "cloudprnt_hub_url": "http://hub.example.org"}
 		):
 			with self.assertRaises(ValueError):
 				broker._hub("trigger", MAC)
@@ -173,13 +173,13 @@ class TestInstantPrinting(FrappeTestCase):
 		response = MagicMock()
 		response.json.return_value = {"message": {"signalled": True}}
 		with patch("requests.post", return_value=response) as post, patch.dict(
-			frappe.conf, {broker.CREDENTIAL_CONF: "SRV-0000:abc", "cloudprnt_hub_url": "https://hub.example.org/"}
+			frappe.conf, {broker.CREDENTIAL_CONF: "INSTANCE-A:abc", "cloudprnt_hub_url": "https://hub.example.org/"}
 		):
 			broker.trigger_now(MAC)
 		url = post.call_args.args[0]
 		self.assertEqual(url, "https://hub.example.org/api/method/neoffice_devops.api.cloudprnt_broker.trigger")
 		self.assertEqual(post.call_args.kwargs["data"], {"mac": MAC})
-		self.assertEqual(post.call_args.kwargs["headers"], {"X-Instance-Credential": "SRV-0000:abc"})
+		self.assertEqual(post.call_args.kwargs["headers"], {"X-Instance-Credential": "INSTANCE-A:abc"})
 
 	def test_a_signal_that_fails_is_logged_and_never_raised(self):
 		with patch.object(broker, "_hub", side_effect=ConnectionError("down")), patch.object(broker.frappe, "log_error") as log:
