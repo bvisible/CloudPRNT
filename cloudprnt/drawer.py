@@ -76,6 +76,27 @@ def shift_summary(pos_opening_shift):
 	}
 
 
+def sale_opened(doc):
+	"""Whether the drawer was already opened for sale `doc`."""
+	return bool(frappe.db.exists(DOCTYPE, {"reference_doctype": doc.doctype, "reference_name": doc.name, "reason": SALE}))
+
+
+def open_for_sale(doc, row):
+	"""Open the drawer for sale `doc` on its till's printer `row`, without a receipt (the till prints none by
+	itself). A sale opens it once."""
+	if sale_opened(doc):
+		return None
+	result = jobs.enqueue(
+		row,
+		"",
+		open_drawer="start",
+		token=f"drawer-{frappe.generate_hash(length=12)}",
+		valid_seconds=jobs.DRAWER_VALID_SECONDS,
+	)
+	record_sale_opening(doc, row, result["job_token"])
+	return result
+
+
 def record_sale_opening(doc, row, job_token):
 	"""Journal the drawer opening a cash sale's receipt asks for."""
 	_record(

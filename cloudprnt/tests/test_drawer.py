@@ -8,7 +8,7 @@ import frappe
 from frappe.tests.utils import FrappeTestCase
 from frappe.utils import add_to_date, now_datetime
 
-from cloudprnt import drawer, kitchen_ticket, render, till
+from cloudprnt import api, drawer, kitchen_ticket, render, till
 from cloudprnt import print_queue_manager as jobs
 from cloudprnt.cloudprnt.doctype.cloudprnt_settings.cloudprnt_settings import pair_printer
 from cloudprnt.printers import get_printer, update_printer
@@ -102,6 +102,42 @@ class TestCashDrawer(FrappeTestCase):
 		drawer._record(PROFILE, drawer.SALE, "", "SHIFT-2", row, sale["job_token"])
 		summary = drawer.shift_summary("SHIFT-2")
 		self.assertEqual(summary, {"total": 3, "without_sale": 2, "not_opened": 0})
+
+	def test_a_sale_opens_the_drawer_once_and_its_reprint_leaves_it_shut(self):
+		sale = _cash_sale("ACC-SINV-TEST-0101")
+		update_printer(self.printer["printer"], {"auto_print": 0, "open_drawer": "Cash payments"})
+		with patch.object(api, "is_cash_sale", return_value=True), patch.object(api, "get_receipt_markup", return_value="Receipt"):
+			api.print_on_submit(sale)
+			opening = frappe.get_all(drawer.DOCTYPE, filters={"reference_name": sale.name}, fields=["reason", "print_job"])
+			self.assertEqual([row.reason for row in opening], ["Sale"], "no receipt by itself: the drawer still opens")
+			self.assertEqual(frappe.db.get_value(jobs.DOCTYPE, {"job_token": opening[0].print_job}, "open_drawer"), "start")
+			api._queue_receipt(sale, get_printer(self.printer["printer"]))
+		receipt = frappe.db.get_value(jobs.DOCTYPE, {"reference_name": sale.name}, "open_drawer")
+		self.assertFalse(receipt, "a receipt printed after the sale leaves the drawer shut")
+		self.assertEqual(frappe.db.count(drawer.DOCTYPE, {"reference_name": sale.name}), 1)
+
+	def test_a_sale_synced_from_an_offline_till_neither_prints_nor_opens(self):
+		sale = _cash_sale("ACC-SINV-TEST-0102")
+		sale.flags.pos_next_offline_sync = True
+		update_printer(self.printer["printer"], {"auto_print": 1, "open_drawer": "Always"})
+		try:
+			api.print_on_submit(sale)
+		finally:
+			update_printer(self.printer["printer"], {"auto_print": 0, "open_drawer": "Cash payments"})
+		self.assertFalse(frappe.db.exists(jobs.DOCTYPE, {"printer": self.printer["printer"]}))
+		self.assertFalse(frappe.db.exists(drawer.DOCTYPE, {"reference_name": sale.name}))
+
+
+def _cash_sale(name):
+	"""A POS sale of the test till, as the on_submit hook reads it."""
+	return frappe._dict(
+		doctype="Sales Invoice",
+		name=name,
+		is_pos=1,
+		pos_profile=PROFILE,
+		posa_pos_opening_shift="SHIFT-3",
+		flags=frappe._dict(),
+	)
 
 
 class TestTillPrinting(FrappeTestCase):
