@@ -1062,3 +1062,114 @@ msgstr "Le poste de préparation dont cette imprimante imprime les tickets de cu
 #: cloudprnt/kitchen_ticket.py:64
 msgid "Waiter"
 msgstr "Serveur"
+
+#. Description of the 'Open the Cash Drawer' (Select) field in DocType
+#. 'CloudPRNT Printers'
+#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json:86
+msgid "At a sale of this till, once, with or without a receipt"
+msgstr "Lors d'une vente sur cette caisse, une fois, avec ou sans ticket"
+
+#. Name of a DocType
+#: cloudprnt/cloudprnt/doctype/cash_drawer_opening/cash_drawer_opening.json:137
+msgid "Cash Drawer Opening"
+msgstr "Ouverture du tiroir-caisse"
+
+#. Option for the 'Reason' (Select) field in DocType 'Cash Drawer Opening'
+#: cloudprnt/cloudprnt/doctype/cash_drawer_opening/cash_drawer_opening.json:67
+msgid "Cash float"
+msgstr "Fond de caisse"
+
+#. Option for the 'Reason' (Select) field in DocType 'Cash Drawer Opening'
+#: cloudprnt/cloudprnt/doctype/cash_drawer_opening/cash_drawer_opening.json:67
+msgid "Change error"
+msgstr "Erreur de rendu de monnaie"
+
+#: cloudprnt/drawer.py:32
+msgid "Choose why the drawer is opened"
+msgstr "Choisissez la raison de l'ouverture du tiroir-caisse"
+
+#. Label of a Check field in DocType 'CloudPRNT Print Queue'
+#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:118
+msgid "Drawer Pulse Sent"
+msgstr "Impulsion d'ouverture envoyée"
+
+#. Description of a DocType
+#: cloudprnt/cloudprnt/doctype/cash_drawer_opening/cash_drawer_opening.json:8
+msgid "Every opening of a cash drawer wired to a CloudPRNT printer: with a sale, or alone with a reason. Kept, never deleted."
+msgstr "Chaque ouverture d'un tiroir-caisse relié à une imprimante CloudPRNT : avec une vente, ou seule avec une raison. Conservée, jamais supprimée."
+
+#. Option for the 'Reason' (Select) field in DocType 'Cash Drawer Opening'
+#: cloudprnt/cloudprnt/doctype/cash_drawer_opening/cash_drawer_opening.json:67
+msgid "Give change"
+msgstr "Rendre la monnaie"
+
+#. Label of a Small Text field in DocType 'CloudPRNT Print Queue'
+#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:79
+msgid "Kitchen Lines"
+msgstr "Lignes de cuisine"
+
+#: cloudprnt/drawer.py:39
+msgid "No CloudPRNT printer is set for this till"
+msgstr "Aucune imprimante CloudPRNT n'est définie pour cette caisse"
+
+#: cloudprnt/print_queue_manager.py:299
+msgid "No confirmation from the printer"
+msgstr "Pas de confirmation de l'imprimante"
+
+#. Option for the 'Result' (Select) field in DocType 'Cash Drawer Opening'
+#: cloudprnt/cloudprnt/doctype/cash_drawer_opening/cash_drawer_opening.json:101
+msgid "Not opened"
+msgstr "Non ouvert"
+
+#: cloudprnt/drawer.py:143
+msgid "Open a till session first"
+msgstr "Ouvrez d'abord une session de caisse"
+
+#. Label of a Datetime field in DocType 'Cash Drawer Opening'
+#: cloudprnt/cloudprnt/doctype/cash_drawer_opening/cash_drawer_opening.json:30
+msgid "Opened At"
+msgstr "Ouvert à"
+
+#: cloudprnt/api.py:55
+msgid "Opened from the CloudPRNT settings"
+msgstr "Ouvert depuis les réglages CloudPRNT"
+
+#. Label of a Data field in DocType 'CloudPRNT Printers'
+#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json:91
+msgid "Preparation Stations"
+msgstr "Stations de préparation"
+
+#. Label of a Data field in DocType 'Cash Drawer Opening'
+#: cloudprnt/cloudprnt/doctype/cash_drawer_opening/cash_drawer_opening.json:126
+msgid "Print Job"
+msgstr "Tâche d'impression"
+
+#: cloudprnt/print_queue_manager.py:284
+msgid "Printed too late: the drawer stayed shut"
+msgstr "Imprimé trop tard : le tiroir est resté fermé"
+
+#. Label of a Data field in DocType 'Cash Drawer Opening'
+#: cloudprnt/cloudprnt/doctype/cash_drawer_opening/cash_drawer_opening.json:110
+msgid "Result Detail"
+msgstr "Détail du résultat"
+
+#: cloudprnt/drawer.py:35
+msgid "Say why the drawer is opened"
+msgstr "Indiquez la raison de l'ouverture du tiroir-caisse"
+
+#. Description of the 'Preparation Stations' (Data) field in DocType 'CloudPRNT
+#. Printers'
+#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json
+msgid "The stations whose kitchen tickets this printer prints, separated by commas (in the POS restaurant: Kitchen, Bar…)"
+msgstr "Les stations dont cette imprimante imprime les tickets de cuisine, séparées par des virgules (dans le restaurant du POS : Cuisine, Bar…)"
+
+#. Label of a Data field in DocType 'Cash Drawer Opening'
+#: cloudprnt/cloudprnt/doctype/cash_drawer_opening/cash_drawer_opening.json:56
+msgid "Till Session"
+msgstr "Session de caisse"
+
+#. Description of the 'Kitchen Lines' (Small Text) field in DocType 'CloudPRNT
+#. Print Queue'
+#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:81
+msgid "What this kitchen ticket printed, as quantity per dish: a dish at the kitchen is printed once"
+msgstr "Quantité par plat imprimée sur ce ticket de cuisine : un plat en cuisine n'est imprimé qu'une fois"

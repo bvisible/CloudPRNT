@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: CloudPRNT VERSION\n"
 "Report-Msgid-Bugs-To: hello@neoservice.ai\n"
-"POT-Creation-Date: 2026-10-28 13:29+0000\n"
-"PO-Revision-Date: 2026-10-28 13:29+0000\n"
+"POT-Creation-Date: 2026-10-28 15:29+0000\n"
+"PO-Revision-Date: 2026-10-28 15:29+0000\n"
 "Last-Translator: hello@neoservice.ai\n"
 "Language-Team: hello@neoservice.ai\n"
 "MIME-Version: 1.0\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.18.0\n"
 
-#: cloudprnt/kitchen_ticket.py:41
+#: cloudprnt/kitchen_ticket.py:49
 msgid "(none)"
 msgstr ""
 
@@ -44,6 +44,11 @@ msgstr ""
 msgid "A cash drawer is wired to the printer's drawer port"
 msgstr ""
 
+#. Name of a role
+#: cloudprnt/cloudprnt/doctype/cash_drawer_opening/cash_drawer_opening.json:155
+msgid "Accounts Manager"
+msgstr ""
+
 #: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:13
 #: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:67
 msgid "Add a printer"
@@ -53,13 +58,24 @@ msgstr ""
 msgid "Add a printer first."
 msgstr ""
 
+#. Name of a role
+#: cloudprnt/cloudprnt/doctype/cash_drawer_opening/cash_drawer_opening.json:148
+msgid "Admin"
+msgstr ""
+
 #. Option for the 'Open the Cash Drawer' (Select) field in DocType 'CloudPRNT
 #. Printers'
 #: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json:84
 msgid "Always"
 msgstr ""
 
-#: cloudprnt/receipt_markup.py:59
+#. Description of the 'Open the Cash Drawer' (Select) field in DocType
+#. 'CloudPRNT Printers'
+#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json:86
+msgid "At a sale of this till, once, with or without a receipt"
+msgstr ""
+
+#: cloudprnt/receipt_markup.py:63
 msgid "Batch No"
 msgstr ""
 
@@ -73,7 +89,7 @@ msgid "Bold"
 msgstr ""
 
 #. Label of a Int field in DocType 'CloudPRNT Print Queue'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:103
+#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:112
 msgid "Buzzer Rings"
 msgstr ""
 
@@ -87,9 +103,19 @@ msgstr ""
 msgid "Cash Drawer Open"
 msgstr ""
 
-#: cloudprnt/api.py:53
+#. Name of a DocType
+#: cloudprnt/cloudprnt/doctype/cash_drawer_opening/cash_drawer_opening.json:137
+msgid "Cash Drawer Opening"
+msgstr ""
+
+#: cloudprnt/api.py:57
 #, python-brace-format
 msgid "Cash drawer opening sent to {0}"
+msgstr ""
+
+#. Option for the 'Reason' (Select) field in DocType 'Cash Drawer Opening'
+#: cloudprnt/cloudprnt/doctype/cash_drawer_opening/cash_drawer_opening.json:67
+msgid "Cash float"
 msgstr ""
 
 #. Option for the 'Open the Cash Drawer' (Select) field in DocType 'CloudPRNT
@@ -98,12 +124,21 @@ msgstr ""
 msgid "Cash payments"
 msgstr ""
 
-#: cloudprnt/receipt_markup.py:46
+#: cloudprnt/receipt_markup.py:50
 msgid "Cashier"
 msgstr ""
 
-#: cloudprnt/receipt_markup.py:87
+#: cloudprnt/receipt_markup.py:91
 msgid "Change Amount"
+msgstr ""
+
+#. Option for the 'Reason' (Select) field in DocType 'Cash Drawer Opening'
+#: cloudprnt/cloudprnt/doctype/cash_drawer_opening/cash_drawer_opening.json:67
+msgid "Change error"
+msgstr ""
+
+#: cloudprnt/drawer.py:32
+msgid "Choose why the drawer is opened"
 msgstr ""
 
 #. Name of a DocType
@@ -112,7 +147,7 @@ msgid "CloudPRNT Logs"
 msgstr ""
 
 #. Name of a DocType
-#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:184
+#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:199
 msgid "CloudPRNT Print Queue"
 msgstr ""
 
@@ -167,11 +202,11 @@ msgstr ""
 msgid "Create"
 msgstr ""
 
-#: cloudprnt/receipt_markup.py:47
+#: cloudprnt/receipt_markup.py:51
 msgid "Currency"
 msgstr ""
 
-#: cloudprnt/receipt_markup.py:43
+#: cloudprnt/receipt_markup.py:47
 msgid "Customer"
 msgstr ""
 
@@ -183,7 +218,7 @@ msgstr ""
 #. Label of a Datetime field in DocType 'CloudPRNT Logs'
 #: cloudprnt/cloudprnt/doctype/cloudprnt_logs/cloudprnt_logs.json:16
 #: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.py:118
-#: cloudprnt/receipt_markup.py:41
+#: cloudprnt/receipt_markup.py:45
 msgid "Date"
 msgstr ""
 
@@ -203,7 +238,7 @@ msgid "Defaults"
 msgstr ""
 
 #. Label of a Section Break field in DocType 'CloudPRNT Print Queue'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:109
+#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:124
 msgid "Delivery"
 msgstr ""
 
@@ -219,7 +254,7 @@ msgstr ""
 msgid "Detected printers"
 msgstr ""
 
-#: cloudprnt/receipt_markup.py:67
+#: cloudprnt/receipt_markup.py:71
 msgid "Discount"
 msgstr ""
 
@@ -237,33 +272,43 @@ msgstr ""
 msgid "Done"
 msgstr ""
 
+#. Label of a Check field in DocType 'CloudPRNT Print Queue'
+#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:118
+msgid "Drawer Pulse Sent"
+msgstr ""
+
+#. Description of a DocType
+#: cloudprnt/cloudprnt/doctype/cash_drawer_opening/cash_drawer_opening.json:8
+msgid "Every opening of a cash drawer wired to a CloudPRNT printer: with a sale, or alone with a reason. Kept, never deleted."
+msgstr ""
+
 #. Option for the 'Status' (Select) field in DocType 'CloudPRNT Print Queue'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:44
+#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:46
 msgid "Expired"
 msgstr ""
 
 #. Label of a Datetime field in DocType 'CloudPRNT Print Queue'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:148
+#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:163
 msgid "Expires At"
 msgstr ""
 
 #. Option for the 'Status' (Select) field in DocType 'CloudPRNT Print Queue'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:44
+#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:46
 msgid "Failed"
 msgstr ""
 
 #. Option for the 'Status' (Select) field in DocType 'CloudPRNT Print Queue'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:44
+#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:46
 msgid "Fetched"
 msgstr ""
 
 #. Label of a Datetime field in DocType 'CloudPRNT Print Queue'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:136
+#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:151
 msgid "Fetched At"
 msgstr ""
 
 #. Label of a Int field in DocType 'CloudPRNT Print Queue'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:120
+#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:135
 msgid "Fetches"
 msgstr ""
 
@@ -283,7 +328,7 @@ msgid "For example: Till 1"
 msgstr ""
 
 #. Label of a Data field in DocType 'CloudPRNT Print Queue'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:114
+#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:129
 msgid "Format Fetched"
 msgstr ""
 
@@ -296,15 +341,20 @@ msgstr ""
 msgid "From a computer on the same network as the printer, run this command. It finds the printer, asks for its administrator password and configures it:"
 msgstr ""
 
-#: cloudprnt/receipt_markup.py:63
+#: cloudprnt/receipt_markup.py:67
 msgid "Gift card with a value of"
+msgstr ""
+
+#. Option for the 'Reason' (Select) field in DocType 'Cash Drawer Opening'
+#: cloudprnt/cloudprnt/doctype/cash_drawer_opening/cash_drawer_opening.json:67
+msgid "Give change"
 msgstr ""
 
 #: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.py:75
 msgid "Give the printer a label"
 msgstr ""
 
-#: cloudprnt/receipt_markup.py:74
+#: cloudprnt/receipt_markup.py:78
 msgid "Grand Total"
 msgstr ""
 
@@ -329,8 +379,8 @@ msgid "Invalid MAC address: {0}"
 msgstr ""
 
 #. Label of a Data field in DocType 'CloudPRNT Print Queue'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:70
-#: cloudprnt/receipt_markup.py:39
+#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:72
+#: cloudprnt/receipt_markup.py:43
 msgid "Invoice"
 msgstr ""
 
@@ -339,26 +389,31 @@ msgid "Issue new credentials"
 msgstr ""
 
 #. Label of a Section Break field in DocType 'CloudPRNT Print Queue'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:155
+#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:170
 msgid "Job"
 msgstr ""
 
 #. Label of a Long Text field in DocType 'CloudPRNT Print Queue'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:169
+#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:184
 msgid "Job Data"
 msgstr ""
 
 #. Label of a Select field in DocType 'CloudPRNT Print Queue'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:161
+#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:176
 msgid "Job Format"
 msgstr ""
 
 #. Label of a Data field in DocType 'CloudPRNT Print Queue'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:35
+#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:37
 msgid "Job Token"
 msgstr ""
 
-#: cloudprnt/kitchen_ticket.py:47
+#. Label of a Small Text field in DocType 'CloudPRNT Print Queue'
+#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:79
+msgid "Kitchen Lines"
+msgstr ""
+
+#: cloudprnt/kitchen_ticket.py:55
 msgid "Kitchen ticket sent"
 msgstr ""
 
@@ -381,7 +436,7 @@ msgstr ""
 
 #. Option for the 'Job Format' (Select) field in DocType 'CloudPRNT Print
 #. Queue'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:163
+#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:178
 msgid "Markup"
 msgstr ""
 
@@ -391,7 +446,7 @@ msgid "Mechanical Error"
 msgstr ""
 
 #. Label of a Small Text field in DocType 'CloudPRNT Print Queue'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:175
+#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:190
 msgid "Media Types"
 msgstr ""
 
@@ -400,8 +455,8 @@ msgstr ""
 msgid "Model"
 msgstr ""
 
-#: cloudprnt/receipt_markup.py:70 cloudprnt/tests/test_receipt_markup.py:79
-#: cloudprnt/tests/test_receipt_markup.py:85
+#: cloudprnt/receipt_markup.py:74 cloudprnt/tests/test_receipt_markup.py:83
+#: cloudprnt/tests/test_receipt_markup.py:89
 msgid "Net Total"
 msgstr ""
 
@@ -415,9 +470,17 @@ msgstr ""
 msgid "No CloudPRNT printer given and no default printer configured"
 msgstr ""
 
-#: cloudprnt/kitchen_ticket.py:41
+#: cloudprnt/drawer.py:39
+msgid "No CloudPRNT printer is set for this till"
+msgstr ""
+
+#: cloudprnt/kitchen_ticket.py:49
 #, python-brace-format
 msgid "No CloudPRNT printer prints for the station {0}"
+msgstr ""
+
+#: cloudprnt/print_queue_manager.py:299
+msgid "No confirmation from the printer"
 msgstr ""
 
 #: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:149
@@ -432,29 +495,39 @@ msgstr ""
 msgid "Not configured"
 msgstr ""
 
+#. Option for the 'Result' (Select) field in DocType 'Cash Drawer Opening'
+#: cloudprnt/cloudprnt/doctype/cash_drawer_opening/cash_drawer_opening.json:101
+msgid "Not opened"
+msgstr ""
+
 #: cloudprnt/guards.py:15
 msgid "Not permitted"
 msgstr ""
 
 #. Description of the 'Expires At' (Datetime) field in DocType 'CloudPRNT Print
 #. Queue'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:150
+#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:165
 msgid "Not printed by then (printer off or offline), the job expires instead of printing late"
 msgstr ""
 
-#: cloudprnt/print_queue_manager.py:179
+#: cloudprnt/print_queue_manager.py:187
 msgid "Not printed in time"
 msgstr ""
 
-#: cloudprnt/kitchen_ticket.py:46
+#. Label of a Small Text field in DocType 'Cash Drawer Opening'
+#: cloudprnt/cloudprnt/doctype/cash_drawer_opening/cash_drawer_opening.json:75
+msgid "Note"
+msgstr ""
+
+#: cloudprnt/kitchen_ticket.py:54
 msgid "Nothing to send to the kitchen for this order"
 msgstr ""
 
-#: cloudprnt/receipt_markup.py:84
+#: cloudprnt/receipt_markup.py:88
 msgid "N°"
 msgstr ""
 
-#: cloudprnt/printers.py:123 cloudprnt/protocol.py:306
+#: cloudprnt/printers.py:128 cloudprnt/protocol.py:306
 msgid "Offline"
 msgstr ""
 
@@ -467,9 +540,13 @@ msgstr ""
 msgid "Open"
 msgstr ""
 
+#: cloudprnt/drawer.py:143
+msgid "Open a till session first"
+msgstr ""
+
 #. Label of a Select field in DocType 'CloudPRNT Print Queue'
 #. Label of a Select field in DocType 'CloudPRNT Printers'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:96
+#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:105
 #: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json:83
 msgid "Open the Cash Drawer"
 msgstr ""
@@ -477,6 +554,20 @@ msgstr ""
 #: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:17
 #: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:186
 msgid "Open the cash drawer"
+msgstr ""
+
+#. Option for the 'Result' (Select) field in DocType 'Cash Drawer Opening'
+#: cloudprnt/cloudprnt/doctype/cash_drawer_opening/cash_drawer_opening.json:101
+msgid "Opened"
+msgstr ""
+
+#. Label of a Datetime field in DocType 'Cash Drawer Opening'
+#: cloudprnt/cloudprnt/doctype/cash_drawer_opening/cash_drawer_opening.json:30
+msgid "Opened At"
+msgstr ""
+
+#: cloudprnt/api.py:55
+msgid "Opened from the CloudPRNT settings"
 msgstr ""
 
 #: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:172
@@ -487,12 +578,19 @@ msgstr ""
 msgid "Or open the printer's web page (its IP address in a browser), sign in, open CloudPRNT and enter these three values, then Save and restart the printer:"
 msgstr ""
 
+#. Option for the 'Reason' (Select) field in DocType 'Cash Drawer Opening'
+#: cloudprnt/cloudprnt/doctype/cash_drawer_opening/cash_drawer_opening.json:67
+msgid "Other"
+msgstr ""
+
 #. Label of a Check field in DocType 'CloudPRNT Printers'
 #: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json:250
 msgid "Over Temperature"
 msgstr ""
 
+#. Label of a Link field in DocType 'Cash Drawer Opening'
 #. Label of a Link field in DocType 'CloudPRNT Printers'
+#: cloudprnt/cloudprnt/doctype/cash_drawer_opening/cash_drawer_opening.json:38
 #: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json:67
 msgid "POS Profile"
 msgstr ""
@@ -525,7 +623,7 @@ msgid "Password"
 msgstr ""
 
 #. Option for the 'Status' (Select) field in DocType 'CloudPRNT Print Queue'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:44
+#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:46
 msgid "Pending"
 msgstr ""
 
@@ -536,7 +634,7 @@ msgstr ""
 
 #. Label of a Data field in DocType 'CloudPRNT Printers'
 #: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json:91
-msgid "Preparation Station"
+msgid "Preparation Stations"
 msgstr ""
 
 #. Label of a Check field in DocType 'CloudPRNT Printers'
@@ -547,6 +645,11 @@ msgstr ""
 #: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:170
 #: cloudprnt/public/js/receipt.js:20
 msgid "Print"
+msgstr ""
+
+#. Label of a Data field in DocType 'Cash Drawer Opening'
+#: cloudprnt/cloudprnt/doctype/cash_drawer_opening/cash_drawer_opening.json:126
+msgid "Print Job"
 msgstr ""
 
 #. Label of a Check field in DocType 'CloudPRNT Printers'
@@ -574,15 +677,22 @@ msgid "Printable Width (dots)"
 msgstr ""
 
 #. Option for the 'Status' (Select) field in DocType 'CloudPRNT Print Queue'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:44
+#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:46
 msgid "Printed"
 msgstr ""
 
 #. Label of a Datetime field in DocType 'CloudPRNT Print Queue'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:142
+#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:157
 msgid "Printed At"
 msgstr ""
 
+#: cloudprnt/print_queue_manager.py:284
+msgid "Printed too late: the drawer stayed shut"
+msgstr ""
+
+#. Label of a Section Break field in DocType 'Cash Drawer Opening'
+#. Label of a Data field in DocType 'Cash Drawer Opening'
+#: cloudprnt/cloudprnt/doctype/cash_drawer_opening/cash_drawer_opening.json:95
 #: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:37
 #: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:161
 #: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.py:116
@@ -596,22 +706,22 @@ msgstr ""
 
 #. Option for the 'Job Format' (Select) field in DocType 'CloudPRNT Print
 #. Queue'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:163
+#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:178
 msgid "Printer Commands"
 msgstr ""
 
 #. Label of a Data field in DocType 'CloudPRNT Print Queue'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:88
+#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:97
 msgid "Printer MAC"
 msgstr ""
 
 #. Label of a Data field in DocType 'CloudPRNT Print Queue'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:126
+#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:141
 msgid "Printer Result"
 msgstr ""
 
 #. Label of a Data field in DocType 'CloudPRNT Print Queue'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:81
+#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:90
 msgid "Printer Row"
 msgstr ""
 
@@ -652,12 +762,17 @@ msgstr ""
 msgid "Ready"
 msgstr ""
 
+#. Label of a Select field in DocType 'Cash Drawer Opening'
+#: cloudprnt/cloudprnt/doctype/cash_drawer_opening/cash_drawer_opening.json:66
+msgid "Reason"
+msgstr ""
+
 #. Label of a Section Break field in DocType 'CloudPRNT Settings'
 #: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.json:52
 msgid "Receipt Logos"
 msgstr ""
 
-#: cloudprnt/api.py:86
+#: cloudprnt/api.py:104
 #, python-brace-format
 msgid "Receipt {0} sent to {1}"
 msgstr ""
@@ -678,12 +793,14 @@ msgid "Recoverable"
 msgstr ""
 
 #. Label of a Dynamic Link field in DocType 'CloudPRNT Print Queue'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:62
+#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:64
 msgid "Reference"
 msgstr ""
 
+#. Label of a Link field in DocType 'Cash Drawer Opening'
 #. Label of a Link field in DocType 'CloudPRNT Print Queue'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:55
+#: cloudprnt/cloudprnt/doctype/cash_drawer_opening/cash_drawer_opening.json:81
+#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:57
 msgid "Reference Type"
 msgstr ""
 
@@ -692,7 +809,17 @@ msgstr ""
 msgid "Reported by the Printer"
 msgstr ""
 
-#: cloudprnt/receipt_markup.py:76
+#. Label of a Select field in DocType 'Cash Drawer Opening'
+#: cloudprnt/cloudprnt/doctype/cash_drawer_opening/cash_drawer_opening.json:100
+msgid "Result"
+msgstr ""
+
+#. Label of a Data field in DocType 'Cash Drawer Opening'
+#: cloudprnt/cloudprnt/doctype/cash_drawer_opening/cash_drawer_opening.json:110
+msgid "Result Detail"
+msgstr ""
+
+#: cloudprnt/receipt_markup.py:80
 msgid "Rounded Total"
 msgstr ""
 
@@ -711,16 +838,37 @@ msgstr ""
 msgid "Rows {0} and {1} have the same MAC address"
 msgstr ""
 
-#: cloudprnt/kitchen_ticket.py:30
+#. Option for the 'Reason' (Select) field in DocType 'Cash Drawer Opening'
+#. Label of a Dynamic Link field in DocType 'Cash Drawer Opening'
+#: cloudprnt/cloudprnt/doctype/cash_drawer_opening/cash_drawer_opening.json:67
+#: cloudprnt/cloudprnt/doctype/cash_drawer_opening/cash_drawer_opening.json:88
+msgid "Sale"
+msgstr ""
+
+#: cloudprnt/kitchen_ticket.py:38
 msgid "Sales Invoice"
 msgstr ""
 
-#: cloudprnt/kitchen_ticket.py:66
+#. Name of a role
+#: cloudprnt/cloudprnt/doctype/cash_drawer_opening/cash_drawer_opening.json:162
+msgid "Sales Manager"
+msgstr ""
+
+#: cloudprnt/drawer.py:35
+msgid "Say why the drawer is opened"
+msgstr ""
+
+#: cloudprnt/kitchen_ticket.py:140
 #, python-brace-format
 msgid "Send no. {0}"
 msgstr ""
 
-#: cloudprnt/receipt_markup.py:57
+#. Option for the 'Result' (Select) field in DocType 'Cash Drawer Opening'
+#: cloudprnt/cloudprnt/doctype/cash_drawer_opening/cash_drawer_opening.json:101
+msgid "Sent"
+msgstr ""
+
+#: cloudprnt/receipt_markup.py:61
 msgid "Serial number"
 msgstr ""
 
@@ -730,7 +878,7 @@ msgstr ""
 
 #. Label of a Select field in DocType 'CloudPRNT Print Queue'
 #. Label of a Data field in DocType 'CloudPRNT Printers'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:43
+#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:45
 #: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json:109
 msgid "Status"
 msgstr ""
@@ -746,13 +894,14 @@ msgid "Status Detail"
 msgstr ""
 
 #. Name of a role
+#: cloudprnt/cloudprnt/doctype/cash_drawer_opening/cash_drawer_opening.json:141
 #: cloudprnt/cloudprnt/doctype/cloudprnt_logs/cloudprnt_logs.json:47
-#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:195
+#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:210
 #: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.json:84
 msgid "System Manager"
 msgstr ""
 
-#: cloudprnt/kitchen_ticket.py:128
+#: cloudprnt/kitchen_ticket.py:202
 msgid "Takeaway"
 msgstr ""
 
@@ -780,7 +929,7 @@ msgstr ""
 msgid "The image link must start with http:// or https://"
 msgstr ""
 
-#: cloudprnt/print_queue_manager.py:313
+#: cloudprnt/print_queue_manager.py:346
 msgid "The job was queued again"
 msgstr ""
 
@@ -792,10 +941,10 @@ msgstr ""
 msgid "The printer stops printing until it is configured with the new credentials."
 msgstr ""
 
-#. Description of the 'Preparation Station' (Data) field in DocType 'CloudPRNT
+#. Description of the 'Preparation Stations' (Data) field in DocType 'CloudPRNT
 #. Printers'
 #: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json
-msgid "The station whose kitchen tickets this printer prints (in the POS restaurant: Kitchen, Bar…)"
+msgid "The stations whose kitchen tickets this printer prints, separated by commas (in the POS restaurant: Kitchen, Bar…)"
 msgstr ""
 
 #. Description of the 'POS Profile' (Link) field in DocType 'CloudPRNT
@@ -821,7 +970,12 @@ msgstr ""
 msgid "This printer is connected to {0}"
 msgstr ""
 
-#: cloudprnt/receipt_markup.py:89
+#. Label of a Data field in DocType 'Cash Drawer Opening'
+#: cloudprnt/cloudprnt/doctype/cash_drawer_opening/cash_drawer_opening.json:56
+msgid "Till Session"
+msgstr ""
+
+#: cloudprnt/receipt_markup.py:93
 msgid "Total product"
 msgstr ""
 
@@ -841,11 +995,16 @@ msgstr ""
 msgid "Used when a print names no printer and its till has none"
 msgstr ""
 
+#. Label of a Link field in DocType 'Cash Drawer Opening'
+#: cloudprnt/cloudprnt/doctype/cash_drawer_opening/cash_drawer_opening.json:47
+msgid "User"
+msgstr ""
+
 #: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:112
 msgid "User Name"
 msgstr ""
 
-#: cloudprnt/receipt_markup.py:93
+#: cloudprnt/receipt_markup.py:97
 msgid "VAT number"
 msgstr ""
 
@@ -854,14 +1013,14 @@ msgstr ""
 msgid "Voltage Error"
 msgstr ""
 
-#: cloudprnt/kitchen_ticket.py:64
+#: cloudprnt/kitchen_ticket.py:138
 msgid "Waiter"
 msgstr ""
 
-#. Description of the 'Open the Cash Drawer' (Select) field in DocType
-#. 'CloudPRNT Printers'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json:86
-msgid "When a receipt prints"
+#. Description of the 'Kitchen Lines' (Small Text) field in DocType 'CloudPRNT
+#. Print Queue'
+#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:81
+msgid "What this kitchen ticket printed, as quantity per dish: a dish at the kitchen is printed once"
 msgstr ""
 
 #: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:149
@@ -870,13 +1029,13 @@ msgstr ""
 
 #. Option for the 'Open the Cash Drawer' (Select) field in DocType 'CloudPRNT
 #. Print Queue'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:98
+#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:107
 msgid "end"
 msgstr ""
 
 #. Option for the 'Open the Cash Drawer' (Select) field in DocType 'CloudPRNT
 #. Print Queue'
-#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:98
+#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:107
 msgid "start"
 msgstr ""
 
@@ -885,7 +1044,7 @@ msgstr ""
 msgid "{0} must start with http:// or https://"
 msgstr ""
 
-#: cloudprnt/api.py:27 cloudprnt/kitchen_ticket.py:30
+#: cloudprnt/api.py:27 cloudprnt/drawer.py:57 cloudprnt/kitchen_ticket.py:38
 #, python-brace-format
 msgid "{0} {1} not found"
 msgstr ""
