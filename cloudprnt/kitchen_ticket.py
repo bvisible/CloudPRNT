@@ -62,7 +62,8 @@ def get_kitchen_ticket_markup(doc, station, lines, batch=None, paper_width=80, t
 	out += [
 		"[align: left]",
 		_column(f"{_('Waiter')}: {waiter}", sent),
-		_column(doc.name, f"{_('Send')} {batch}" if batch else ""),
+		# "Send no. 2": the second time this table's order went to the kitchen (a bare "Send" reads as the verb)
+		_column(doc.name, _("Send no. {0}").format(batch) if batch else ""),
 		"-" * chars,
 	]
 	for line in lines:
