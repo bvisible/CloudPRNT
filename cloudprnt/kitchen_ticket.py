@@ -115,7 +115,8 @@ def printed_quantities(invoice):
 
 
 def _with_qty(line, qty):
-	copy = frappe._dict(line.as_dict() if hasattr(line, "as_dict") else line)
+	# A frappe._dict answers every attribute (as_dict among them): ask whether it is a dict, not what it has.
+	copy = frappe._dict(line if isinstance(line, dict) else line.as_dict())
 	copy.qty = qty
 	return copy
 
