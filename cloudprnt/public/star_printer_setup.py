@@ -41,7 +41,7 @@ def main():
 	parser.add_argument("--password", default=os.environ.get("CLOUDPRNT_PASSWORD"), help="CloudPRNT password given by the ERP")
 	parser.add_argument("--printer", help="IP address of the printer (found on the network when omitted)")
 	parser.add_argument("--poll", type=int, default=2, help="seconds between two polls of the server (default 2)")
-	parser.add_argument("--no-restart", action="store_true", help="save the settings without restarting the printer")
+	parser.add_argument("--no-restart", action="store_true", help="send the settings without saving nor restarting")
 	args = parser.parse_args()
 	if not args.password:
 		parser.error("--password is required")
@@ -57,32 +57,36 @@ def main():
 	current = form_values(page)
 	print(f"Printer {ip}: CloudPRNT {current.get('cloudprnt_enable_selection', '?')}, server {current.get('server_url') or '-'}")
 
-	printer.post(
+	poll = str(max(1, args.poll))
+	answer = printer.post(
 		"/html/cloudprnt_cgi",
 		{
 			"cloudprnt_enable_selection": "ENABLE",
 			"server_url": args.url,
-			"polling_time": str(max(1, args.poll)),
+			"polling_time": poll,
 			"http_response_timeout": current.get("http_response_timeout") or "60",
 			"user_name": args.user,
 			"cp_password": args.password,
 			"Submit": "submit",
 		},
 	)
-	applied = form_values(printer.get("/html/cloudprnt.htm"))
-	if applied.get("server_url") != args.url or applied.get("polling_time") != str(max(1, args.poll)):
-		sys.exit(f"The printer did not take the settings (it shows server {applied.get('server_url')!r}).")
-	print(f"Printer {ip}: CloudPRNT set to {args.url}, polling every {args.poll} s, with credentials.")
+	# The printer holds the settings it accepted until they are saved: its CloudPRNT page shows the old ones
+	# until then, so the acceptance is read from its answer.
+	if "accepted" not in answer or args.url not in answer:
+		sys.exit("The printer did not accept the settings: " + " ".join(re.sub(r"<[^>]+>", " ", answer).split())[:300])
+	print(f"Printer {ip}: CloudPRNT accepted {args.url}, polling every {poll} s, with credentials.")
 
 	if args.no_restart:
-		print("Saved without restart: the printer uses the new settings after its next restart.")
+		print("Not saved: open the printer's Save page to keep these settings.")
 		return
 	printer.post("/html/save_cgi", {"radio_sv": "r_save_res", "valid_sv": "sv_send_ok"})
 	print(f"Printer {ip}: saved, restarting...")
-	if wait_until_back(ip):
-		print("The printer is back. Within a few seconds it signs in and prints a ticket saying it is connected.")
-	else:
-		print("The printer has not answered for 2 minutes: check it is on and connected, then look at the ERP.")
+	if not wait_until_back(ip):
+		sys.exit("The printer has not answered for 2 minutes: check it is on and connected, then look at the ERP.")
+	saved = form_values(printer.get("/html/cloudprnt.htm"))
+	if saved.get("server_url") != args.url or saved.get("polling_time") != poll:
+		sys.exit(f"After its restart the printer shows server {saved.get('server_url')!r}: the settings were not saved.")
+	print("The printer is back with the new settings. It signs in now and prints a ticket saying it is connected.")
 
 
 class StarPrinter:

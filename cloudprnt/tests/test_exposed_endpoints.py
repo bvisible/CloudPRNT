@@ -28,6 +28,8 @@ APP = Path(__file__).resolve().parents[1]
 #: One URL serves the three requests (poll, job, confirmation); a printer signs in as its own account there.
 GUEST_METHODS = {
 	"protocol.serve",
+	# cloudprnt-setting.json, asked by a printer at start-up: it answers "HTTP only" and reads nothing.
+	"protocol.server_setting",
 }
 
 REMOVED = {

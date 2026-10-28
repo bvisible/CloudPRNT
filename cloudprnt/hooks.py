@@ -27,3 +27,7 @@ scheduler_events = {
 }
 
 after_migrate = ["cloudprnt.devices.ensure_role"]
+
+# A printer able to use MQTT asks for "cloudprnt-setting.json" beside its CloudPRNT URL when it starts: under
+# /api/method/ that is a method name, routed to the protocol's answer.
+override_whitelisted_methods = {"cloudprnt-setting.json": "cloudprnt.protocol.server_setting"}

@@ -209,6 +209,14 @@ class TestProtocol(FrappeTestCase):
 		self.assertNotIn(b"\x1bd", data, "no cut, so no paper")
 
 
+	def test_a_printer_able_to_use_mqtt_is_told_the_site_speaks_http(self):
+		from cloudprnt.protocol import server_setting
+
+		self.assertEqual(server_setting().status_code, 404, "404 is Star's answer for a server that polls over HTTP only")
+		routes = frappe.get_hooks("override_whitelisted_methods").get("cloudprnt-setting.json")
+		self.assertEqual(routes, ["cloudprnt.protocol.server_setting"])
+
+
 class TestRender(unittest.TestCase):
 	def test_the_paper_width_picks_the_device_constraint(self):
 		self.assertEqual(render.paper_option(print_dots=576), ["printarea", "576"])

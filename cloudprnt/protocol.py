@@ -57,6 +57,15 @@ def serve():
 		return _text("Server error", 500)
 
 
+@frappe.whitelist(allow_guest=True, methods=["GET"])
+def server_setting():
+	"""cloudprnt-setting.json: what a printer able to use MQTT (CloudPRNT Version MQTT: mC-Print3 MCP31CI/CBI from
+	firmware 5.1, TSP100IV from 2.2) asks when it starts, at the folder of its URL with this file name, which
+	hooks.override_whitelisted_methods sends here. With MQTT the server would signal each job through a broker
+	instead of being polled; the site runs no broker, and 404 is the answer Star specifies for "HTTP only"."""
+	return _text("CloudPRNT HTTP only", 404)
+
+
 def _poll():
 	body = _body()
 	mac = normalize_mac(body.get("printerMAC"))

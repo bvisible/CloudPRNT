@@ -37,13 +37,14 @@ def get_receipt_markup(doctype, name=None, paper_width=80):
 
 	lines += ["[align: left]", ""]
 	lines.append(f"{_('Invoice')}: {_text(doc.name)}")
-	lines.append(f"{_('Date')}: {formatdate(doc.posting_date)}")
-	lines.append(f"{_('Time')}: {str(doc.posting_time or '').split('.')[0]}")
+	posted_at = str(doc.posting_time or "").split(".")[0]
+	lines.append(f"{_('Date')}: {formatdate(doc.posting_date)} {posted_at}".rstrip())
 	if doc.get("customer_name"):
 		lines.append(f"{_('Customer')}: {_text(doc.customer_name)}")
 	cashier = frappe.db.get_value("User", doc.owner, ["first_name", "last_name"], as_dict=True)
 	if cashier:
 		lines.append(f"{_('Cashier')}: {_text(cashier.first_name or '')} {_text((cashier.last_name or '')[:1])}".rstrip())
+	lines.append(f"{_('Currency')}: {currency}")
 	lines += ["", rule]
 
 	for item in doc.items:
@@ -92,9 +93,8 @@ def get_receipt_markup(doctype, name=None, paper_width=80):
 			lines.append(f"{_('VAT number')}: {_text(tax_id)}")
 		for tax, base in _tax_bases(doc, taxes):
 			amount = flt(tax.get("base_tax_amount_after_discount_amount") or tax.tax_amount)
-			lines.append(
-				f"{_tax_label(tax, abbr)} {_('on')} {money(base)} = {money(amount)} | {_('Total')}: {money(base + amount)}"
-			)
+			# "VAT 8.1%: 14.80 + 1.20 = 16.00", the base, the tax and the total it was charged on
+			lines.append(f"{_tax_label(tax, abbr)}: {money(base)} + {money(amount)} = {money(base + amount)}")
 
 	if doc.get("terms"):
 		lines += ["", _text(frappe.utils.strip_html(doc.terms))]
