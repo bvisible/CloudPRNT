@@ -5,11 +5,14 @@ carry the same fields used here. Amounts sit in [column] tags, which cputil lays
 width, so the same receipt fits a 58 mm and an 80 mm roll.
 """
 
+import hashlib
 import json
+import os
 
 import frappe
 from frappe import _
 from frappe.utils import flt, fmt_money, formatdate
+from PIL import Image
 
 #: Characters a line holds in font A, by paper width (12-dot characters on a 203 dpi head).
 LINE_CHARS = {58: 32, 80: 48, 112: 69}
@@ -29,8 +32,9 @@ def get_receipt_markup(doctype, name=None, paper_width=80):
 		return fmt_money(flt(value), currency=currency).strip()
 
 	lines = ["[align: centre]"]
-	if settings.header_logo_url:
-		lines += [f"[image: url {settings.header_logo_url}; width 60%; min-width 48mm]", "[feed: length 1mm]"]
+	logo = settings.header_logo_url or company_logo_path(doc.company)
+	if logo:
+		lines += [f"[image: url {logo}; width 60%; min-width 48mm]", "[feed: length 1mm]"]
 	lines.append(f"[magnify: width 2; height 1]{_text(doc.company)}[magnify]")
 	for address in _company_addresses(doc.company):
 		lines.append(_text(address))
@@ -113,6 +117,37 @@ def get_receipt_markup(doctype, name=None, paper_width=80):
 def get_pos_invoice_markup(invoice_name):
 	"""The receipt of POS Invoice `invoice_name` (kept for callers written before Sales Invoice receipts)."""
 	return get_receipt_markup("POS Invoice", invoice_name)
+
+
+def company_logo_path(company):
+	"""The company's logo (Company.company_logo) as a file the printer's renderer reads from this server, or None.
+
+	Thermal paper prints black or nothing: a transparent logo would print its transparent pixels black, so the
+	file is flattened on white once and kept, by the logo's content, in the site's private folder."""
+	file_url = frappe.get_cached_value("Company", company, "company_logo") if company else None
+	if not file_url:
+		return None
+	try:
+		source = frappe.get_doc("File", {"file_url": file_url}).get_full_path()
+		return flatten_for_paper(source, frappe.get_site_path("private", "cloudprnt"))
+	except Exception:
+		frappe.log_error("CloudPRNT: the company logo could not be prepared for the receipt", frappe.get_traceback())
+		return None
+
+
+def flatten_for_paper(source, folder):
+	"""`source` image on a white ground, in greys, saved once in `folder` under a name taken from its content."""
+	with open(source, "rb") as handle:
+		digest = hashlib.sha1(handle.read()).hexdigest()[:16]
+	target = os.path.abspath(os.path.join(folder, f"logo-{digest}.png"))
+	if not os.path.exists(target):
+		os.makedirs(folder, exist_ok=True)
+		with Image.open(source) as image:
+			image = image.convert("RGBA")
+			flat = Image.new("RGB", image.size, (255, 255, 255))
+			flat.paste(image, mask=image.getchannel("A"))
+			flat.convert("L").save(target, "PNG")
+	return target
 
 
 def is_cash_sale(doc):

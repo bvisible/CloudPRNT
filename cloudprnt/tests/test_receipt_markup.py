@@ -1,12 +1,16 @@
 """The till receipt, laid out as Star Document Markup from a POS sale."""
 
+import os
+import tempfile
 from types import SimpleNamespace
 
 import frappe
 from frappe.tests.utils import FrappeTestCase
 from frappe.utils import fmt_money
 
-from cloudprnt.receipt_markup import get_receipt_markup
+from PIL import Image
+
+from cloudprnt.receipt_markup import flatten_for_paper, get_receipt_markup
 
 
 class Sale(SimpleNamespace):
@@ -88,3 +92,18 @@ class TestReceiptMarkup(FrappeTestCase):
 		self.assertIn("-" * 32 + "\n", get_receipt_markup(sale(), paper_width="58mm"))
 		self.assertNotIn("-" * 33, get_receipt_markup(sale(), paper_width="58mm"))
 		self.assertIn("-" * 48, get_receipt_markup(sale(), paper_width=80))
+
+
+class TestLogoOnPaper(FrappeTestCase):
+	def test_a_transparent_logo_prints_on_white(self):
+		with tempfile.TemporaryDirectory() as folder:
+			source = os.path.join(folder, "logo.png")
+			logo = Image.new("RGBA", (4, 2), (0, 0, 0, 0))
+			logo.putpixel((0, 0), (20, 20, 20, 255))
+			logo.save(source)
+			target = flatten_for_paper(source, os.path.join(folder, "out"))
+			with Image.open(target) as flat:
+				self.assertEqual(flat.mode, "L")
+				self.assertEqual(flat.getpixel((3, 1)), 255, "a transparent pixel turns white, not black")
+				self.assertLess(flat.getpixel((0, 0)), 40, "the drawing stays dark")
+			self.assertEqual(flatten_for_paper(source, os.path.join(folder, "out")), target, "made once, then reused")
