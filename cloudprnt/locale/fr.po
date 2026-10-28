@@ -1024,3 +1024,13 @@ msgstr "Identifiants incorrects"
 #, python-brace-format
 msgid "{0} must start with http:// or https://"
 msgstr "{0} doit commencer par http:// ou https://"
+
+#. Description of the 'Expires At' (Datetime) field in DocType 'CloudPRNT Print
+#. Queue'
+#: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:150
+msgid "Not printed by then (printer off or offline), the job expires instead of printing late"
+msgstr "Si l'imprimante ne la prend pas à temps (éteinte ou hors ligne), la tâche expire au lieu de sortir en retard."
+
+#: cloudprnt/print_queue_manager.py:179
+msgid "Not printed in time"
+msgstr "Pas imprimée à temps"
