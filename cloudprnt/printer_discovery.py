@@ -1,403 +1,90 @@
-"""
-Printer Discovery System for CloudPRNT
-========================================
+"""Printers that reach the site without being paired with it.
 
-Tracks printers that poll the server and allows automatic discovery
-Uses Frappe cache (Redis/DB) for multi-worker support
+A printer whose CloudPRNT settings name this site but carry no credentials (or wrong ones) is answered "no
+job" and noted here, so that the settings form can show it and pair it. The notes live in the cache, a day at
+most, and are capped: anyone can post a poll, and a poll must not grow anything without limit.
 """
+
+import json
 
 import frappe
-from datetime import datetime, timedelta
-import json
+from frappe import _
+from frappe.utils import add_to_date, get_datetime, now_datetime
+
 from cloudprnt import guards
+from cloudprnt.printers import SETTINGS, normalize_mac, printer_for_mac
 
-# Cache key prefix
-CACHE_KEY_PREFIX = "cloudprnt_discovered_"
-CACHE_TTL = 300  # 5 minutes
-
-def _get_cache_key(mac_address):
-    """Get cache key for a MAC address"""
-    return f"{CACHE_KEY_PREFIX}{mac_address}"
-
-def _extract_mac_from_key(full_key):
-    """Extract MAC address from Redis key"""
-    # Keys come as: b'_d2d85ec23990accb|cloudprnt_discovered_00:11:62:AA:BB:CC'
-    # or as string: '_d2d85ec23990accb|cloudprnt_discovered_00:11:62:AA:BB:CC'
-    
-    if isinstance(full_key, bytes):
-        full_key = full_key.decode('utf-8')
-    
-    # Remove DB prefix if present
-    if '|' in full_key:
-        full_key = full_key.split('|', 1)[1]
-    
-    # Extract MAC from key
-    if full_key.startswith(CACHE_KEY_PREFIX):
-        mac = full_key[len(CACHE_KEY_PREFIX):]
-        # Skip the master list key
-        if mac != '_list':
-            return mac
-    
-    return None
-
-def _get_all_discovered_keys():
-    """Get all discovered printer MAC addresses"""
-    try:
-        # Use get_keys to find all matching keys
-        if hasattr(frappe.cache(), 'get_keys'):
-            keys = frappe.cache().get_keys(f"{CACHE_KEY_PREFIX}*")
-            if keys:
-                macs = []
-                for key in keys:
-                    mac = _extract_mac_from_key(key)
-                    if mac:
-                        macs.append(mac)
-                return macs
-        
-        # Fallback: use master list
-        master_key = f"{CACHE_KEY_PREFIX}_list"
-        keys_list = frappe.cache().get_value(master_key)
-        if keys_list:
-            return json.loads(keys_list)
-        return []
-    except Exception as e:
-        try:
-            frappe.logger().error(f"Error getting discovered keys: {str(e)}")
-        except:
-            print(f"[Discovery] Error getting discovered keys: {str(e)}")
-        return []
-
-def _add_to_master_list(mac_address):
-    """Add MAC to master list of discovered printers"""
-    master_key = f"{CACHE_KEY_PREFIX}_list"
-    try:
-        keys_list = frappe.cache().get_value(master_key)
-        if keys_list:
-            keys = json.loads(keys_list)
-        else:
-            keys = []
-        
-        if mac_address not in keys:
-            keys.append(mac_address)
-            frappe.cache().set_value(master_key, json.dumps(keys), expires_in_sec=CACHE_TTL)
-    except Exception as e:
-        try:
-            frappe.logger().error(f"Error adding to master list: {str(e)}")
-        except:
-            print(f"[Discovery] Error adding to master list: {str(e)}")
-
-def track_printer_poll(mac_address, ip_address=None, client_type=None, status_code=None):
-    """
-    Track a printer that polled the server
-
-    Called from cloudprnt_poll() endpoint
-
-    :param mac_address: MAC address with colons
-    :param ip_address: IP address (optional)
-    :param client_type: Client type string (optional)
-    :param status_code: Status code (optional)
-    """
-    try:
-        now = datetime.now()
-        cache_key = _get_cache_key(mac_address)
-        
-        # Get existing data
-        existing_data = frappe.cache().get_value(cache_key)
-        
-        if existing_data:
-            # Update existing
-            try:
-                printer_data = json.loads(existing_data)
-                printer_data["last_seen"] = now.isoformat()
-                printer_data["poll_count"] = printer_data.get("poll_count", 0) + 1
-                if ip_address:
-                    printer_data["ip_address"] = ip_address
-                if client_type:
-                    printer_data["client_type"] = client_type
-                if status_code:
-                    printer_data["status_code"] = status_code
-            except:
-                # Invalid JSON, create new
-                existing_data = None
-        
-        if not existing_data:
-            # New printer discovered
-            printer_data = {
-                "mac_address": mac_address,
-                "ip_address": ip_address,
-                "client_type": client_type or "Unknown",
-                "status_code": status_code or "Unknown",
-                "first_seen": now.isoformat(),
-                "last_seen": now.isoformat(),
-                "poll_count": 1
-            }
-            try:
-                frappe.logger().info(f"🔍 New printer discovered: {mac_address} ({client_type})")
-            except:
-                print(f"[Discovery] 🔍 New printer discovered: {mac_address} ({client_type})")
-            
-            # Add to master list
-            _add_to_master_list(mac_address)
-        
-        # Store in cache with TTL
-        frappe.cache().set_value(
-            cache_key,
-            json.dumps(printer_data),
-            expires_in_sec=CACHE_TTL
-        )
-        
-    except Exception as e:
-        try:
-            frappe.logger().error(f"Error tracking printer poll: {str(e)}")
-        except:
-            print(f"[Discovery] Error tracking printer poll: {str(e)}")
+CACHE_KEY = "cloudprnt_unpaired_printers"
+KEEP_HOURS = 24
+MAX_NOTED = 50
 
 
-def clean_old_discoveries():
-    """
-    Remove discoveries older than 5 minutes
-    (Cache TTL handles this automatically, but we can clean the master list)
-    """
-    try:
-        master_key = f"{CACHE_KEY_PREFIX}_list"
-        keys_list = frappe.cache().get_value(master_key)
-        
-        if not keys_list:
-            return
-        
-        keys = json.loads(keys_list)
-        cutoff = datetime.now() - timedelta(minutes=5)
-        valid_keys = []
-        
-        for mac in keys:
-            cache_key = _get_cache_key(mac)
-            data = frappe.cache().get_value(cache_key)
-            if data:
-                try:
-                    printer_data = json.loads(data)
-                    last_seen = datetime.fromisoformat(printer_data["last_seen"])
-                    if last_seen >= cutoff:
-                        valid_keys.append(mac)
-                except:
-                    pass
-        
-        # Update master list
-        if len(valid_keys) != len(keys):
-            frappe.cache().set_value(master_key, json.dumps(valid_keys), expires_in_sec=CACHE_TTL)
-        
-    except Exception as e:
-        try:
-            frappe.logger().error(f"Error cleaning discoveries: {str(e)}")
-        except:
-            print(f"[Discovery] Error cleaning discoveries: {str(e)}")
+def note_unpaired_printer(mac, ip_address=None, client_type=None, signed_in_as=None):
+	"""Remember printer `mac` polled without valid credentials."""
+	mac = normalize_mac(mac)
+	if not mac:
+		return
+	noted = _read()
+	entry = noted.get(mac) or {"mac_address": mac, "first_seen": now_datetime().isoformat(), "poll_count": 0}
+	entry.update(
+		{
+			"last_seen": now_datetime().isoformat(),
+			"ip_address": ip_address or entry.get("ip_address"),
+			"client_type": client_type or entry.get("client_type") or "",
+			"poll_count": int(entry.get("poll_count") or 0) + 1,
+			"signed_in_as": signed_in_as or "",
+		}
+	)
+	noted[mac] = entry
+	if len(noted) > MAX_NOTED:
+		for old in sorted(noted, key=lambda key: noted[key].get("last_seen") or "")[: len(noted) - MAX_NOTED]:
+			noted.pop(old, None)
+	frappe.cache().set_value(CACHE_KEY, json.dumps(noted), expires_in_sec=KEEP_HOURS * 3600)
+
+
+def _read():
+	try:
+		noted = json.loads(frappe.cache().get_value(CACHE_KEY) or "{}")
+	except (TypeError, ValueError):
+		return {}
+	cutoff = add_to_date(now_datetime(), hours=-KEEP_HOURS)
+	return {
+		mac: entry
+		for mac, entry in noted.items()
+		if isinstance(entry, dict) and get_datetime(entry.get("last_seen") or "2000-01-01") > cutoff
+	}
 
 
 @frappe.whitelist()
 def get_discovered_printers():
-    """
-    Get list of discovered printers that are not yet in CloudPRNT Settings
-
-    :return: List of discovered printers
-    """
-    # Lists printers with their network addresses: whoever may read the CloudPRNT settings.
-    guards.require("CloudPRNT Settings", "read")
-    try:
-        # Clean old discoveries first
-        clean_old_discoveries()
-
-        # Get existing printers from database (bypassing controller)
-        existing_macs = set()
-        printers = frappe.db.sql("""
-            SELECT mac_address
-            FROM `tabCloudPRNT Printers`
-            WHERE parent = 'CloudPRNT Settings'
-        """, as_dict=True)
-
-        for printer in printers:
-            existing_macs.add(printer.mac_address.upper())
-
-        # Get all discovered printers from cache
-        discovered_macs = _get_all_discovered_keys()
-        new_printers = []
-        total_discovered = 0
-        
-        for mac in discovered_macs:
-            cache_key = _get_cache_key(mac)
-            data = frappe.cache().get_value(cache_key)
-            
-            if not data:
-                continue
-            
-            total_discovered += 1
-            
-            try:
-                printer_data = json.loads(data)
-                
-                # Skip if already in settings
-                if printer_data["mac_address"].upper() in existing_macs:
-                    continue
-                
-                # Calculate time since first seen
-                first_seen = datetime.fromisoformat(printer_data["first_seen"])
-                time_since = datetime.now() - first_seen
-                seconds = int(time_since.total_seconds())
-
-                new_printers.append({
-                    "mac_address": printer_data["mac_address"],
-                    "ip_address": printer_data.get("ip_address") or "Unknown",
-                    "client_type": printer_data.get("client_type", "Unknown"),
-                    "status_code": printer_data.get("status_code", "Unknown"),
-                    "poll_count": printer_data.get("poll_count", 0),
-                    "time_since_first_seen": f"{seconds}s ago"
-                })
-            except Exception as e:
-                try:
-                    frappe.logger().error(f"Error parsing printer data for {mac}: {str(e)}")
-                except:
-                    print(f"[Discovery] Error parsing printer data for {mac}: {str(e)}")
-                continue
-
-        return {
-            "success": True,
-            "printers": new_printers,
-            "total_discovered": total_discovered,
-            "new_printers": len(new_printers)
-        }
-
-    except Exception as e:
-        frappe.log_error(f"Error getting discovered printers: {str(e)}", "get_discovered_printers")
-        return {
-            "success": False,
-            "message": str(e)
-        }
+	"""The printers that polled the site in the last day without valid credentials, newest first."""
+	guards.require("CloudPRNT Settings", "write")
+	printers = []
+	for entry in sorted(_read().values(), key=lambda entry: entry.get("last_seen") or "", reverse=True):
+		row = printer_for_mac(entry["mac_address"])
+		entry["configured_as"] = row.label if row else ""
+		printers.append(entry)
+	return {"success": True, "printers": printers}
 
 
 @frappe.whitelist()
 def add_discovered_printer(mac_address, label=None):
-    """
-    Add a discovered printer to CloudPRNT Settings
-
-    :param mac_address: MAC address to add
-    :param label: Optional label (will auto-generate if not provided)
-    :return: Success/error dict
-    """
-    # Writes a printer into the settings: whoever may change them.
-    guards.require("CloudPRNT Settings", "write")
-    try:
-        # Check if printer was discovered
-        cache_key = _get_cache_key(mac_address)
-        data = frappe.cache().get_value(cache_key)
-        
-        if not data:
-            return {
-                "success": False,
-                "message": f"Printer {mac_address} not found in discovered printers"
-            }
-
-        # Get printer data
-        printer_data = json.loads(data)
-
-        # Generate label if not provided
-        if not label:
-            client_type = printer_data.get("client_type", "Printer")
-            # Extract model name (e.g., "Star mC-Print3" -> "mC-Print3")
-            if "Star" in client_type:
-                label = client_type.replace("Star ", "")
-            else:
-                label = client_type
-
-            # Add MAC last 4 chars to make unique
-            label = f"{label} ({mac_address[-5:]})"
-
-        # Check if already exists (using direct SQL)
-        existing = frappe.db.sql("""
-            SELECT name
-            FROM `tabCloudPRNT Printers`
-            WHERE parent = 'CloudPRNT Settings'
-            AND mac_address = %s
-        """, (mac_address,), as_dict=True)
-
-        if existing:
-            return {
-                "success": False,
-                "message": f"Printer {mac_address} already exists"
-            }
-
-        # Add new printer row using SQL
-        frappe.db.sql("""
-            INSERT INTO `tabCloudPRNT Printers`
-            (name, creation, modified, modified_by, owner, docstatus, parent, parenttype, parentfield, idx,
-             mac_address, label, ip_address, online, status_code)
-            VALUES
-            (%(name)s, NOW(), NOW(), %(user)s, %(user)s, 0, 'CloudPRNT Settings', 'CloudPRNT Settings', 'printers', 0,
-             %(mac_address)s, %(label)s, %(ip_address)s, 1, %(status_code)s)
-        """, {
-            'name': frappe.generate_hash(length=10),
-            'user': frappe.session.user or 'Administrator',
-            'mac_address': mac_address,
-            'label': label,
-            'ip_address': printer_data.get("ip_address"),
-            'status_code': printer_data.get("status_code", "200 OK")
-        })
-        frappe.db.commit()
-
-        # Remove from cache
-        frappe.cache().delete_value(cache_key)
-        
-        # Remove from master list
-        master_key = f"{CACHE_KEY_PREFIX}_list"
-        keys_list = frappe.cache().get_value(master_key)
-        if keys_list:
-            keys = json.loads(keys_list)
-            if mac_address in keys:
-                keys.remove(mac_address)
-                frappe.cache().set_value(master_key, json.dumps(keys), expires_in_sec=CACHE_TTL)
-
-        try:
-            frappe.logger().info(f"✅ Added printer: {label} ({mac_address})")
-        except:
-            print(f"[Discovery] ✅ Added printer: {label} ({mac_address})")
-
-        return {
-            "success": True,
-            "message": f"Printer {label} added successfully",
-            "label": label
-        }
-
-    except Exception as e:
-        frappe.log_error(f"Error adding discovered printer: {str(e)}", "add_discovered_printer")
-        return {
-            "success": False,
-            "message": str(e)
-        }
+	"""Add a printer row for a discovered MAC address (its credentials are issued from the settings form)."""
+	guards.require("CloudPRNT Settings", "write")
+	mac = normalize_mac(mac_address)
+	if not mac:
+		frappe.throw(_("Invalid MAC address: {0}").format(mac_address))
+	row = printer_for_mac(mac)
+	if row:
+		return {"success": True, "printer": row.name, "message": _("This printer is already configured")}
+	settings = frappe.get_doc(SETTINGS)
+	added = settings.append("printers", {"mac_address": mac, "label": label or mac})
+	settings.save()
+	return {"success": True, "printer": added.name}
 
 
-def clear_discoveries():
-    """
-    Clear all discovered printers (for testing)
+def forget(mac):
+	noted = _read()
+	if noted.pop(normalize_mac(mac) or "", None) is not None:
+		frappe.cache().set_value(CACHE_KEY, json.dumps(noted), expires_in_sec=KEEP_HOURS * 3600)
 
-    :return: Success message
-    """
-    try:
-        # Get all discovered MACs
-        discovered_macs = _get_all_discovered_keys()
-        count = len(discovered_macs)
-        
-        # Delete each cache entry
-        for mac in discovered_macs:
-            cache_key = _get_cache_key(mac)
-            frappe.cache().delete_value(cache_key)
-        
-        # Clear master list
-        master_key = f"{CACHE_KEY_PREFIX}_list"
-        frappe.cache().delete_value(master_key)
-        
-        return {
-            "success": True,
-            "message": f"Cleared {count} discoveries"
-        }
-    except Exception as e:
-        return {
-            "success": False,
-            "message": str(e)
-        }

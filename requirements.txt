@@ -1,8 +1,1 @@
-# CloudPRNT Python Dependencies
-# Standalone server dependencies
-fastapi>=0.100.0
-uvicorn>=0.23.0
-paho-mqtt>=2.0.0
-
-# Image processing
-Pillow>=11.0.0
+# CloudPRNT has no Python dependency of its own: it renders jobs with Star's cputil (cloudprnt/bin/cputil).

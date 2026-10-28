@@ -1,243 +1,264 @@
-"""
-CloudPRNT Print Queue Manager
-==============================
+"""The print queue: the jobs waiting for a printer, and what became of each.
 
-Database-backed print queue for sharing jobs between processes.
-Replaces in-memory PRINT_QUEUE for multi-process compatibility.
+A job is Pending until its printer fetches it (Fetched), then Printed or Failed by the code the printer
+confirms it with. It is kept as Star Document Markup and rendered when fetched, in the format the printer
+asks for (render.py). A job is held by its printer row; jobs queued by MAC address alone (by callers written
+before the rows had names to hold them) go to the printer that has that MAC.
 """
+
+import json
+import re
+import uuid
+from urllib.parse import unquote
 
 import frappe
-import json
-from datetime import datetime
+from frappe import _
+from frappe.utils import add_to_date, now_datetime
+
+from cloudprnt import render
+from cloudprnt.printers import find_printer, normalize_mac, printer_for_mac
+
+DOCTYPE = "CloudPRNT Print Queue"
+MARKUP = "Markup"
+COMMANDS = "Printer Commands"
+
+#: A job fetched and never confirmed is marked failed after this long, rather than printed a second time.
+UNCONFIRMED_AFTER_MINUTES = 10
+#: Printed and failed jobs are kept this long, for support, then deleted.
+KEEP_DAYS = 30
+
+_HEX = re.compile(r"^[0-9A-Fa-f\s]+$")
+_FIELDS = [
+	"name",
+	"job_token",
+	"printer",
+	"printer_mac",
+	"status",
+	"job_format",
+	"job_data",
+	"media_types",
+	"open_drawer",
+	"buzzer",
+	"reference_doctype",
+	"reference_name",
+	"attempts",
+	"creation",
+]
+
+
+def enqueue(
+	printer, markup, reference_doctype=None, reference_name=None, open_drawer=None, buzzer=0, token=None
+):
+	"""Queue `markup` (Star Document Markup) for `printer` (row, row name, label or MAC; the default printer
+	when empty). open_drawer: "start" or "end" opens the cash drawer at that end of the job."""
+	row = printer if isinstance(printer, dict) else find_printer(printer)
+	return _insert(
+		row,
+		token=token or uuid.uuid4().hex,
+		job_format=MARKUP,
+		job_data=markup or "",
+		open_drawer=open_drawer if open_drawer in ("start", "end") else "",
+		buzzer=int(buzzer or 0),
+		reference_doctype=reference_doctype,
+		reference_name=reference_name,
+	)
 
 
 def add_job_to_queue(job_token, printer_mac, invoice_name=None, job_data=None, media_types=None):
-	"""
-	Add a print job to the database queue
+	"""Queue a job the way callers written before enqueue() do (the payments app's terminal receipt).
 
-	:param job_token: Unique job identifier
-	:param printer_mac: Printer MAC address
-	:param invoice_name: POS Invoice name (optional)
-	:param job_data: Job data for custom jobs (optional)
-	:param media_types: Supported media types
-	:return: Success dict
+	job_data is Star Document Markup, or printer commands as hex for the media types listed; with no job_data
+	the receipt of POS Invoice `invoice_name` is printed.
 	"""
 	try:
-		# Ensure we have a user set
-		if not frappe.session.user:
-			frappe.set_user("Administrator")
+		row = printer_for_mac(printer_mac) or find_printer(printer_mac)
+		if job_data and len(job_data) > 100 and _HEX.match(job_data):
+			return _insert(
+				row,
+				token=job_token,
+				job_format=COMMANDS,
+				job_data=re.sub(r"\s", "", job_data),
+				media_types=json.dumps(media_types or ["application/vnd.star.starprnt"]),
+			)
+		if not job_data and invoice_name:
+			from cloudprnt.receipt_markup import get_receipt_markup
 
-		# Default media types
-		if not media_types:
-			media_types = ["image/png", "application/vnd.star.line", "text/vnd.star.markup"]
-
-		# Create queue entry using direct SQL to avoid module loading issues
-		frappe.db.sql("""
-			INSERT INTO `tabCloudPRNT Print Queue`
-			(name, creation, modified, modified_by, owner, docstatus, idx,
-			 job_token, printer_mac, invoice_name, status, job_data, media_types)
-			VALUES
-			(%(name)s, NOW(), NOW(), %(user)s, %(user)s, 0, 0,
-			 %(job_token)s, %(printer_mac)s, %(invoice_name)s, 'Pending', %(job_data)s, %(media_types)s)
-		""", {
-			'name': frappe.generate_hash(length=10),
-			'user': frappe.session.user or 'Administrator',
-			'job_token': job_token,
-			'printer_mac': printer_mac.upper(),
-			'invoice_name': invoice_name,
-			'job_data': job_data,
-			'media_types': json.dumps(media_types)
-		})
-		frappe.db.commit()
-
-
-		return {
-			"success": True,
-			"job_token": job_token,
-			"queue_position": get_queue_position(printer_mac, job_token)
-		}
-
-	except Exception as e:
-		frappe.log_error(f"Error adding job to queue: {str(e)}", "add_job_to_queue")
-		return {
-			"success": False,
-			"message": str(e)
-		}
-
-
-def get_next_job(printer_mac):
-	"""
-	Get next pending job for a printer
-
-	:param printer_mac: Printer MAC address
-	:return: Job dict or None
-	"""
-	try:
-		# Get oldest pending job for this printer
-		jobs = frappe.get_all(
-			"CloudPRNT Print Queue",
-			filters={
-				"printer_mac": printer_mac.upper(),
-				"status": "Pending"
-			},
-			fields=["name", "job_token", "invoice_name", "job_data", "media_types", "printer_mac", "creation"],
-			order_by="creation asc",
-			limit=1
+			job_data = get_receipt_markup("POS Invoice", invoice_name)
+		return enqueue(
+			row,
+			job_data,
+			reference_doctype="POS Invoice" if invoice_name else None,
+			reference_name=invoice_name,
+			token=job_token,
 		)
+	except Exception as error:
+		frappe.log_error("CloudPRNT: a job could not be queued", frappe.get_traceback())
+		return {"success": False, "message": str(error)}
 
-		if not jobs:
-			return None
 
-		job = jobs[0]
+def _insert(row, token, **values):
+	job = frappe.get_doc(
+		{
+			"doctype": DOCTYPE,
+			"job_token": token,
+			"printer": row.name,
+			"printer_mac": normalize_mac(row.mac_address) or "",
+			"status": "Pending",
+			"invoice_name": values.get("reference_name")
+			if values.get("reference_doctype") in ("POS Invoice", "Sales Invoice")
+			else None,
+			**values,
+		}
+	)
+	job.insert(ignore_permissions=True)
+	return {"success": True, "job_token": token, "queue_position": queue_position(row, token)}
 
-		# Parse media types
+
+def _for_printer(row):
+	"""SQL condition and values matching the jobs of printer `row`."""
+	return (
+		"(printer = %(printer)s or (ifnull(printer, '') = '' and printer_mac = %(mac)s))",
+		{"printer": row.name, "mac": normalize_mac(row.mac_address) or "-"},
+	)
+
+
+def next_job(row):
+	"""The oldest job waiting for printer `row`, or None."""
+	condition, values = _for_printer(row)
+	jobs = frappe.db.sql(
+		f"""select {', '.join(_FIELDS)} from `tab{DOCTYPE}`
+		where status = 'Pending' and {condition} order by creation asc limit 1""",
+		values,
+		as_dict=True,
+	)
+	return jobs[0] if jobs else None
+
+
+def get_job(row, token=None, statuses=("Pending", "Fetched")):
+	"""Printer `row`'s job `token`; without a token (clients that send none), its oldest job in `statuses`."""
+	condition, values = _for_printer(row)
+	values.update(token=token or "", statuses=statuses)
+	where = "job_token = %(token)s" if token else "status in %(statuses)s"
+	jobs = frappe.db.sql(
+		f"""select {', '.join(_FIELDS)} from `tab{DOCTYPE}`
+		where {where} and {condition} order by creation asc limit 1""",
+		values,
+		as_dict=True,
+	)
+	return jobs[0] if jobs else None
+
+
+def queue_position(row, token):
+	condition, values = _for_printer(row)
+	tokens = frappe.db.sql_list(
+		f"select job_token from `tab{DOCTYPE}` where status = 'Pending' and {condition} order by creation asc",
+		values,
+	)
+	return tokens.index(token) + 1 if token in tokens else 0
+
+
+def media_types_for(job, row):
+	"""The formats job `job` can be fetched in by printer `row`."""
+	if job.job_format == COMMANDS:
 		try:
-			media_types = json.loads(job.get("media_types") or "[]")
-		except:
-			media_types = ["image/png", "application/vnd.star.line", "text/vnd.star.markup"]
-
-		return {
-			"name": job.name,
-			"token": job.job_token,
-			"invoice": job.invoice_name,
-			"job_data": job.job_data,
-			"media_types": media_types,
-			"printer_mac": job.printer_mac
-		}
-
-	except Exception as e:
-		frappe.log_error(f"Error getting next job: {str(e)}", "get_next_job")
-		return None
+			return json.loads(job.media_types or "[]") or ["application/vnd.star.starprnt"]
+		except ValueError:
+			return ["application/vnd.star.starprnt"]
+	return render.offered_media_types(printer_encodings(row))
 
 
-def mark_job_fetched(job_token):
-	"""
-	Mark job as fetched by printer
-
-	:param job_token: Job token
-	"""
+def printer_encodings(row):
 	try:
-		frappe.db.set_value("CloudPRNT Print Queue", {"job_token": job_token}, "status", "Fetched")
-		frappe.db.commit()
-	except Exception as e:
-		frappe.log_error(f"Error marking job as fetched: {str(e)}", "mark_job_fetched")
+		return json.loads(row.media_types or "[]")
+	except ValueError:
+		return []
 
 
-def mark_job_printed(job_token):
-	"""
-	Mark job as printed (delete from queue)
-
-	:param job_token: Job token
-	"""
-	try:
-		# Find and delete the job by token (regardless of status)
-		jobs = frappe.get_all(
-			"CloudPRNT Print Queue",
-			filters={"job_token": job_token},
-			fields=["name"]
-		)
-
-		if jobs:
-			frappe.delete_doc("CloudPRNT Print Queue", jobs[0].name, ignore_permissions=True)
-			frappe.db.commit()
-			return {"success": True}
-		else:
-			frappe.logger().warning(f"Job not found for deletion: {job_token}")
-			return {"success": False, "message": "Job not found"}
-
-	except Exception as e:
-		frappe.log_error(f"Error marking job as printed: {str(e)}", "mark_job_printed")
-		return {"success": False, "message": str(e)}
+def render_job(job, media_type, row):
+	"""The bytes of `job` in `media_type` for printer `row`. Raises render.RenderError."""
+	if media_type not in media_types_for(job, row):
+		raise render.RenderError(f"Job {job.job_token} is not offered as {media_type}")
+	if job.job_format == COMMANDS:
+		return bytes.fromhex(job.job_data or "")
+	return render.render(
+		job.job_data,
+		media_type,
+		paper_width=row.paper_width or frappe.db.get_single_value("CloudPRNT Settings", "default_paper_width"),
+		print_dots=row.print_dots,
+		drawer=job.open_drawer,
+		buzzer=job.buzzer,
+	)
 
 
-def get_queue_position(printer_mac, job_token):
-	"""
-	Get position of job in queue
-
-	:param printer_mac: Printer MAC address
-	:param job_token: Job token
-	:return: Queue position (1-based)
-	"""
-	try:
-		jobs = frappe.get_all(
-			"CloudPRNT Print Queue",
-			filters={
-				"printer_mac": printer_mac.upper(),
-				"status": "Pending"
-			},
-			fields=["job_token", "creation"],
-			order_by="creation asc"
-		)
-
-		for idx, job in enumerate(jobs, 1):
-			if job.job_token == job_token:
-				return idx
-
-		return 0
-
-	except Exception as e:
-		frappe.log_error(f"Error getting queue position: {str(e)}", "get_queue_position")
-		return 0
+def mark_fetched(job, media_type):
+	frappe.db.set_value(
+		DOCTYPE,
+		job.name,
+		{
+			"status": "Fetched",
+			"media_type": media_type,
+			"fetched_at": now_datetime(),
+			"attempts": (job.attempts or 0) + 1,
+		},
+		update_modified=False,
+	)
 
 
-def get_queue_status(printer_mac=None):
-	"""
-	Get queue status for debugging
-
-	:param printer_mac: Optional MAC address to filter
-	:return: Queue status dict
-	"""
-	try:
-		filters = {}
-		if printer_mac:
-			filters["printer_mac"] = printer_mac.upper()
-
-		jobs = frappe.get_all(
-			"CloudPRNT Print Queue",
-			filters=filters,
-			fields=["job_token", "printer_mac", "invoice_name", "status", "creation"],
-			order_by="creation asc"
-		)
-
-		if printer_mac:
-			return {
-				"printer_mac": printer_mac.upper(),
-				"jobs": jobs
-			}
-		else:
-			return {
-				"total_jobs": len(jobs),
-				"jobs": jobs
-			}
-
-	except Exception as e:
-		frappe.log_error(f"Error getting queue status: {str(e)}", "get_queue_status")
-		return {"error": str(e)}
+def mark_confirmed(job, code):
+	"""Record the code a printer confirmed `job` with: 2xx is printed, anything else failed."""
+	code = unquote(str(code or "")).strip()
+	printed = not code or code[:1] == "2"
+	frappe.db.set_value(
+		DOCTYPE,
+		job.name,
+		{
+			"status": "Printed" if printed else "Failed",
+			"result_code": code[:140],
+			"printed_at": now_datetime() if printed else None,
+		},
+		update_modified=False,
+	)
+	return printed
 
 
-def clear_queue(printer_mac=None):
-	"""
-	Clear print queue
+def fail_unconfirmed_jobs():
+	"""Scheduled: a job fetched long ago and never confirmed did not print as far as anyone knows."""
+	frappe.db.sql(
+		f"""update `tab{DOCTYPE}` set status = 'Failed', result_code = %(code)s
+		where status = 'Fetched' and fetched_at < %(before)s""",
+		{
+			"code": "No confirmation from the printer",
+			"before": add_to_date(now_datetime(), minutes=-UNCONFIRMED_AFTER_MINUTES),
+		},
+	)
 
-	:param printer_mac: Optional MAC address to clear specific printer
-	:return: Success dict
-	"""
-	try:
-		filters = {}
-		if printer_mac:
-			filters["printer_mac"] = printer_mac.upper()
 
-		frappe.db.delete("CloudPRNT Print Queue", filters)
-		frappe.db.commit()
+def delete_old_jobs():
+	"""Scheduled: printed and failed jobs go after KEEP_DAYS."""
+	frappe.db.delete(
+		DOCTYPE,
+		{"status": ("in", ("Printed", "Failed")), "creation": ("<", add_to_date(now_datetime(), days=-KEEP_DAYS))},
+	)
 
-		return {
-			"success": True,
-			"message": "Queue cleared"
-		}
 
-	except Exception as e:
-		frappe.log_error(f"Error clearing queue: {str(e)}", "clear_queue")
-		return {
-			"success": False,
-			"message": str(e)
-		}
+@frappe.whitelist()
+def print_again(job):
+	"""Queue a printed or failed job once more, as a new job (from the queue's form)."""
+	from cloudprnt import guards
+
+	guards.require("CloudPRNT Settings", "write")
+	guards.require(DOCTYPE, "read")
+	source = frappe.get_doc(DOCTYPE, job)
+	row = frappe._dict(name=source.printer, mac_address=source.printer_mac)
+	if source.printer:
+		from cloudprnt.printers import get_printer
+
+		row = get_printer(source.printer) or row
+	values = {
+		field: source.get(field)
+		for field in ("job_format", "job_data", "media_types", "buzzer", "reference_doctype", "reference_name")
+	}
+	# A copy of a receipt does not open the cash drawer a second time.
+	result = _insert(row, token=uuid.uuid4().hex, open_drawer="", **values)
+	frappe.msgprint(_("The job was queued again"), alert=True)
+	return result

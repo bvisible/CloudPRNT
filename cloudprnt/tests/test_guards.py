@@ -9,9 +9,11 @@ settings form and from the POS.
 import frappe
 from frappe.tests.utils import FrappeTestCase
 
-from cloudprnt.api import print_pos_invoice
-# Imported under another name: pytest, which this repository also runs, would collect a `test_print`.
+from cloudprnt.api import open_cash_drawer, print_pos_invoice, print_receipt
+# Imported under other names: a function named test_* would be collected as a test.
+from cloudprnt.cloudprnt.doctype.cloudprnt_settings.cloudprnt_settings import pair_printer
 from cloudprnt.cloudprnt.doctype.cloudprnt_settings.cloudprnt_settings import test_print as send_test_print
+from cloudprnt.print_queue_manager import print_again
 from cloudprnt.printer_discovery import add_discovered_printer, get_discovered_printers
 
 PORTAL = "_test_cloudprnt_portal@example.invalid"
@@ -51,7 +53,11 @@ class TestGuards(FrappeTestCase):
 		frappe.set_user(PORTAL)
 		calls = {
 			"print_pos_invoice": lambda: print_pos_invoice("ACC-PSINV-NO-SUCH-0001"),
+			"print_receipt": lambda: print_receipt("Sales Invoice", "ACC-SINV-NO-SUCH-0001"),
+			"open_cash_drawer": lambda: open_cash_drawer(MAC),
+			"pair_printer": lambda: pair_printer(label="_portal printer"),
 			"test_print": lambda: send_test_print(MAC),
+			"print_again": lambda: print_again("no-such-job"),
 			"get_discovered_printers": get_discovered_printers,
 			"add_discovered_printer": lambda: add_discovered_printer(MAC),
 		}
@@ -61,11 +67,15 @@ class TestGuards(FrappeTestCase):
 
 	def test_the_staff_reaches_the_methods(self):
 		"""Past the guard, each method answers on its own terms: nothing here is a permission refusal."""
-		self.assertFalse(print_pos_invoice("ACC-PSINV-NO-SUCH-0001")["success"], "an unknown invoice is reported")
-		self.assertFalse(send_test_print("no such printer label")["success"], "an unknown printer is reported")
+		with self.assertRaises(frappe.DoesNotExistError):
+			print_receipt("Sales Invoice", "ACC-SINV-NO-SUCH-0001")
+		with self.assertRaises(frappe.ValidationError, msg="an unknown printer is reported"):
+			send_test_print("no such printer label")
+		with self.assertRaises(frappe.ValidationError):
+			open_cash_drawer("no such printer label")
 		get_discovered_printers()
 
 	def test_a_test_print_fetches_web_links_only(self):
-		answer = send_test_print(MAC, image_link="file:///etc/passwd")
+		answer = send_test_print("no such printer label", image_link="file:///etc/passwd")
 		self.assertFalse(answer["success"])
 		self.assertIn("http", answer["message"])

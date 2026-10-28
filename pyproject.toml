@@ -1,7 +1,7 @@
 [project]
 name = "cloudprnt"
 authors = [
-    { name = "Neoffice", email = "hello@neoffice.io"}
+    { name = "Neoffice", email = "hello@neoservice.ai"}
 ]
 description = "Use CloudPRNT service"
 requires-python = ">=3.10"
@@ -9,13 +9,8 @@ readme = "README.md"
 dynamic = ["version"]
 dependencies = [
     # "frappe~=15.0.0" # Installed and managed by bench.
-    # Standalone CloudPRNT server (supervisor program on port 8001, run with the
-    # bench env python) and the MQTT bridge. bench installs from this list only:
-    # requirements.txt is not read once a pyproject exists.
-    "fastapi>=0.100.0",
-    "uvicorn>=0.23.0",
-    "paho-mqtt>=2.0.0",
-    "Pillow>=11.0.0",
+    # Jobs are rendered by Star's cputil (cloudprnt/bin/cputil); the printer protocol is served by the
+    # site itself (cloudprnt/protocol.py): no FastAPI server, no MQTT bridge, no other dependency.
 ]
 
 [build-system]

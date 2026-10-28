@@ -1,170 +1,195 @@
 // Copyright (c) 2024, Neoffice and contributors
 // For license information, please see license.txt
 
+const SETTINGS_METHODS = "cloudprnt.cloudprnt.doctype.cloudprnt_settings.cloudprnt_settings";
+
 frappe.ui.form.on("CloudPRNT Settings", {
-    refresh(frm) {
-        // Note: update_printers() removed - printers are now updated automatically
-        // by cloudprnt_server.py when they poll the server
-
-        // Add "Discover Printers" button
-        frm.add_custom_button(__('Découvrir Imprimantes'), function() {
-            frappe.call({
-                method: 'cloudprnt.printer_discovery.get_discovered_printers',
-                callback: function(r) {
-                    if (r.message && r.message.success) {
-                        const printers = r.message.printers;
-
-                        if (printers.length === 0) {
-                            frappe.msgprint({
-                                title: __('Aucune nouvelle imprimante'),
-                                indicator: 'blue',
-                                message: __('Aucune nouvelle imprimante détectée. Assurez-vous que l\'imprimante poll le serveur avec l\'URL correcte.')
-                            });
-                            return;
-                        }
-
-                        // Create dialog with discovered printers
-                        const dialog = new frappe.ui.Dialog({
-                            title: __('Imprimantes Découvertes'),
-                            fields: [
-                                {
-                                    fieldtype: 'HTML',
-                                    fieldname: 'printer_list'
-                                }
-                            ],
-                            primary_action_label: __('Fermer'),
-                            primary_action: function() {
-                                dialog.hide();
-                            }
-                        });
-
-                        // Build HTML table
-                        let html = '<table class="table table-bordered">';
-                        html += '<thead><tr>';
-                        html += '<th>MAC Address</th>';
-                        html += '<th>Type</th>';
-                        html += '<th>IP</th>';
-                        html += '<th>Polls</th>';
-                        html += '<th>Action</th>';
-                        html += '</tr></thead><tbody>';
-
-                        printers.forEach(printer => {
-                            html += '<tr>';
-                            html += `<td><code>${printer.mac_address}</code></td>`;
-                            html += `<td>${printer.client_type}</td>`;
-                            html += `<td>${printer.ip_address}</td>`;
-                            html += `<td>${printer.poll_count}</td>`;
-                            html += `<td><button class="btn btn-sm btn-primary add-printer" data-mac="${printer.mac_address}">${__('Add')}</button></td>`;
-                            html += '</tr>';
-                        });
-
-                        html += '</tbody></table>';
-
-                        dialog.fields_dict.printer_list.$wrapper.html(html);
-
-                        // Add click handlers
-                        dialog.fields_dict.printer_list.$wrapper.find('.add-printer').on('click', function() {
-                            const mac = $(this).data('mac');
-
-                            // Prompt for label
-                            frappe.prompt([
-                                {
-                                    label: __('Nom de l\'imprimante'),
-                                    fieldname: 'label',
-                                    fieldtype: 'Data',
-                                    reqd: 1
-                                }
-                            ], function(values) {
-                                frappe.call({
-                                    method: 'cloudprnt.printer_discovery.add_discovered_printer',
-                                    args: {
-                                        mac_address: mac,
-                                        label: values.label
-                                    },
-                                    callback: function(r) {
-                                        if (r.message && r.message.success) {
-                                            frappe.show_alert({
-                                                message: __('Imprimante ajoutée avec succès!'),
-                                                indicator: 'green'
-                                            }, 3);
-                                            dialog.hide();
-                                            frm.reload_doc();
-                                        } else {
-                                            frappe.msgprint({
-                                                title: __('Erreur'),
-                                                indicator: 'red',
-                                                message: r.message.message || __('Erreur lors de l\'ajout')
-                                            });
-                                        }
-                                    }
-                                });
-                            }, __('Ajouter Imprimante'), __('Ajouter'));
-                        });
-
-                        dialog.show();
-                    } else {
-                        frappe.msgprint({
-                            title: __('Erreur'),
-                            indicator: 'red',
-                            message: r.message ? r.message.message : __('Erreur lors de la récupération des imprimantes')
-                        });
-                    }
-                }
-            });
-        });
-
-        frm.add_custom_button(__('Tester Imprimante'), function() {
-            const dialog = new frappe.ui.Dialog({
-                title: __('Test d\'impression'),
-                fields: [
-                    {
-                        label: __('Imprimante'),
-                        fieldname: 'printer',
-                        fieldtype: 'Link',
-                        options: 'CloudPRNT Printers',
-                        reqd: 1,
-                        default: frm.doc.default_printer
-                    },
-                    {
-                        label: __('Lien de l\'image'),
-                        fieldname: 'image_link',
-                        fieldtype: 'Data',
-                        description: __('URL de l\'image à imprimer (optionnel)')
-                    },
-                    {
-                        label: __('Texte à imprimer'),
-                        fieldname: 'test_text',
-                        fieldtype: 'Small Text',
-                        default: 'Ceci est un test d\'impression CloudPRNT'
-                    }
-                ],
-                primary_action_label: __('Imprimer'),
-                primary_action: function(values) {
-                    frappe.call({
-                        method: 'cloudprnt.cloudprnt.doctype.cloudprnt_settings.cloudprnt_settings.test_print',
-                        args: {
-                            printer: values.printer,
-                            test_text: values.test_text,
-                            image_link: values.image_link
-                        },
-                        callback: function(r) {
-                            if (r.message && r.message.success) {
-                                frappe.show_alert({
-                                    message: __('Test d\'impression envoyé à l\'imprimante'),
-                                    indicator: 'green'
-                                }, 5);
-                            } else {
-                                frappe.show_alert({
-                                    message: __('Erreur: ') + (r.message ? r.message.message : __('Erreur inconnue')),
-                                    indicator: 'red'
-                                }, 5);
-                            }
-                        }
-                    });
-                    dialog.hide();
-                }
-            });
-            dialog.show();
-        });
-    },
+	refresh(frm) {
+		frm.set_intro(
+			__("Printers are configured with their own credentials: use Add a printer, then follow the steps it shows."),
+			"blue"
+		);
+		const group = __("Printers");
+		frm.add_custom_button(__("Add a printer"), () => add_printer(frm), group);
+		frm.add_custom_button(__("Printer credentials"), () => renew_credentials(frm), group);
+		frm.add_custom_button(__("Detected printers"), () => show_detected(frm), group);
+		frm.add_custom_button(__("Test print"), () => test_print(frm), group);
+		frm.add_custom_button(__("Open the cash drawer"), () => open_drawer(frm), group);
+	},
 });
+
+function printer_options(frm) {
+	return (frm.doc.printers || []).map((row) => ({ label: row.label || row.mac_address, value: row.name }));
+}
+
+function pick_printer(frm, title, action_label, extra_fields, action) {
+	const options = printer_options(frm);
+	if (!options.length) {
+		frappe.msgprint(__("Add a printer first."));
+		return;
+	}
+	const dialog = new frappe.ui.Dialog({
+		title,
+		fields: [
+			{
+				fieldname: "printer",
+				fieldtype: "Select",
+				label: __("Printer"),
+				options,
+				reqd: 1,
+				default: frm.doc.default_printer || options[0].value,
+			},
+			...(extra_fields || []),
+		],
+		primary_action_label: action_label,
+		primary_action(values) {
+			dialog.hide();
+			action(values);
+		},
+	});
+	dialog.show();
+}
+
+function add_printer(frm) {
+	frappe.prompt(
+		[{ fieldname: "label", fieldtype: "Data", label: __("Printer label"), reqd: 1, description: __("For example: Till 1") }],
+		(values) => {
+			frappe.call({
+				method: `${SETTINGS_METHODS}.pair_printer`,
+				args: { label: values.label },
+				freeze: true,
+				callback(r) {
+					frm.reload_doc();
+					if (r.message) show_credentials(r.message);
+				},
+			});
+		},
+		__("Add a printer"),
+		__("Create")
+	);
+}
+
+function renew_credentials(frm) {
+	pick_printer(frm, __("Printer credentials"), __("Issue new credentials"), [
+		{
+			fieldtype: "HTML",
+			options: `<p class="text-muted">${__(
+				"The printer stops printing until it is configured with the new credentials."
+			)}</p>`,
+		},
+	], (values) => {
+		frappe.call({
+			method: `${SETTINGS_METHODS}.pair_printer`,
+			args: { printer: values.printer },
+			freeze: true,
+			callback(r) {
+				frm.reload_doc();
+				if (r.message) show_credentials(r.message);
+			},
+		});
+	});
+}
+
+function show_credentials(credentials) {
+	const dialog = new frappe.ui.Dialog({
+		title: __("Configure the printer"),
+		size: "large",
+		fields: [
+			{
+				fieldtype: "HTML",
+				options: `<p>${__(
+					"From a computer on the same network as the printer, run this command. It finds the printer, asks for its administrator password and configures it:"
+				)}</p>`,
+			},
+			{ fieldname: "setup_command", fieldtype: "Code", label: __("Command"), read_only: 1 },
+			{
+				fieldtype: "HTML",
+				options: `<p>${__(
+					"Or open the printer's web page (its IP address in a browser), sign in, open CloudPRNT and enter these three values, then Save and restart the printer:"
+				)}</p>`,
+			},
+			{ fieldname: "url", fieldtype: "Data", label: __("Server URL"), read_only: 1 },
+			{ fieldname: "user", fieldtype: "Data", label: __("User Name"), read_only: 1 },
+			{ fieldname: "password", fieldtype: "Data", label: __("Password"), read_only: 1 },
+			{
+				fieldtype: "HTML",
+				options: `<p class="text-muted">${__(
+					"The password is shown only now. Once the printer signs in, it prints a ticket saying it is connected, and its model and paper width appear here by themselves."
+				)}</p>`,
+			},
+		],
+		primary_action_label: __("Done"),
+		primary_action() {
+			dialog.hide();
+		},
+	});
+	dialog.set_values(credentials);
+	dialog.show();
+}
+
+function show_detected(frm) {
+	frappe.call({
+		method: "cloudprnt.printer_discovery.get_discovered_printers",
+		callback(r) {
+			const printers = (r.message && r.message.printers) || [];
+			if (!printers.length) {
+				frappe.msgprint({
+					title: __("Detected printers"),
+					indicator: "blue",
+					message: __("No printer reached this site without credentials in the last day."),
+				});
+				return;
+			}
+			const rows = printers
+				.map(
+					(p) => `<tr>
+						<td><code>${frappe.utils.escape_html(p.mac_address)}</code></td>
+						<td>${frappe.utils.escape_html(p.ip_address || "")}</td>
+						<td>${frappe.utils.escape_html(p.configured_as || __("Not configured"))}</td>
+						<td>${p.signed_in_as ? __("Wrong credentials") : __("No credentials")}</td>
+						<td>${frappe.datetime.comment_when(p.last_seen)}</td>
+					</tr>`
+				)
+				.join("");
+			frappe.msgprint({
+				title: __("Detected printers"),
+				indicator: "orange",
+				message: `<p>${__(
+					"These printers poll this site without valid credentials. Add a printer, or issue its credentials again, then configure it with them."
+				)}</p>
+				<table class="table table-bordered"><thead><tr>
+					<th>${__("MAC Address")}</th><th>${__("IP Address")}</th><th>${__("Printer")}</th>
+					<th>${__("Problem")}</th><th>${__("Last Seen")}</th>
+				</tr></thead><tbody>${rows}</tbody></table>`,
+			});
+		},
+	});
+}
+
+function test_print(frm) {
+	pick_printer(frm, __("Test print"), __("Print"), [
+		{ fieldname: "test_text", fieldtype: "Small Text", label: __("Text"), default: __("CloudPRNT print test") },
+		{ fieldname: "image_link", fieldtype: "Data", label: __("Image link"), description: __("Optional: the URL of an image to print") },
+	], (values) => {
+		frappe.call({
+			method: `${SETTINGS_METHODS}.test_print`,
+			args: values,
+			callback(r) {
+				const ok = r.message && r.message.success;
+				frappe.show_alert({ message: r.message && r.message.message, indicator: ok ? "green" : "red" }, 5);
+			},
+		});
+	});
+}
+
+function open_drawer(frm) {
+	pick_printer(frm, __("Open the cash drawer"), __("Open"), [], (values) => {
+		frappe.call({
+			method: "cloudprnt.api.open_cash_drawer",
+			args: { printer: values.printer },
+			callback(r) {
+				if (r.message) frappe.show_alert({ message: r.message.message, indicator: "green" }, 5);
+			},
+		});
+	});
+}

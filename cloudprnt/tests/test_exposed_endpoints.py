@@ -13,6 +13,9 @@ anywhere and were removed. These tests keep it that way:
 * every method a signed-in account may call says who may, by calling guards.require (the review that followed
   the report found fifteen that any portal customer could call: the four the desk and the POS use are guarded,
   the eleven nothing called over HTTP are no longer exposed).
+
+On 2026-10-28 the protocol moved into protocol.serve, where a printer signs in with its own account: the three
+anonymous methods before it handed a printer's pending receipts to whoever named its MAC address.
 """
 
 import ast
@@ -22,16 +25,19 @@ from pathlib import Path
 APP = Path(__file__).resolve().parents[1]
 
 #: The CloudPRNT protocol: a Star printer polls, fetches and deletes its jobs without a Frappe session.
+#: One URL serves the three requests (poll, job, confirmation); a printer signs in as its own account there.
 GUEST_METHODS = {
-	"cloudprnt_server.cloudprnt_poll",
-	"cloudprnt_server.cloudprnt_job",
-	"cloudprnt_server.cloudprnt_delete",
+	"protocol.serve",
 }
 
 REMOVED = {
 	"print_job.call_execute_cputil",
 	"print_job.process_order_history_from_php",
 	"cloudprnt_server.cloudprnt_debug",
+	# The printer protocol before protocol.serve: three anonymous methods over a queue held in one worker.
+	"cloudprnt_server.cloudprnt_poll",
+	"cloudprnt_server.cloudprnt_job",
+	"cloudprnt_server.cloudprnt_delete",
 }
 
 SHELL_CALLS = {("os", "system"), ("os", "popen")}
@@ -130,6 +136,7 @@ class TestExposedEndpoints(unittest.TestCase):
 		self.assertGreaterEqual(len(methods), 7, methods)
 		self.assertIn("api.print_pos_invoice", methods)
 		self.assertIn("printer_discovery.add_discovered_printer", methods)
+		self.assertIn("protocol.serve", methods)
 
 
 if __name__ == "__main__":

@@ -1,229 +1,130 @@
 # Copyright (c) 2023, Neoffice and contributors
 # For license information, please see license.txt
 
-# import frappe
-from frappe.model.document import Document
 import frappe
 from frappe import _
-import os
-from datetime import datetime
-from cloudprnt.print_job import StarCloudPRNTStarLineModeJob, neolog
-from cloudprnt import guards
+from frappe.model.document import Document
+from frappe.utils import now_datetime
+
+from cloudprnt import devices, guards
+from cloudprnt import print_queue_manager as jobs
+from cloudprnt.printers import SERVER_FIELDS, all_printers, find_printer, normalize_mac
+
+SETUP_SCRIPT = "/assets/cloudprnt/star_printer_setup.py"
 
 
 class CloudPRNTSettings(Document):
 	def validate(self):
-		"""Validate settings"""
-		# Vérifier que les URLs des logos sont valides
-		if self.header_logo_url and not self.header_logo_url.startswith(('http://', 'https://')):
-			frappe.msgprint(_("Header logo URL must start with http:// or https://"))
+		for field in ("header_logo_url", "footer_logo_url"):
+			value = (self.get(field) or "").strip()
+			if value and not value.startswith(("http://", "https://")):
+				frappe.throw(_("{0} must start with http:// or https://").format(_(self.meta.get_label(field))))
+		self._keep_what_printers_reported()
+		self._check_printers()
 
-		if self.footer_logo_url and not self.footer_logo_url.startswith(('http://', 'https://')):
-			frappe.msgprint(_("Footer logo URL must start with http:// or https://"))
+	def on_update(self):
+		devices.disable_accounts_of_removed_printers(self._rows_before_save, {row.name for row in self.printers})
 
-def get_settings():
-	"""Return CloudPRNT settings as a dict"""
-	settings = frappe.get_single("CloudPRNT Settings")
-	return {
-		"header_logo_url": settings.header_logo_url or "",
-		"footer_logo_url": settings.footer_logo_url or "",
-		"default_printer": settings.default_printer or "",
-		"enable_auto_print": settings.enable_auto_print or 0,
-		"default_paper_width": settings.default_paper_width or "80mm"
-	}
+	def _keep_what_printers_reported(self):
+		"""The form carries the fields printers write (status, identity, capabilities) as it loaded them:
+		the stored values win, so saving a form opened a while ago does not wipe what a printer reported."""
+		self._rows_before_save = all_printers()
+		stored = {row.name: row for row in self._rows_before_save}
+		for row in self.printers:
+			saved = stored.get(row.name)
+			if not saved:
+				continue
+			for field in SERVER_FIELDS:
+				if field == "mac_address" and not saved.get(field):
+					continue  # set by hand before the printer ever signed in
+				row.set(field, saved.get(field))
+
+	def _check_printers(self):
+		macs, profiles = {}, {}
+		for row in self.printers:
+			if row.mac_address:
+				mac = normalize_mac(row.mac_address)
+				if not mac:
+					frappe.throw(_("Row {0}: {1} is not a MAC address").format(row.idx, row.mac_address))
+				if mac in macs:
+					frappe.throw(_("Rows {0} and {1} have the same MAC address").format(macs[mac], row.idx))
+				macs[mac] = row.idx
+				row.mac_address = mac
+			if row.pos_profile and row.auto_print:
+				if row.pos_profile in profiles:
+					frappe.throw(
+						_("Rows {0} and {1} both print the receipts of {2}").format(
+							profiles[row.pos_profile], row.idx, row.pos_profile
+						)
+					)
+				profiles[row.pos_profile] = row.idx
+
+
+@frappe.whitelist()
+def pair_printer(printer=None, label=None):
+	"""Issue the credentials a printer signs in with: for printer row `printer` (renewing them: the old ones
+	stop working), or for a new printer row named `label`. Returns what the printer is configured with, and
+	the command that configures it from a computer on its network."""
+	guards.require("CloudPRNT Settings", "write")
+	if not printer:
+		label = (label or "").strip()
+		if not label:
+			frappe.throw(_("Give the printer a label"))
+		settings = frappe.get_doc("CloudPRNT Settings")
+		row = settings.append("printers", {"label": label})
+		if not settings.default_printer:
+			settings.save()
+			settings.default_printer = row.name
+		settings.save()
+		printer = row.name
+	else:
+		printer = find_printer(printer).name
+	credentials = devices.issue_credentials(printer)
+	credentials["printer"] = printer
+	credentials["setup_command"] = setup_command(credentials)
+	return credentials
+
+
+def setup_command(credentials):
+	"""The command that configures a Star printer from a computer on its network (public/star_printer_setup.py)."""
+	script = frappe.utils.get_url(SETUP_SCRIPT)
+	return (
+		f"curl -fsSLO {script} && python3 star_printer_setup.py"
+		f" --url '{credentials['url']}' --user '{credentials['user']}' --password '{credentials['password']}'"
+	)
+
 
 @frappe.whitelist()
 def test_print(printer, test_text=None, image_link=None):
-	"""
-	Test print function using new Python CloudPRNT server
-
-	Version 2.0 - Uses in-memory queue instead of writing to disk
-	Can now print images from URL before text
-
-	:param printer: Printer label or MAC address
-	:param test_text: Text to print (default: "Test d'impression CloudPRNT")
-	:param image_link: URL of image to print (optional, PNG/JPEG/BMP/GIF)
-	:return: Result dict with success status
-	"""
-	# Sends a print and fetches a URL from the server: whoever may change the CloudPRNT settings.
+	"""Print a test ticket on `printer`: text in every style the receipts use, a QR code, an image if given."""
 	guards.require("CloudPRNT Settings", "write")
-	if image_link and not str(image_link).strip().lower().startswith(("http://", "https://")):
+	image_link = (image_link or "").strip()
+	if image_link and not image_link.lower().startswith(("http://", "https://")):
 		return {"success": False, "message": _("The image link must start with http:// or https://")}
-	try:
-		if test_text is None:
-			test_text = _("CloudPRNT print test")
+	row = find_printer(printer)
+	text = (test_text or "").strip() or _("CloudPRNT print test")
+	lines = ["[align: centre]", f"[magnify: width 2; height 2]{_('Print test')}[magnify]", ""]
+	if image_link:
+		lines += [f"[image: url {image_link}; width 60%; min-width 48mm]", ""]
+	lines += [
+		_escape(text),
+		"",
+		"[align: left]",
+		f"[column: left {_('Printer')}; right {_param(row.label)}]",
+		f"[column: left MAC; right {_param(row.mac_address or '-')}]",
+		f"[column: left {_('Date')}; right {now_datetime().strftime('%d.%m.%Y %H:%M:%S')}]",
+		f"[bold: on]{_('Bold')}[bold: off] éàèùç ÄÖÜ œ € CHF",
+		"[align: centre]",
+		f"[barcode: type qr; data {_param(frappe.utils.get_url())}; module 5]",
+		"[cut: feed; partial]",
+	]
+	result = jobs.enqueue(row, "\n".join(lines), token=f"test-{frappe.generate_hash(length=12)}")
+	return {"success": True, "message": _("Test print sent to {0}").format(row.label), **result}
 
-		if not printer:
-			return {"success": False, "message": _("No printer specified")}
 
-		# Get MAC address
-		mac_address = None
-		if ":" in printer or "." in printer:
-			# MAC address provided directly
-			mac_address = printer.replace(".", ":")
-		else:
-			# Printer label or name provided - find in settings
-			settings = frappe.get_single("CloudPRNT Settings")
-			for p in settings.printers:
-				# Check both label and name (for backward compatibility)
-				if p.label == printer or p.name == printer:
-					mac_address = p.mac_address
-					break
+def _escape(text):
+	return str(text).replace("\\", "\\\\").replace("[", "\\[").replace("]", "\\]")
 
-			if not mac_address:
-				return {"success": False, "message": _("Printer {0} not found").format(printer)}
 
-		# Handle image printing if URL provided
-		image_hex = None
-		if image_link and image_link.strip():
-			try:
-				import requests
-				import tempfile
-				from cloudprnt.cputil_wrapper import convert_image_to_starline
-				from PIL import Image
-
-				# Download image
-				response = requests.get(image_link, timeout=10)
-				response.raise_for_status()
-
-				# Save to temp file
-				temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.png')
-				temp_file.write(response.content)
-				temp_file.close()
-
-				# Convert transparency to white background
-				img = Image.open(temp_file.name)
-				if img.mode in ('RGBA', 'LA') or (img.mode == 'P' and 'transparency' in img.info):
-					# Create white background
-					background = Image.new('RGB', img.size, (255, 255, 255))
-					if img.mode == 'P':
-						img = img.convert('RGBA')
-					# Paste image on white background using alpha channel as mask
-					background.paste(img, mask=img.split()[-1] if img.mode == 'RGBA' else None)
-					img = background
-
-				# Save processed image
-				processed_file = tempfile.NamedTemporaryFile(delete=False, suffix='.png')
-				img.save(processed_file.name, 'PNG')
-				processed_file.close()
-
-				# Convert to Star Line Mode (not StarPRNT)
-				image_hex = convert_image_to_starline(
-					processed_file.name,
-					options={
-						'printer_width': 3,  # 80mm
-						'dither': True,  # Re-enable dithering for better quality
-						'scale_to_fit': True
-					}
-				)
-
-				# Cleanup
-				os.unlink(temp_file.name)
-				os.unlink(processed_file.name)
-
-			except Exception as img_error:
-				frappe.log_error("Image download/conversion error", str(img_error))
-				return {
-					"success": False,
-					"message": _("Error processing image: {0}").format(str(img_error))
-				}
-
-		# If we have an image, print it with Star Line Mode format
-		if image_hex:
-			# Image job - use Star Line Mode media type (same as text jobs)
-			test_job_token = f"TEST-IMG-{datetime.now().strftime('%Y%m%d%H%M%S')}"
-
-			from cloudprnt.print_queue_manager import add_job_to_queue
-
-			result = add_job_to_queue(
-				job_token=test_job_token,
-				printer_mac=mac_address,
-				invoice_name=None,
-				job_data=image_hex,
-				media_types=["application/vnd.star.line"]
-			)
-
-			if not result.get("success"):
-				return result
-
-			frappe.logger().info(f"Test image print job added to queue: {test_job_token} for {mac_address}")
-
-			# If there's also text, print it separately
-			if test_text and test_text.strip():
-				# Add a small delay by creating second job
-				test_job_token_text = f"TEST-TXT-{datetime.now().strftime('%Y%m%d%H%M%S')}"
-				current_time = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
-
-				test_markup = f"""[align: centre]
-[magnify: width 2; height 1]--- TEST D'IMPRESSION ---[magnify]
-
-{test_text}
-
-Date/Heure: {current_time}
-
-[align: left]
-Imprimante: {printer}
-MAC: {mac_address}
-
-[cut: feed; partial]"""
-
-				add_job_to_queue(
-					job_token=test_job_token_text,
-					printer_mac=mac_address,
-					invoice_name=None,
-					job_data=test_markup,
-					media_types=["application/vnd.star.line", "text/vnd.star.markup"]
-				)
-
-			return {
-				"success": True,
-				"message": _("Test print (image + text) sent to queue"),
-				"job_token": test_job_token,
-				"queue_position": result.get("queue_position", 1)
-			}
-
-		# Text only - original behavior
-		current_time = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
-
-		test_markup = f"""[align: centre]
-[magnify: width 2; height 1]--- TEST D'IMPRESSION ---[magnify]
-
-{test_text}
-
-Date/Heure: {current_time}
-
-[align: left]
-Imprimante: {printer}
-MAC: {mac_address}
-
-[cut: feed; partial]"""
-
-		# Create temporary test job document in memory
-		test_job_token = f"TEST-{datetime.now().strftime('%Y%m%d%H%M%S')}"
-
-		# Add to database queue (shared between processes)
-		from cloudprnt.print_queue_manager import add_job_to_queue
-
-		result = add_job_to_queue(
-			job_token=test_job_token,
-			printer_mac=mac_address,
-			invoice_name=None,  # No invoice for test
-			job_data=test_markup,  # Custom markup for test
-			media_types=["application/vnd.star.line", "text/vnd.star.markup"]
-		)
-
-		if not result.get("success"):
-			return result
-
-		frappe.logger().info(f"Test print job added to queue: {test_job_token} for {mac_address}")
-
-		return {
-			"success": True,
-			"message": _("Test print sent to queue (job: {0})").format(test_job_token),
-			"job_token": test_job_token,
-			"queue_position": result.get("queue_position", 1)
-		}
-
-	except Exception as e:
-		frappe.log_error(message=str(e), title="Error in test_print")
-		return {"success": False, "message": str(e)}
+def _param(text):
+	return str(text or "").replace(";", ",").replace("[", "(").replace("]", ")")

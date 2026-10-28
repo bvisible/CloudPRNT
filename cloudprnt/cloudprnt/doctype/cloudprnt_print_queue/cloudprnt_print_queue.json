@@ -6,11 +6,24 @@
  "engine": "InnoDB",
  "field_order": [
   "job_token",
-  "printer_mac",
+  "status",
+  "reference_doctype",
+  "reference_name",
   "invoice_name",
   "column_break_1",
-  "status",
+  "printer",
+  "printer_mac",
+  "open_drawer",
+  "buzzer",
+  "section_delivery",
+  "media_type",
+  "attempts",
+  "result_code",
+  "column_break_delivery",
+  "fetched_at",
+  "printed_at",
   "section_break_2",
+  "job_format",
   "job_data",
   "media_types"
  ],
@@ -20,49 +33,144 @@
    "fieldtype": "Data",
    "label": "Job Token",
    "reqd": 1,
-   "unique": 1
-  },
-  {
-   "fieldname": "printer_mac",
-   "fieldtype": "Data",
-   "label": "Printer MAC",
-   "reqd": 1
-  },
-  {
-   "fieldname": "invoice_name",
-   "fieldtype": "Data",
-   "label": "Invoice"
+   "unique": 1,
+   "read_only": 1
   },
   {
    "fieldname": "status",
    "fieldtype": "Select",
    "label": "Status",
-   "options": "Pending\nFetched\nPrinted\nError",
+   "options": "Pending\nFetched\nPrinted\nFailed",
    "default": "Pending",
-   "reqd": 1
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "search_index": 1,
+   "read_only": 1
   },
   {
-   "fieldname": "job_data",
-   "fieldtype": "Long Text",
-   "label": "Job Data"
+   "fieldname": "reference_doctype",
+   "fieldtype": "Link",
+   "label": "Reference Type",
+   "read_only": 1,
+   "options": "DocType"
   },
   {
-   "fieldname": "media_types",
-   "fieldtype": "Small Text",
-   "label": "Media Types"
+   "fieldname": "reference_name",
+   "fieldtype": "Dynamic Link",
+   "label": "Reference",
+   "read_only": 1,
+   "options": "reference_doctype",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "invoice_name",
+   "fieldtype": "Data",
+   "label": "Invoice",
+   "read_only": 1,
+   "hidden": 1
   },
   {
    "fieldname": "column_break_1",
    "fieldtype": "Column Break"
   },
   {
+   "fieldname": "printer",
+   "fieldtype": "Data",
+   "label": "Printer Row",
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "printer_mac",
+   "fieldtype": "Data",
+   "label": "Printer MAC",
+   "read_only": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "open_drawer",
+   "fieldtype": "Select",
+   "label": "Open the Cash Drawer",
+   "read_only": 1,
+   "options": "\nstart\nend"
+  },
+  {
+   "fieldname": "buzzer",
+   "fieldtype": "Int",
+   "label": "Buzzer Rings",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_delivery",
+   "fieldtype": "Section Break",
+   "label": "Delivery"
+  },
+  {
+   "fieldname": "media_type",
+   "fieldtype": "Data",
+   "label": "Format Fetched",
+   "read_only": 1
+  },
+  {
+   "fieldname": "attempts",
+   "fieldtype": "Int",
+   "label": "Fetches",
+   "read_only": 1
+  },
+  {
+   "fieldname": "result_code",
+   "fieldtype": "Data",
+   "label": "Printer Result",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_delivery",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "fetched_at",
+   "fieldtype": "Datetime",
+   "label": "Fetched At",
+   "read_only": 1
+  },
+  {
+   "fieldname": "printed_at",
+   "fieldtype": "Datetime",
+   "label": "Printed At",
+   "read_only": 1
+  },
+  {
    "fieldname": "section_break_2",
-   "fieldtype": "Section Break"
+   "fieldtype": "Section Break",
+   "label": "Job",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "job_format",
+   "fieldtype": "Select",
+   "label": "Job Format",
+   "read_only": 1,
+   "options": "Markup\nPrinter Commands",
+   "default": "Markup"
+  },
+  {
+   "fieldname": "job_data",
+   "fieldtype": "Long Text",
+   "label": "Job Data",
+   "read_only": 1
+  },
+  {
+   "fieldname": "media_types",
+   "fieldtype": "Small Text",
+   "label": "Media Types",
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-11-13 12:40:00.000000",
+ "modified": "2026-10-28 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "CloudPRNT",
  "name": "CloudPRNT Print Queue",
@@ -82,7 +190,7 @@
   }
  ],
  "sort_field": "creation",
- "sort_order": "ASC",
+ "sort_order": "DESC",
  "states": [],
- "track_changes": 1
+ "track_changes": 0
 }
