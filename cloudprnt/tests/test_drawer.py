@@ -1,5 +1,7 @@
 """The cash drawer from the till and its journal; the till's printing settings; kitchen tickets at each send."""
 
+import sys
+import types
 import unittest
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -168,6 +170,60 @@ class TestTillPrinting(FrappeTestCase):
 			self.assertEqual(get_printer(second["printer"]).preparation_station, "_Kitchen")
 		finally:
 			_remove_rows([first["printer"], second["printer"]])
+
+
+class TestTillStations(FrappeTestCase):
+	"""The stations a till lists: those of its restaurant, each by the name the printers keep and by its label."""
+
+	STATIONS = [frappe._dict(name="h4sh0f4stn", station_name="Kitchen", station_type="Kitchen")]
+
+	def listed(self, filters):
+		"""get_till_printing(…)["stations"], the stations being those above, and what was asked of the database."""
+		asked = {}
+		real_get_all, real_exists = frappe.get_all, frappe.db.exists
+
+		def get_all(doctype, *args, **kwargs):
+			if doctype != "Preparation Station":
+				return real_get_all(doctype, *args, **kwargs)
+			asked.update(kwargs)
+			return self.STATIONS
+
+		def exists(doctype, *args, **kwargs):
+			if doctype == "DocType" and args and args[0] == "Preparation Station":
+				return True
+			return real_exists(doctype, *args, **kwargs)
+
+		with (
+			patch.object(till, "_restaurant_filters", return_value=filters),
+			patch.object(frappe, "get_all", get_all),
+			patch.object(frappe.db, "exists", exists),
+		):
+			return till.get_till_printing(PROFILE)["stations"], asked
+
+	def test_the_till_lists_its_stations_by_name_and_by_label(self):
+		stations, _ = self.listed(None)
+		self.assertEqual(
+			stations,
+			[{"station": "h4sh0f4stn", "station_name": "Kitchen", "station_type": "Kitchen", "printer": None}],
+		)
+
+	def test_the_till_lists_the_stations_of_its_restaurant_only(self):
+		_, asked = self.listed([["restaurant", "=", "_Test Restaurant"]])
+		self.assertEqual(asked["or_filters"], [["restaurant", "=", "_Test Restaurant"]])
+
+	def test_the_restaurant_of_a_till_is_the_one_pos_next_says(self):
+		scope = SimpleNamespace(
+			current_restaurant=lambda profile: f"restaurant of {profile}",
+			restaurant_or_filters=lambda restaurant: [["restaurant", "=", restaurant]],
+		)
+		restaurant_module = types.ModuleType("pos_next.restaurant")
+		restaurant_module.scope = scope
+		with patch.dict(sys.modules, {"pos_next": types.ModuleType("pos_next"), "pos_next.restaurant": restaurant_module}):
+			self.assertEqual(till._restaurant_filters("Till 1"), [["restaurant", "=", "restaurant of Till 1"]])
+
+	def test_without_pos_next_every_station_belongs_to_the_site(self):
+		with patch.dict(sys.modules, {"pos_next.restaurant": None}):
+			self.assertIsNone(till._restaurant_filters("Till 1"))
 
 
 class TestKitchenSend(FrappeTestCase):

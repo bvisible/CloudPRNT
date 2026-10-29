@@ -39,9 +39,24 @@ def get_till_printing(pos_profile):
 	receipt = next((row for row in printers if pos_profile and row.pos_profile == pos_profile), None)
 	stations = []
 	if frappe.db.exists("DocType", "Preparation Station"):
-		for station in frappe.get_all("Preparation Station", fields=["name", "station_type"], order_by="name"):
+		# `station` is the name the printer rows keep, `station_name` what a person reads: POS Next names a new station
+		# by a hash, and the same label can exist in two restaurants, so the till lists its own restaurant's only
+		stations_of_the_till = frappe.get_all(
+			"Preparation Station",
+			fields=["name", "station_name", "station_type"],
+			or_filters=_restaurant_filters(pos_profile),
+			order_by="station_name, name",
+		)
+		for station in stations_of_the_till:
 			holder = next((row.name for row in printers if station.name in stations_of(row)), None)
-			stations.append({"station": station.name, "station_type": station.station_type, "printer": holder})
+			stations.append(
+				{
+					"station": station.name,
+					"station_name": station.station_name or station.name,
+					"station_type": station.station_type,
+					"printer": holder,
+				}
+			)
 	return {
 		"printers": [{key: row.get(key) for key in _PUBLIC} for row in printers],
 		"receipt_printer": receipt.name if receipt else None,
@@ -50,6 +65,16 @@ def get_till_printing(pos_profile):
 		"stations": stations,
 		"can_configure": bool(frappe.has_permission("CloudPRNT Settings", "write")),
 	}
+
+
+def _restaurant_filters(pos_profile):
+	"""The `or_filters` that keep the preparation stations of the restaurant a till belongs to; None when POS Next
+	does not know restaurants (an older POS Next, or none): every station then belongs to the site."""
+	try:
+		from pos_next.restaurant import scope
+	except ImportError:
+		return None
+	return scope.restaurant_or_filters(scope.current_restaurant(pos_profile))
 
 
 @frappe.whitelist()

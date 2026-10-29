@@ -22,6 +22,7 @@ from frappe.utils import flt, format_datetime, get_datetime
 
 from cloudprnt import guards
 from cloudprnt import print_queue_manager as jobs
+from cloudprnt.labels import station_label, table_label
 from cloudprnt.printers import all_printers, find_printer, stations_of
 
 LINE_CHARS = {58: 32, 80: 48, 112: 69}
@@ -46,10 +47,10 @@ def print_kitchen_ticket(invoice, station=None, batch=None, printer=None):
 			continue
 		row = find_printer(printer) if printer else _printer_for_station(name)
 		if not row:
-			frappe.throw(_("No CloudPRNT printer prints for the station {0}").format(name or _("(none)")))
+			frappe.throw(_("No CloudPRNT printer prints for the station {0}").format(station_label(name) or _("(none)")))
 		markup = get_kitchen_ticket_markup(doc, name, lines, batch, paper_width=row.paper_width)
 		result = jobs.enqueue(row, markup, reference_doctype="Sales Invoice", reference_name=doc.name)
-		queued.append({"station": name, "printer": row.label, **result})
+		queued.append({"station": name, "station_name": station_label(name), "printer": row.label, **result})
 	if not queued:
 		frappe.throw(_("Nothing to send to the kitchen for this order"))
 	return {"success": True, "message": _("Kitchen ticket sent"), "tickets": queued}
@@ -132,7 +133,8 @@ def get_kitchen_ticket_markup(doc, station, lines, batch=None, paper_width=80, t
 		out.append(f"[magnify: width 2; height 2][bold: on]{_text(title)}[bold: off][magnify]")
 	out.append(f"[magnify: width 3; height 3][bold: on]{_text(where)}[bold: off][magnify]")
 	if station:
-		out.append(f"[magnify: width 2; height 1]{_text(station).upper()}[magnify]")
+		# The label of the station: a station POS Next created is named by a hash
+		out.append(f"[magnify: width 2; height 1]{_text(station_label(station)).upper()}[magnify]")
 	out += [
 		"[align: left]",
 		_column(f"{_('Waiter')}: {waiter}", sent),
@@ -197,7 +199,8 @@ def _printer_for_station(station):
 
 def _where(doc):
 	if doc.get("restaurant_table"):
-		return doc.restaurant_table
+		# The label of the table: a table POS Next created is named by a hash
+		return table_label(doc.restaurant_table)
 	if doc.get("is_takeaway"):
 		return f"{_('Takeaway')} {doc.get('takeaway_number') or ''}".strip()
 	return doc.customer_name or doc.name
