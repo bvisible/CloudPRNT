@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: CloudPRNT\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-29 22:08+0000\n"
+"POT-Creation-Date: 2026-10-30 03:00+0000\n"
 "PO-Revision-Date: 2024-12-20 12:00+0000\n"
 "Last-Translator: \n"
 "Language-Team: French\n"
@@ -62,7 +62,7 @@ msgstr "Ajoutez d'abord une imprimante."
 #. Name of a role
 #: cloudprnt/cloudprnt/doctype/cash_drawer_opening/cash_drawer_opening.json:148
 msgid "Admin"
-msgstr ""
+msgstr "Administrateur"
 
 #. Option for the 'Open the Cash Drawer' (Select) field in DocType 'CloudPRNT
 #. Printers'
