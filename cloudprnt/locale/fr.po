@@ -1191,3 +1191,15 @@ msgstr "Utiliser MQTT"
 #: cloudprnt/pos_invoice_markup.py:225
 msgid "on"
 msgstr "sur"
+
+#: cloudprnt/provisional_ticket.py
+msgid "An order of more than {0} lines cannot be printed"
+msgstr "Une commande de plus de {0} lignes ne peut pas être imprimée"
+
+#: cloudprnt/provisional_ticket.py
+msgid "The order to print holds a value that is not valid ({0})"
+msgstr "La commande à imprimer contient une valeur non valide ({0})"
+
+#: cloudprnt/provisional_ticket.py
+msgid "Too many tickets in a minute: wait a moment before printing another"
+msgstr "Trop de tickets en une minute : patientez un instant avant d'en imprimer un autre"
