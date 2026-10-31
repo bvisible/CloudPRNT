@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: CloudPRNT\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-30 03:00+0000\n"
+"POT-Creation-Date: 2026-10-31 03:01+0000\n"
 "PO-Revision-Date: 2024-12-20 12:00+0000\n"
 "Last-Translator: \n"
 "Language-Team: French\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 "Generated-By: Babel 2.18.0\n"
 
-#: cloudprnt/kitchen_ticket.py:49
+#: cloudprnt/kitchen_ticket.py:50
 msgid "(none)"
 msgstr ""
 
@@ -450,7 +450,7 @@ msgstr "Jeton de tâche"
 msgid "Kitchen Lines"
 msgstr "Lignes de cuisine"
 
-#: cloudprnt/kitchen_ticket.py:55
+#: cloudprnt/kitchen_ticket.py:56
 msgid "Kitchen ticket sent"
 msgstr "Ticket cuisine envoyé"
 
@@ -513,7 +513,7 @@ msgstr ""
 msgid "No CloudPRNT printer is set for this till"
 msgstr "Aucune imprimante CloudPRNT n'est définie pour cette caisse"
 
-#: cloudprnt/kitchen_ticket.py:49
+#: cloudprnt/kitchen_ticket.py:50
 #, python-brace-format
 msgid "No CloudPRNT printer prints for the station {0}"
 msgstr "Aucune imprimante CloudPRNT n'imprime pour le poste {0}"
@@ -565,7 +565,7 @@ msgstr "Pas imprimée à temps"
 msgid "Note"
 msgstr ""
 
-#: cloudprnt/kitchen_ticket.py:54
+#: cloudprnt/kitchen_ticket.py:55
 msgid "Nothing to send to the kitchen for this order"
 msgstr "Rien à envoyer en cuisine pour cette commande"
 
@@ -915,7 +915,7 @@ msgstr "Les lignes {0} et {1} ont la même adresse MAC"
 msgid "Sale"
 msgstr "Vente"
 
-#: cloudprnt/kitchen_ticket.py:38
+#: cloudprnt/kitchen_ticket.py:39
 msgid "Sales Invoice"
 msgstr ""
 
@@ -928,7 +928,7 @@ msgstr ""
 msgid "Say why the drawer is opened"
 msgstr "Indiquez la raison de l'ouverture du tiroir-caisse"
 
-#: cloudprnt/kitchen_ticket.py:140
+#: cloudprnt/kitchen_ticket.py:142
 #, python-brace-format
 msgid "Send no. {0}"
 msgstr "Envoi n° {0}"
@@ -974,7 +974,7 @@ msgstr "Détail de l'état"
 msgid "System Manager"
 msgstr "System Manager"
 
-#: cloudprnt/kitchen_ticket.py:202
+#: cloudprnt/kitchen_ticket.py:205
 msgid "Takeaway"
 msgstr "À emporter"
 
@@ -1121,7 +1121,7 @@ msgstr "Numéro de TVA"
 msgid "Voltage Error"
 msgstr "Erreur de tension"
 
-#: cloudprnt/kitchen_ticket.py:138
+#: cloudprnt/kitchen_ticket.py:140
 msgid "Waiter"
 msgstr "Serveur"
 
@@ -1156,7 +1156,7 @@ msgstr "début"
 msgid "{0} must start with http:// or https://"
 msgstr "{0} doit commencer par http:// ou https://"
 
-#: cloudprnt/api.py:27 cloudprnt/drawer.py:57 cloudprnt/kitchen_ticket.py:38
+#: cloudprnt/api.py:27 cloudprnt/drawer.py:57 cloudprnt/kitchen_ticket.py:39
 #, python-brace-format
 msgid "{0} {1} not found"
 msgstr ""
