@@ -69,12 +69,12 @@ def get_receipt_markup(doctype, name=None, paper_width=80):
 
 	if flt(doc.get("discount_amount")):
 		lines.append(_column(f"{_('Discount')}:", money(doc.discount_amount)))
-	taxes = [tax for tax in doc.get("taxes") or [] if flt(tax.tax_amount)]
+	taxes = charged_taxes(doc)
 	if any(not tax.get("included_in_print_rate") for tax in taxes):
 		lines.append(_column(f"{_('Net Total')}:", money(doc.net_total)))
-	abbr = frappe.get_cached_value("Company", doc.company, "abbr") or ""
-	for tax in taxes:
-		lines.append(_column(f"{_tax_label(tax, abbr)}:", money(tax.tax_amount)))
+	vat = vat_lines(doc)
+	for label, _base, amount in vat:
+		lines.append(_column(f"{label}:", money(amount)))
 	lines.append(f"[bold: on]{_column(_('Grand Total') + ':', money(doc.grand_total))}[bold: off]")
 	if flt(doc.get("rounded_total")) and flt(doc.rounded_total) != flt(doc.grand_total):
 		lines.append(_column(f"{_('Rounded Total')}:", money(doc.rounded_total)))
@@ -95,10 +95,9 @@ def get_receipt_markup(doctype, name=None, paper_width=80):
 		tax_id = frappe.db.get_value("Company", doc.company, "tax_id")
 		if tax_id:
 			lines.append(f"{_('VAT number')}: {_text(tax_id)}")
-		for tax, base in _tax_bases(doc, taxes):
-			amount = flt(tax.get("base_tax_amount_after_discount_amount") or tax.tax_amount)
-			# "VAT 8.1%: 14.80 + 1.20 = 16.00", the base, the tax and the total it was charged on
-			lines.append(f"{_tax_label(tax, abbr)}: {money(base)} + {money(amount)} = {money(base + amount)}")
+		for label, base, amount in vat:
+			# "VAT 8.1 %: 14.80 + 1.20 = 16.00", the base, the tax and the total it was charged on
+			lines.append(f"{_text(label)}: {money(base)} + {money(amount)} = {money(base + amount)}")
 
 	if doc.get("terms"):
 		lines += ["", _text(frappe.utils.strip_html(doc.terms))]
@@ -169,13 +168,31 @@ def _width(paper_width):
 
 
 def _text(value):
-	"""Text printed as it is: markup's own characters escaped."""
-	return str(value or "").replace("\\", "\\\\").replace("[", "\\[").replace("]", "\\]").replace("\n", " ")
+	"""Text printed as it is: markup's own characters escaped, a line break printed as a space."""
+	return (
+		str(value or "")
+		.replace("\\", "\\\\")
+		.replace("[", "\\[")
+		.replace("]", "\\]")
+		.replace("\r", " ")
+		.replace("\n", " ")
+	)
 
 
 def _param(value):
-	"""Text inside a tag, where ';' ends the value and brackets end the tag (cputil escapes neither there)."""
-	return str(value or "").replace(";", ",").replace("[", "(").replace("]", ")").replace("\n", " ")
+	"""Text inside a tag, where ';' ends the value and brackets end the tag (cputil escapes neither there).
+
+	A backslash is cputil's escape there too: "AB\\" prints "AB\", and a lone "AB\" before the ';' is eaten (seen with
+	cputil 2.0.1, 31.10.2026). It is doubled, so a remark ending with a backslash keeps it and keeps the column."""
+	return (
+		str(value or "")
+		.replace("\\", "\\\\")
+		.replace(";", ",")
+		.replace("[", "(")
+		.replace("]", ")")
+		.replace("\r", " ")
+		.replace("\n", " ")
+	)
 
 
 def _column(left, right):
@@ -252,25 +269,94 @@ def _tax_label(tax, abbr):
 	return label.strip()
 
 
-def _tax_bases(doc, taxes):
-	"""Each tax row with the net amount it was charged on, from the per-item detail ERPNext keeps on it."""
-	for tax in taxes:
-		try:
-			detail = json.loads(tax.get("item_wise_tax_detail") or "{}")
-		except ValueError:
-			detail = {}
-		taxed = set()
-		for item_code, value in detail.items():
-			if isinstance(value, list):
-				rate = value[0] if value else 0
-			elif isinstance(value, dict):
-				rate = value.get("tax_rate")
-			else:
-				rate = value
-			if flt(rate):
-				taxed.add(item_code)
-		if detail:
-			base = sum(flt(item.net_amount) for item in doc.items if item.item_code in taxed)
+def tax_owed(tax):
+	"""The VAT a tax row charges, after the order's discount. ERPNext keeps `tax_amount` as it was before a discount on
+	the grand total, and the amount owed in `tax_amount_after_discount_amount`."""
+	owed = tax.get("tax_amount_after_discount_amount")
+	return flt(owed) if owed is not None else flt(tax.get("tax_amount"))
+
+
+def charged_taxes(doc):
+	"""The tax rows of `doc` that charge something (a Swiss template has a row for every rate, most at 0)."""
+	return [tax for tax in doc.get("taxes") or [] if flt(tax_owed(tax))]
+
+
+def vat_lines(doc):
+	"""The VAT of `doc`, one line per effective rate, the highest first: [(label, base, amount)] (ruling 96).
+
+	The label is « VAT 8.1 % », made from the rate ERPNext charged, never from the tax row's name (the account's, « TVA
+	8.1% - Due »). A Swiss till's template has one row per VAT account at rate 0, each item's rate coming from its item
+	tax template: the rate is read in the row's per-item detail (`item_wise_tax_detail`), else from the row's own rate.
+	A row whose items carry two rates is split between them in proportion to the VAT each was charged. The amount is
+	the VAT owed (tax_owed), the base the net amount of the items charged at that rate, both after the order's
+	discount; rows at the same rate are added up. A row whose rate cannot be read (no per-item detail, no rate of its
+	own, a fixed amount) gets a line of its own under its name, as before."""
+	precision = 2
+	by_rate, unread = {}, []
+	for tax in charged_taxes(doc):
+		owed = tax_owed(tax)
+		rates = _rates_charged(tax)
+		if not rates and flt(tax.get("rate")):
+			rates = {flt(tax.rate): (owed, None)}
+		if not rates:
+			unread.append((_tax_label(tax, _abbr(doc)), flt(doc.get("net_total")), owed))
+			continue
+		weights = sum(weight for weight, _codes in rates.values()) or 1
+		left = owed
+		for index, (rate, (weight, codes)) in enumerate(sorted(rates.items(), reverse=True)):
+			share = left if index == len(rates) - 1 else flt(owed * weight / weights, precision)
+			left = flt(left - share, precision)
+			base = flt(doc.get("net_total")) if codes is None else _net_of(doc, codes)
+			line = by_rate.setdefault(rate, [0.0, 0.0])
+			line[0] += base
+			line[1] += share
+	# After an order discount the lines' net amounts can lose a centime to rounding: the net the totals say (the grand
+	# total less the VAT owed) is then a centime more than their sum. The largest base takes it, so that each base and
+	# its VAT add up to the total (« 74.01 + 5.99 = 80.00 », not « 74.00 + 5.99 = 79.99 »)
+	items = doc.get("items") or []
+	net = flt(doc.get("grand_total")) - sum(tax_owed(tax) for tax in charged_taxes(doc))
+	lost = flt(net - sum(flt(item.get("net_amount")) for item in items), precision)
+	# a centime or so per line, never more: anything larger is not a rounding and is left alone
+	if lost and by_rate and abs(lost) <= 0.01 * max(len(items), 1):
+		largest = max(by_rate, key=lambda rate: by_rate[rate][0])
+		by_rate[largest][0] += lost
+	lines = [
+		(_("VAT {0} %").format(_rate_text(rate)), flt(base, precision), flt(amount, precision))
+		for rate, (base, amount) in sorted(by_rate.items(), reverse=True)
+	]
+	return lines + unread
+
+
+def _rates_charged(tax):
+	"""{rate: (VAT charged at it, {item codes})} from a tax row's per-item detail; {} when it has none."""
+	try:
+		detail = json.loads(tax.get("item_wise_tax_detail") or "{}")
+	except ValueError:
+		return {}
+	rates = {}
+	for item_code, value in (detail.items() if isinstance(detail, dict) else []):
+		if isinstance(value, list):
+			rate, amount = (value + [0, 0])[:2]
+		elif isinstance(value, dict):
+			rate, amount = value.get("tax_rate"), value.get("tax_amount")
 		else:
-			base = flt(doc.net_total)
-		yield tax, base
+			rate, amount = value, 0
+		if not flt(rate):
+			continue
+		weight, codes = rates.get(flt(rate), (0.0, set()))
+		codes.add(item_code)
+		rates[flt(rate)] = (weight + abs(flt(amount)), codes)
+	return rates
+
+
+def _net_of(doc, item_codes):
+	return sum(flt(item.get("net_amount")) for item in doc.get("items") or [] if item.get("item_code") in item_codes)
+
+
+def _rate_text(rate):
+	"""8.1 → "8.1", 8.0 → "8": the rate as a person writes it."""
+	return f"{flt(rate):g}"
+
+
+def _abbr(doc):
+	return frappe.get_cached_value("Company", doc.company, "abbr") or "" if doc.get("company") else ""

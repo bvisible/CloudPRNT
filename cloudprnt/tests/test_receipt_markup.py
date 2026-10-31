@@ -78,10 +78,13 @@ class TestReceiptMarkup(FrappeTestCase):
 
 	def test_taxes_show_their_label_and_base(self):
 		markup = get_receipt_markup(sale())
-		self.assertIn("VAT 8.1%", markup)
+		vat = frappe._("VAT {0} %").format("8.1")
+		# The label is made from the rate charged (ruling 96), not from the tax row's description
+		self.assertIn(f"[column: left {vat}:; right {chf(1.5)}]", markup)
 		self.assertNotIn("2200 - VAT", markup, "the account number is dropped")
+		self.assertNotIn("VAT 8.1%", markup, "the row's own description is not the label")
 		self.assertNotIn(frappe._("Net Total"), markup, "prices include the tax: no net total line")
-		self.assertIn(f"VAT 8.1%: {chf(18.5)} + {chf(1.5)} = {chf(20)}", markup, "the base is the net amount of the taxed items")
+		self.assertIn(f"{vat}: {chf(18.5)} + {chf(1.5)} = {chf(20)}", markup, "the base is the net amount of the taxed items")
 
 	def test_a_tax_added_on_top_shows_the_net_total(self):
 		doc = sale()

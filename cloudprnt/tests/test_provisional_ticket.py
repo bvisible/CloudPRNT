@@ -1,9 +1,12 @@
-"""The provisional ticket of a table order: what the table ordered and what it comes to, printed before it pays.
+"""The provisional ticket of a table order: the order as the till shows it, priced by ERPNext, printed without saving.
 
-It is built on the server from the order's draft Sales Invoice, so the VAT of each rate and the rounded total are the
-invoice's own; it says it is not a receipt, shows no payment, never opens the cash drawer, and expires like a receipt.
+Two kinds of tests. The layout of the ticket, from an order written out by hand (no site data). And the ticket of a
+real order: the till's payload, shaped as its payment sends it, priced by the REAL ERPNext computation on a till, its
+taxes, items and restaurant that each test builds and rolls back (ruling 93: no fake server works out a total).
+Those need POS Next and a company with its books: they skip without them.
 """
 
+import json
 import unittest
 from contextlib import contextmanager
 from types import SimpleNamespace
@@ -11,27 +14,27 @@ from unittest.mock import patch
 
 import frappe
 from frappe.tests.utils import FrappeTestCase
-from frappe.utils import fmt_money, formatdate, nowdate
+from frappe.utils import flt, fmt_money, formatdate, nowdate
 
 from cloudprnt import drawer, provisional_ticket
 from cloudprnt import print_queue_manager as jobs
 from cloudprnt.printers import PRINTER, SETTINGS
-from cloudprnt.provisional_ticket import get_provisional_ticket_markup, print_provisional_ticket
+from cloudprnt.provisional_ticket import (
+	NoTicketPrinter,
+	get_provisional_ticket_markup,
+	print_provisional_ticket,
+	ticket_status,
+)
+from cloudprnt.receipt_markup import get_receipt_markup
 
-PROFILE = "_Test CloudPRNT Provisional Till"
-OTHER_PROFILE = "_Test CloudPRNT Other Till"
-# POS Next names a new table by a hash, and keeps what a person reads in its label
-TABLE_NAME = "k3x9q2m7ab"
-LABELS = {TABLE_NAME: "Table 5"}
-
+T = "_Test Prov"
 PORTAL = "cloudprnt-provisional-portal@yopmail.com"
 PORTAL_WITH_ROLES = "cloudprnt-provisional-portal-roles@yopmail.com"
 DESK_WITHOUT_INVOICES = "cloudprnt-provisional-desk@yopmail.com"
 CASHIER = "cloudprnt-provisional-cashier@yopmail.com"
-
-
-def read_labels(doctype, label_field, name):
-	return LABELS.get(name, name)
+# POS Next names a new table by a hash, and keeps what a person reads in its label
+TABLE_NAME = "k3x9q2m7ab"
+LABELS = {TABLE_NAME: "Table 5"}
 
 
 def chf(value):
@@ -39,73 +42,12 @@ def chf(value):
 	return fmt_money(value, currency="CHF").strip()
 
 
-class Order(SimpleNamespace):
-	"""A table order as the ticket reads it: attributes and .get(), like a Document."""
-
-	def get(self, key, default=None):
-		return getattr(self, key, default)
+def vat(rate):
+	return frappe._("VAT {0} %").format(rate)
 
 
-def order(**overrides):
-	row = frappe._dict
-	doc = Order(
-		doctype="Sales Invoice",
-		name="ACC-SINV-TEST-0003",
-		docstatus=0,
-		company="_No Such Company [test]",
-		currency="CHF",
-		pos_profile=PROFILE,
-		owner="Administrator",
-		restaurant_table=TABLE_NAME,
-		is_takeaway=0,
-		takeaway_number="",
-		customer_name="Walk-in",
-		discount_amount=0,
-		net_total=108.98,
-		grand_total=116.03,
-		rounded_total=116.05,
-		items=[
-			row(
-				item_code="STEAK",
-				item_name="Steak [rare]",
-				qty=2,
-				rate=38.5,
-				amount=77.0,
-				# as POS Next keeps a line's options
-				posa_item_modifiers='[{"group": "Cooking", "options": [{"name": "Medium", "price_adjustment": 0}]},'
-				' {"group": "Side", "options": [{"name": "Fries", "price_adjustment": 0}, {"name": "Salad"}]}]',
-				posa_special_instructions="No salt",
-			),
-			row(item_code="WINE", item_name="House red", qty=1, rate=8.0, amount=8.0),
-			row(item_code="BREAD", item_name="Takeaway bread", qty=1.5, rate=20.69, amount=31.03),
-		],
-		taxes=[
-			row(
-				# the company does not exist here, so its abbreviation is unknown: the description carries none
-				description="VAT 8.1%",
-				account_head="22007 - VAT 8.1% - NSC",
-				tax_amount=6.54,
-				included_in_print_rate=1,
-			),
-			row(
-				description="VAT 2.6%",
-				account_head="22005 - VAT 2.6% - NSC",
-				tax_amount=0.51,
-				included_in_print_rate=1,
-			),
-			# the till's template has a row for every rate: one that charged nothing is not printed
-			row(
-				description="VAT 3.8%",
-				account_head="22006 - VAT 3.8% - NSC",
-				tax_amount=0,
-				included_in_print_rate=1,
-			),
-		],
-		# a payment already recorded on the draft (a guest paid part from their phone): never on this ticket
-		payments=[row(mode_of_payment="Cash", amount=20.0)],
-	)
-	doc.__dict__.update(overrides)
-	return doc
+def read_labels(doctype, label_field, name):
+	return LABELS.get(name, name)
 
 
 @contextmanager
@@ -138,6 +80,76 @@ def make_user(email, roles, user_type):
 	return email
 
 
+class Order(SimpleNamespace):
+	"""An order written out by hand: attributes and .get(), like a Document (a dict's own .items would hide the
+	items table)."""
+
+	def get(self, key, default=None):
+		return getattr(self, key, default)
+
+
+def written_order(**overrides):
+	row = frappe._dict
+	doc = Order(
+		doctype="Sales Invoice",
+		name=None,
+		company="_No Such Company [test]",
+		currency="CHF",
+		restaurant_table=TABLE_NAME,
+		is_takeaway=0,
+		takeaway_number="",
+		discount_amount=0,
+		net_total=107.88,
+		grand_total=116.03,
+		rounded_total=116.05,
+		rounding_adjustment=0.02,
+		items=[
+			row(
+				item_code="STEAK",
+				item_name="Steak [rare]",
+				qty=2,
+				amount=77.0,
+				net_amount=71.23,
+				posa_item_modifiers='[{"group": "Cooking", "options": [{"name": "Medium", "price_adjustment": 0}]}]',
+				posa_special_instructions="No salt; please\\",
+			),
+			row(item_code="BREAD", item_name="Bread to take away", qty=1.5, amount=31.03, net_amount=30.24),
+			row(item_code="WINE", item_name="House red", qty=1, amount=8.0, net_amount=7.40),
+			row(item_code="TIRAMISU", item_name="Tiramisu", qty=1, amount=0, net_amount=0, posa_is_offered=1),
+		],
+		taxes=[
+			# a Swiss till's template: one row per VAT account at rate 0, the rate coming from each item
+			row(
+				description="TVA 8.1% - Due",
+				rate=0,
+				tax_amount=6.37,
+				tax_amount_after_discount_amount=6.37,
+				included_in_print_rate=1,
+				item_wise_tax_detail='{"STEAK": [8.1, 5.77], "WINE": [8.1, 0.60], "BREAD": [0, 0]}',
+			),
+			row(
+				description="TVA 2.6% - Due",
+				rate=0,
+				tax_amount=0.79,
+				tax_amount_after_discount_amount=0.79,
+				included_in_print_rate=1,
+				item_wise_tax_detail='{"STEAK": [0, 0], "WINE": [0, 0], "BREAD": [2.6, 0.79]}',
+			),
+			row(
+				description="TVA 3.8% - Due",
+				rate=0,
+				tax_amount=0,
+				tax_amount_after_discount_amount=0,
+				included_in_print_rate=1,
+				item_wise_tax_detail="{}",
+			),
+		],
+		payments=[row(mode_of_payment="Cash", amount=20.0)],
+	)
+	doc.__dict__.update(overrides)
+	return doc
+
+
 class RolledBack(FrappeTestCase):
 	"""Whatever a test writes is rolled back: nothing of it stays on the site."""
 
@@ -151,97 +163,225 @@ class RolledBack(FrappeTestCase):
 		self.addCleanup(commit.stop)
 
 
-class TestProvisionalTicketMarkup(FrappeTestCase):
+class TestTheTicketsLayout(FrappeTestCase):
 	def markup(self, doc=None, **options):
 		with patch("cloudprnt.labels.label_of", read_labels):
-			return get_provisional_ticket_markup(doc or order(), **options)
+			return get_provisional_ticket_markup(doc or written_order(), **options)
 
-	def test_a_table_order_prints_its_lines_each_vat_rate_and_the_rounded_total(self):
+	def test_the_ticket_shows_the_lines_the_vat_of_each_rate_the_rounding_and_the_total(self):
 		markup = self.markup()
 		self.assertIn("_No Such Company \\[test\\]", markup, "the brackets of a name are printed, not read as tags")
 		self.assertIn(frappe._("PROVISIONAL TICKET"), markup)
 		self.assertIn("Table 5", markup, "the table is named by its label")
 		self.assertNotIn(TABLE_NAME, markup)
 		self.assertIn(f"{frappe._('Date')}: {formatdate(nowdate())}", markup)
-		# the lines: quantity, name, options and remarks, amount
 		self.assertIn(f"[column: left 2 x Steak (rare); right {chf(77)}]", markup)
 		self.assertNotIn("[rare]", markup, "a name never opens a tag")
-		self.assertIn("   Cooking: Medium", markup, "options are read out of POS Next's JSON")
-		self.assertIn("   Side: Fries, Salad", markup)
-		self.assertIn("   No salt", markup)
-		self.assertNotIn("price_adjustment", markup)
-		self.assertIn(f"[column: left 1 x House red; right {chf(8)}]", markup)
-		self.assertIn(f"[column: left 1.5 x Takeaway bread; right {chf(31.03)}]", markup)
-		# the VAT of each rate as the invoice holds it, and its total rounded as the till rounds it
-		self.assertIn(f"[column: left VAT 8.1%:; right {chf(6.54)}]", markup)
-		self.assertIn(f"[column: left VAT 2.6%:; right {chf(0.51)}]", markup)
-		self.assertNotIn("3.8%", markup, "a rate that charged nothing is not printed")
-		self.assertNotIn("22007", markup, "the account number is dropped")
+		self.assertIn("   Cooking: Medium", markup)
+		self.assertIn(f"[column: left 1.5 x Bread to take away; right {chf(31.03)}]", markup)
+		# one line per effective rate, labelled by its rate (ruling 96), never by the account's name
+		self.assertIn(f"[column: left {vat('8.1')}:; right {chf(6.37)}]", markup)
+		self.assertIn(f"[column: left {vat('2.6')}:; right {chf(0.79)}]", markup)
+		self.assertLess(markup.index(vat("8.1")), markup.index(vat("2.6")), "the highest rate first")
+		self.assertNotIn("Due", markup)
+		self.assertNotIn("3.8", markup, "a rate that charged nothing is not printed")
 		self.assertNotIn(frappe._("Net Total"), markup, "prices include the tax: no net total line")
-		self.assertIn(f"right {chf(116.05)}]", markup)
-		self.assertNotIn(chf(116.03), markup, "the total is the rounded one")
-		# it is not a receipt and says so
+		# the lines and the VAT come to 116.03: the rounding to the 5 centimes is said (M1)
+		self.assertIn(f"[column: left {frappe._('Rounding Adjustment')}:; right {chf(0.02)}]", markup)
+		self.assertIn(f"[column: left {frappe._('Total')}:; right {chf(116.05)}]", markup)
 		self.assertIn(frappe._("THIS IS NOT A RECEIPT"), markup)
-		self.assertNotIn("Cash", markup, "no payment on a provisional ticket")
-		self.assertNotIn(chf(20), markup)
+		self.assertNotIn("Cash", markup, "no payment of the till on a provisional ticket")
 		self.assertNotIn("[barcode", markup, "no invoice barcode: it is not the invoice")
 		self.assertTrue(markup.rstrip().endswith("[cut: feed; partial]"))
 
-	def test_a_takeaway_order_is_named_by_its_number(self):
-		markup = self.markup(order(restaurant_table=None, is_takeaway=1, takeaway_number="T-012"))
-		self.assertIn(f"{frappe._('Takeaway')} T-012", markup)
-		self.assertNotIn("Table 5", markup)
+	def test_an_offered_row_is_said_offered_and_charges_nothing(self):
+		markup = self.markup()
+		self.assertIn(f"[column: left 1 x Tiramisu; right {chf(0)}]", markup)
+		self.assertIn(f"   {frappe._('Offered', context='Given for free')}", markup)
 
-	def test_a_discount_and_a_tax_added_on_top_are_shown(self):
-		doc = order(discount_amount=5.0)
+	def test_what_a_guest_paid_by_phone_is_said_with_what_is_left_to_pay(self):
+		markup = self.markup(paid=20)
+		self.assertIn(f"[column: left {frappe._('Already paid')}:; right {chf(20)}]", markup)
+		self.assertIn(f"[column: left {frappe._('Left to pay')}:; right {chf(96.05)}]", markup)
+		self.assertNotIn(frappe._("Already paid"), self.markup(), "nothing paid, nothing said")
+
+	def test_a_remark_ending_with_a_backslash_or_holding_a_semicolon_keeps_its_line(self):
+		markup = self.markup()
+		# in text a backslash is cputil's escape: doubled, it prints once; ';' is plain text outside a tag
+		self.assertIn("   No salt; please\\\\\n", markup)
+		doc = written_order()
+		doc.items[0].item_name = "Steak\\"
+		self.assertIn(f"[column: left 2 x Steak\\\\; right {chf(77)}]", self.markup(doc), "a value never escapes ';'")
+		doc.items[0].item_name = "Steak; well\rdone"
+		self.assertIn(f"[column: left 2 x Steak, well done; right {chf(77)}]", self.markup(doc))
+
+	def test_a_takeaway_order_is_named_by_its_number(self):
+		markup = self.markup(written_order(restaurant_table=None, is_takeaway=1, takeaway_number="T-012"))
+		self.assertIn(f"{frappe._('Takeaway')} T-012", markup)
+
+	def test_a_tax_added_on_top_shows_the_net_total(self):
+		doc = written_order(discount_amount=5.0)
 		doc.taxes[0].included_in_print_rate = 0
 		markup = self.markup(doc)
 		self.assertIn(f"[column: left {frappe._('Discount')}:; right {chf(5)}]", markup)
-		self.assertIn(f"[column: left {frappe._('Net Total')}:; right {chf(108.98)}]", markup)
+		self.assertIn(f"[column: left {frappe._('Net Total')}:; right {chf(107.88)}]", markup)
 
-	def test_without_rounding_the_grand_total_is_printed(self):
-		markup = self.markup(order(rounded_total=0))
-		self.assertIn(f"right {chf(116.03)}]", markup)
-
-	def test_a_long_name_keeps_its_amount_on_the_next_line(self):
-		doc = order()
-		doc.items[1].item_name = "A very long name of a dish that does not fit on one line of the roll"
-		markup = self.markup(doc)
-		self.assertIn("1 x A very long name of a dish that does not fit on one line of the roll\n", markup)
-		self.assertIn(f"[column: left ; right {chf(8)}]", markup)
-
-	def test_the_rule_fits_the_paper(self):
-		self.assertIn("-" * 32 + "\n", self.markup(paper_width="58mm"))
-		self.assertNotIn("-" * 33, self.markup(paper_width="58mm"))
-		self.assertIn("-" * 48, self.markup(paper_width=80))
+	def test_every_line_fits_the_paper_58_mm_included(self):
+		for paper, chars in (("58mm", 32), (80, 48)):
+			markup = self.markup(written_order(company="A restaurant with a long name"), paper_width=paper, paid=20)
+			for line in markup.splitlines():
+				with self.subTest(paper=paper, line=line):
+					self.assertLessEqual(printed_width(line), chars)
 
 
-class TestWhatIsPrinted(FrappeTestCase):
-	def test_an_order_with_no_lines_is_refused_clearly(self):
-		with self.assertRaises(frappe.ValidationError) as refused:
-			provisional_ticket._check_order(order(items=[]))
-		self.assertIn(frappe._("there is nothing to print"), str(refused.exception))
+def printed_width(line):
+	"""How many characters a markup line takes on paper (a magnified line counts its width, a column both sides)."""
+	import re
 
-	def test_a_paid_order_is_refused(self):
-		with self.assertRaises(frappe.ValidationError):
-			provisional_ticket._check_order(order(docstatus=1))
-
-	def test_a_sale_that_is_no_table_or_takeaway_order_is_refused(self):
-		with self.assertRaises(frappe.ValidationError):
-			provisional_ticket._check_order(order(restaurant_table=None, is_takeaway=0))
-
-	def test_an_open_table_order_with_lines_is_printed(self):
-		provisional_ticket._check_order(order())
-		provisional_ticket._check_order(order(restaurant_table=None, is_takeaway=1, takeaway_number="T-1"))
+	column = re.search(r"\[column: left ([^;]*); right ([^\]]*)\]", line)
+	if column:
+		left, right = column.groups()
+		return len(left) + len(right) + 1
+	width = re.search(r"\[magnify: width (\d)", line)
+	text = re.sub(r"\[[a-z]+[^\]]*\]", "", line).replace("\\\\", "\\").replace("\\[", "[").replace("\\]", "]")
+	if line.startswith("[cut") or line.startswith("[align") or line.startswith("[feed"):
+		return 0
+	if text.strip().startswith(("1.5 x", "2 x", "1 x")):
+		return 0  # a dish's name: the printer wraps it, its amount sits on the next line when it is long
+	return len(text) * (int(width.group(1)) if width else 1)
 
 
-class TestProvisionalTicketQueue(RolledBack):
+class RealTill(RolledBack):
+	"""A till of the test's own, priced by the real ERPNext: its company's books, two VAT accounts, the item tax templates
+	of 8.1 % and 2.6 % (and one at 0 %), a template of rows at rate 0 as a Swiss till has (prices with the VAT in them),
+	the same without (prices before tax), items, a restaurant with a table, and printers."""
+
 	def setUp(self):
 		super().setUp()
+		if not provisional_ticket._restaurants_known():
+			raise unittest.SkipTest("POS Next with restaurants is not installed on this site")
+		company = frappe.db.get_value("Company", {}, "name", order_by="creation")
+		group = frappe.db.get_value(
+			"Account", {"company": company, "is_group": 1, "root_type": "Liability"}, "name", order_by="lft desc"
+		)
+		warehouse = frappe.db.get_value("Warehouse", {"company": company, "is_group": 0, "disabled": 0}, "name")
+		mode = frappe.db.get_value("Mode of Payment Account", {"company": company}, "parent")
+		price_list = frappe.db.get_value("Price List", {"selling": 1, "enabled": 1}, "name")
+		if not (company and group and warehouse and mode and price_list):
+			raise unittest.SkipTest("The site has no company with books, warehouse, payment mode and price list")
+		self.company = company
 		frappe.cache().delete_keys("cloudprnt_")
-		# The till's printer opens its drawer on every sale: a provisional ticket still never opens it
-		self.printer = self.add_printer("_Test CloudPRNT provisional", PROFILE, open_drawer="Always")
-		self.other = self.add_printer("_Test CloudPRNT other till", OTHER_PROFILE, open_drawer="Always")
+		self.vat81 = self.insert("Account", account_name=f"{T} VAT 8.1", parent_account=group, company=company, account_type="Tax", tax_rate=8.1)
+		self.vat26 = self.insert("Account", account_name=f"{T} VAT 2.6", parent_account=group, company=company, account_type="Tax", tax_rate=2.6)
+
+		def item_tax(title, r81, r26):
+			return self.insert(
+				"Item Tax Template",
+				title=f"{T} {title}",
+				company=company,
+				taxes=[{"tax_type": self.vat81, "tax_rate": r81}, {"tax_type": self.vat26, "tax_rate": r26}],
+			)
+
+		self.itt81, self.itt26, self.itt0 = item_tax("8.1", 8.1, 0), item_tax("2.6", 0, 2.6), item_tax("none", 0, 0)
+
+		def template(title, included):
+			return self.insert(
+				"Sales Taxes and Charges Template",
+				title=f"{T} {title}",
+				company=company,
+				taxes=[
+					{"charge_type": "On Net Total", "account_head": account, "description": f"{label} - Due", "rate": 0, "included_in_print_rate": included}
+					for account, label in ((self.vat81, "TVA 8.1%"), (self.vat26, "TVA 2.6%"))
+				],
+			)
+
+		incl, excl = template("incl", 1), template("excl", 0)
+
+		def item(code, itt):
+			return self.insert(
+				"Item",
+				item_code=f"{T} {code}",
+				item_name=f"{T} {code}",
+				item_group=frappe.db.get_value("Item Group", {"is_group": 0}, "name", order_by="lft"),
+				stock_uom=frappe.db.get_value("UOM", "Nos") or frappe.db.get_value("UOM", {}, "name"),
+				is_stock_item=0,
+				is_sales_item=1,
+				taxes=[{"item_tax_template": itt}] if itt else [],
+				item_defaults=[{"company": company, "default_warehouse": warehouse}],
+			)
+
+		self.steak, self.wine, self.food = item("Steak", self.itt81), item("Wine", self.itt81), item("Food", self.itt26)
+		self.water, self.tip = item("Water", self.itt0), item("TIP", self.itt0)
+		self.customer = frappe.db.get_value("Customer", {"disabled": 0}, "name")
+		cost_center = frappe.get_cached_value("Company", company, "cost_center") or frappe.db.get_value(
+			"Cost Center", {"company": company, "is_group": 0}, "name"
+		)
+		write_off = frappe.get_cached_value("Company", company, "write_off_account") or frappe.db.get_value(
+			"Account", {"company": company, "is_group": 0, "root_type": "Expense"}, "name"
+		)
+
+		def till(name, taxes):
+			return self.insert(
+				"POS Profile",
+				__newname=name,
+				name=name,
+				company=company,
+				currency=frappe.get_cached_value("Company", company, "default_currency"),
+				warehouse=warehouse,
+				selling_price_list=price_list,
+				customer=self.customer,
+				cost_center=cost_center,
+				write_off_account=write_off,
+				write_off_cost_center=cost_center,
+				write_off_limit=1,
+				disable_rounded_total=0,
+				taxes_and_charges=taxes,
+				payments=[{"mode_of_payment": mode, "default": 1}],
+				applicable_for_users=[{"user": "Administrator"}],
+			)
+
+		self.till, self.till_excl, self.other_till = till(f"{T} Till", incl), till(f"{T} Till excl", excl), till(f"{T} Other Till", incl)
+		self.restaurant = self.insert("Restaurant", restaurant_name=f"{T} Restaurant", company=company, enable_tips=0, tip_item=self.tip)
+		self.other_restaurant = self.insert("Restaurant", restaurant_name=f"{T} Other Restaurant", company=company, enable_tips=0)
+		# Each till's POS Settings: its restaurant, and prices with the VAT in them or not (POS Next applies it to a sale)
+		for profile, restaurant, inclusive in (
+			(self.till, self.restaurant, 1),
+			(self.till_excl, self.restaurant, 0),
+			(self.other_till, self.other_restaurant, 1),
+		):
+			self.insert(
+				"POS Settings",
+				pos_profile=profile,
+				enabled=1,
+				enable_restaurant_mode=1,
+				restaurant=restaurant,
+				tax_inclusive=inclusive,
+			)
+		room = self.insert("Restaurant Area", restaurant=self.restaurant, area_name=f"{T} Room")
+		self.table = self.insert("Restaurant Table", area=room, table_name=f"{T} T5")
+		other_room = self.insert("Restaurant Area", restaurant=self.other_restaurant, area_name=f"{T} Room")
+		self.other_table = self.insert("Restaurant Table", area=other_room, table_name=f"{T} T5")
+		# The printers: this till's, the other till's, and a default printer the ticket must never take
+		self.printer = self.add_printer(f"{T} till printer", self.till, open_drawer="Always", online=1)
+		self.add_printer(f"{T} excl printer", self.till_excl, online=1)
+		self.other_printer = self.add_printer(f"{T} other printer", self.other_till, online=1)
+		self.default = self.add_printer(f"{T} default printer", None, online=1)
+		frappe.db.set_single_value(SETTINGS, "default_printer", self.default)
+		self.kitchen_sends = []
+		kitchen = patch("pos_next.api.kitchen_events.kitchen_send", side_effect=lambda *a, **k: self.kitchen_sends.append(a))
+		kitchen.start()
+		self.addCleanup(kitchen.stop)
+		logo = patch("cloudprnt.receipt_markup.company_logo_path", return_value=None)
+		logo.start()
+		self.addCleanup(logo.stop)
+
+	def insert(self, doctype, **values):
+		name = values.pop("__newname", None)
+		doc = frappe.get_doc({"doctype": doctype, **values})
+		if name:
+			doc.name = name
+			doc.flags.name_set = True
+		return doc.insert(ignore_permissions=True).name
 
 	def add_printer(self, label, profile, **values):
 		row = frappe.get_doc(
@@ -261,117 +401,351 @@ class TestProvisionalTicketQueue(RolledBack):
 		row.db_insert()
 		return row.name
 
-	def jobs_of(self, name):
-		return frappe.get_all(
-			jobs.DOCTYPE,
-			filters={"reference_doctype": "Sales Invoice", "reference_name": name},
-			fields=["printer", "status", "open_drawer", "expires_at", "creation", "job_data", "job_token"],
-		)
+	def line(self, item, qty, price, discount_percentage=0, **values):
+		"""A line as the till's payment sends it (useInvoice.formatItemsForSubmission, prices with the VAT in them): its
+		rate after its discount, rounded per unit, and the discount of the whole line beside it."""
+		base = round(qty * price, 2)
+		discount = round(base * discount_percentage / 100, 2)
+		return {
+			"item_code": item,
+			"item_name": item,
+			"qty": qty,
+			"rate": round(price - discount / qty, 2),
+			"price_list_rate": price,
+			"uom": "Nos",
+			"conversion_factor": 1,
+			"discount_percentage": discount_percentage,
+			"discount_amount": discount,
+			"is_free_item": 0,
+			"posa_item_modifiers": "",
+			"posa_special_instructions": "",
+			"kds_status": "Pending",
+			**values,
+		}
 
-	def test_the_ticket_is_queued_for_the_tills_printer_expires_and_never_opens_the_drawer(self):
-		doc = order()
-		with (
-			patch("cloudprnt.provisional_ticket._open_order", return_value=doc),
-			patch("cloudprnt.labels.label_of", read_labels),
-		):
-			answer = print_provisional_ticket(doc.name)
-		self.assertTrue(answer["success"])
-		self.assertEqual(answer["printer"], "_Test CloudPRNT provisional")
-		self.assertIn("_Test CloudPRNT provisional", answer["message"])
-		[job] = self.jobs_of(doc.name)
-		self.assertEqual(job.printer, self.printer, "the printer of the order's till")
-		self.assertEqual(job.status, "Pending")
-		self.assertIn(frappe._("THIS IS NOT A RECEIPT"), job.job_data)
-		self.assertIsNotNone(job.expires_at, "it expires, like a receipt")
+	def order(self, items, **values):
+		return {
+			"pos_profile": self.till,
+			"customer": self.customer,
+			"restaurant_table": self.table,
+			"is_takeaway": 0,
+			"takeaway_number": "",
+			"draft": None,
+			"discount_amount": 0,
+			"items": items,
+			**values,
+		}
+
+	def priced(self, order):
+		"""The order as the ticket prices it (the same function the print calls)."""
+		return provisional_ticket.build_unsaved_invoice(order, frappe.get_cached_doc("POS Profile", order["pos_profile"]))
+
+	def printed(self, order):
+		"""Print `order` and give back the job queued for it (its markup, printer, drawer and expiry)."""
+		answer = print_provisional_ticket(json.dumps(order))
+		job = frappe.get_all(
+			jobs.DOCTYPE,
+			filters={"job_token": answer["job_token"]},
+			fields=["printer", "status", "open_drawer", "expires_at", "creation", "job_data", "reference_name"],
+		)[0]
+		return answer, job
+
+	def payments_draft(self, order):
+		"""What the payment's own draft holds for the same order: pos_next's update_invoice, the step the payment takes
+		before it submits (rolled back with the test)."""
+		from pos_next.api.invoices import update_invoice
+
+		payload = {
+			"doctype": "Sales Invoice",
+			"pos_profile": order["pos_profile"],
+			"customer": order["customer"],
+			"restaurant_table": order["restaurant_table"],
+			"discount_amount": order["discount_amount"],
+			"items": order["items"],
+			"is_pos": 1,
+			"update_stock": 1,
+		}
+		return frappe.get_doc("Sales Invoice", update_invoice(json.dumps(payload))["name"])
+
+
+	def open_order(self, paid=0, tip=0, table=None):
+		"""The table's open order, as the till saved it at « Validate », with what a guest paid from their phone."""
+		mode = frappe.db.get_value("Mode of Payment Account", {"company": self.company}, "parent")
+		items = [{"item_code": self.steak, "qty": 1, "rate": 38.5}]
+		if tip:
+			items.append({"item_code": self.tip, "qty": 1, "rate": tip})
+		doc = frappe.get_doc(
+			{
+				"doctype": "Sales Invoice",
+				"pos_profile": self.till,
+				"company": self.company,
+				"customer": self.customer,
+				"is_pos": 1,
+				"items": items,
+			}
+		)
+		doc.set_missing_values()
+		# set_missing_values() resets a POS sale's payment rows from its POS Profile: the guest's payment comes after
+		doc.set("payments", [])
+		if paid:
+			doc.append("payments", {"mode_of_payment": mode, "amount": paid})
+		doc.insert(ignore_permissions=True)
+		self.assertEqual(flt(doc.paid_amount), paid)
+		frappe.db.set_value("Sales Invoice", doc.name, "restaurant_table", table or self.table, update_modified=False)
+		return doc.name
+
+
+class TestTheAmountsAreERPNexts(RealTill):
+	def test_a_discounted_line_is_printed_at_what_the_payment_charges_never_at_its_full_price(self):
+		# C1: 3 x 12.35 at 10 %. The till takes 3.70 off the line (37.05 x 10 % is 3.70499... in floating point) and
+		# shows 33.35; its payment sends 11.12 a unit (its rate after the discount, rounded per unit) and ERPNext
+		# charges 33.36. The ticket prints what the payment will charge, never the price before the discount (37.05).
+		# what the till's payment sends for it (provisionalTicket.spec.js asserts these numbers from the real cart)
+		line = self.line(self.steak, 3, 12.35, 10, discount_amount=3.7, rate=11.12)
+		order = self.order([line])
+		doc = self.priced(order)
+		self.assertEqual(flt(doc.items[0].amount), 33.36)
+		self.assertNotEqual(flt(doc.items[0].amount), 37.05, "never the price before the discount")
+		paid = self.payments_draft(order)
+		self.assertEqual(flt(paid.items[0].amount), flt(doc.items[0].amount), "the payment's own draft charges the same")
+		self.assertEqual(flt(paid.grand_total), flt(doc.grand_total))
+		self.assertEqual(flt(paid.rounded_total), flt(doc.rounded_total))
+		self.assertEqual(
+			[flt(tax.tax_amount_after_discount_amount) for tax in paid.taxes],
+			[flt(tax.tax_amount_after_discount_amount) for tax in doc.taxes],
+		)
+		_answer, job = self.printed(order)
+		self.assertIn(f"right {chf(33.36)}]", job.job_data)
+		self.assertNotIn(chf(37.05), job.job_data)
+
+	def test_the_total_is_rounded_to_the_5_centimes_and_the_rounding_is_said(self):
+		order = self.order([self.line(self.steak, 3, 12.35, 10, discount_amount=3.7, rate=11.12)])
+		doc = self.priced(order)
+		self.assertEqual((flt(doc.grand_total), flt(doc.rounded_total)), (33.36, 33.35))
+		_answer, job = self.printed(order)
+		self.assertIn(f"[column: left {frappe._('Rounding Adjustment')}:; right {chf(-0.01)}]", job.job_data)
+		self.assertIn(f"right {chf(33.35)}]", job.job_data)
+
+	def test_after_an_order_discount_the_vat_printed_is_the_vat_owed(self):
+		# I1: 2 x 38.50 + 8.00 = 85.00 with the VAT in the prices, 5.00 off the order: the VAT owed is on 80.00
+		order = self.order([self.line(self.steak, 2, 38.5), self.line(self.wine, 1, 8)], discount_amount=5)
+		doc = self.priced(order)
+		owed = round(80 * 8.1 / 108.1, 2)
+		self.assertEqual(flt(doc.taxes[0].tax_amount_after_discount_amount), owed)
+		self.assertNotEqual(flt(doc.taxes[0].tax_amount), owed, "ERPNext keeps the VAT before the discount there")
+		self.assertEqual(flt(doc.grand_total), 80)
+		_answer, job = self.printed(order)
+		self.assertIn(f"[column: left {vat('8.1')}:; right {chf(owed)}]", job.job_data)
+		self.assertNotIn(chf(doc.taxes[0].tax_amount), job.job_data)
+		self.assertIn(f"[column: left {frappe._('Discount')}:; right {chf(5)}]", job.job_data)
+		# the paid receipt prints the same VAT, from the same helper
+		receipt = get_receipt_markup(doc)
+		self.assertIn(f"[column: left {vat('8.1')}:; right {chf(owed)}]", receipt)
+		self.assertIn(f"{vat('8.1')}: {chf(80 - owed)} + {chf(owed)} = {chf(80)}", receipt)
+
+	def test_a_whole_cart_coupon_is_on_the_ticket_as_the_payment_applies_it(self):
+		# I5: the payment sends a whole-cart coupon as the order's discount (effectiveHeaderDiscount)
+		order = self.order([self.line(self.steak, 2, 38.5)], discount_amount=10, coupon_code="_TEST-PROV-COUPON")
+		_answer, job = self.printed(order)
+		self.assertIn(f"[column: left {frappe._('Discount')}:; right {chf(10)}]", job.job_data)
+		self.assertIn(f"right {chf(67)}]", job.job_data)
+
+	def test_a_price_set_by_hand_is_the_one_printed(self):
+		line = self.line(self.steak, 2, 38.5, is_rate_manually_edited=1)
+		line["rate"] = 30
+		doc = self.priced(self.order([line]))
+		self.assertEqual(flt(doc.items[0].amount), 60)
+
+	def test_two_vat_rates_print_two_lines_that_add_up_with_the_net_to_the_total(self):
+		# a takeaway dish at 2.6 % and a bottle at 8.1 % in one order, prices with the VAT in them
+		order = self.order([self.line(self.food, 2, 12.5), self.line(self.wine, 1, 8)])
+		doc = self.priced(order)
+		by_account = {tax.account_head: flt(tax.tax_amount_after_discount_amount) for tax in doc.taxes}
+		self.assertEqual(by_account[self.vat26], round(25 * 2.6 / 102.6, 2))
+		self.assertEqual(by_account[self.vat81], round(8 * 8.1 / 108.1, 2))
+		_answer, job = self.printed(order)
+		self.assertIn(f"[column: left {vat('8.1')}:; right {chf(by_account[self.vat81])}]", job.job_data)
+		self.assertIn(f"[column: left {vat('2.6')}:; right {chf(by_account[self.vat26])}]", job.job_data)
+		self.assertNotIn("Due", job.job_data, "the label is the rate, not the account's name")
+		self.assertEqual(round(flt(doc.net_total) + sum(by_account.values()), 2), flt(doc.grand_total))
+		receipt = get_receipt_markup(doc)
+		self.assertIn(f"[column: left {vat('2.6')}:; right {chf(by_account[self.vat26])}]", receipt)
+		self.assertNotIn("Due", receipt)
+
+	def test_prices_before_tax_show_the_net_total_and_the_vat_on_top(self):
+		order = self.order([self.line(self.food, 2, 12.5), self.line(self.wine, 1, 8)], pos_profile=self.till_excl)
+		doc = self.priced(order)
+		self.assertEqual(flt(doc.net_total), 33)
+		vat26, vat81 = round(25 * 0.026, 2), round(8 * 0.081, 2)
+		self.assertEqual(flt(doc.grand_total), round(33 + vat26 + vat81, 2))
+		_answer, job = self.printed(order)
+		self.assertIn(f"[column: left {frappe._('Net Total')}:; right {chf(33)}]", job.job_data)
+		self.assertIn(f"[column: left {vat('2.6')}:; right {chf(vat26)}]", job.job_data)
+		self.assertIn(f"[column: left {vat('8.1')}:; right {chf(vat81)}]", job.job_data)
+
+	def test_the_vat_is_included_or_on_top_as_the_tills_settings_say_as_on_the_payment(self):
+		# The till's template says the VAT is in the prices, its POS Settings say it is not: POS Next follows the settings
+		# on the payment's draft, and the ticket follows them too
+		frappe.db.set_value("POS Settings", {"pos_profile": self.till}, "tax_inclusive", 0)
+		order = self.order([self.line(self.food, 2, 12.5), self.line(self.wine, 1, 8)])
+		doc = self.priced(order)
+		paid = self.payments_draft(order)
+		self.assertEqual(flt(doc.net_total), 33)
+		self.assertEqual(flt(doc.grand_total), flt(paid.grand_total))
+		self.assertEqual(flt(doc.grand_total), round(33 + round(25 * 0.026, 2) + round(8 * 0.081, 2), 2))
+
+	def test_an_order_without_vat_has_no_vat_line(self):
+		_answer, job = self.printed(self.order([self.line(self.water, 2, 3)]))
+		self.assertNotIn(frappe._("VAT {0} %").split("{0}")[0], job.job_data)
+		self.assertIn(f"right {chf(6)}]", job.job_data)
+
+	def test_a_line_with_options_prints_them_under_it(self):
+		modifiers = '[{"group": "Cooking", "options": [{"name": "Medium", "price_adjustment": 0}]}]'
+		_answer, job = self.printed(self.order([self.line(self.steak, 1, 38.5, posa_item_modifiers=modifiers, posa_special_instructions="No salt")]))
+		self.assertIn("   Cooking: Medium", job.job_data)
+		self.assertIn("   No salt", job.job_data)
+		self.assertNotIn("price_adjustment", job.job_data)
+
+	def test_an_offered_row_charges_nothing_and_says_offered(self):
+		# Task 24: the offered part is a row of its own at its list price with a 100 % discount
+		offered = self.line(self.wine, 1, 9.5, 100, posa_is_offered=1)
+		order = self.order([self.line(self.steak, 1, 38.5), offered])
+		doc = self.priced(order)
+		self.assertEqual(flt(doc.items[1].amount), 0)
+		_answer, job = self.printed(order)
+		self.assertIn(f"   {frappe._('Offered', context='Given for free')}", job.job_data)
+		self.assertIn(f"right {chf(38.5)}]", job.job_data)
+
+	def test_what_a_guest_paid_by_phone_is_read_from_the_tables_order_and_left_to_pay_is_said(self):
+		draft = self.open_order(paid=22, tip=2)
+		_answer, job = self.printed(self.order([self.line(self.steak, 2, 38.5)], draft=draft))
+		self.assertIn(f"[column: left {frappe._('Already paid')}:; right {chf(20)}]", job.job_data)
+		self.assertIn(f"[column: left {frappe._('Left to pay')}:; right {chf(57)}]", job.job_data)
+		self.assertEqual(job.reference_name, draft)
+
+class TestPrintingWritesNothingButTheJob(RealTill):
+	def test_nothing_is_saved_no_kitchen_no_drawer_only_the_print_job(self):
+		draft = self.open_order(paid=10)
+		modified = frappe.db.get_value("Sales Invoice", draft, "modified")
+		counts = {doctype: frappe.db.count(doctype) for doctype in ("Sales Invoice", "Sales Invoice Item", "Comment", "Version", drawer.DOCTYPE, "Error Log")}
+		written = []
+		real_sql = frappe.db.sql
+
+		def watch(query, *args, **kwargs):
+			text = str(query).strip().lower()
+			if text.startswith(("insert", "update", "delete", "replace")):
+				written.append(text[:120])
+			return real_sql(query, *args, **kwargs)
+
+		order = self.order([self.line(self.steak, 2, 38.5), self.line(self.wine, 1, 8)], draft=draft)
+		with patch.object(frappe.db, "sql", side_effect=watch):
+			answer = print_provisional_ticket(json.dumps(order))
+		self.assertTrue(written, "the job is written")
+		self.assertTrue(all("`tabcloudprnt print queue`" in query for query in written), written)
+		self.assertEqual(counts, {doctype: frappe.db.count(doctype) for doctype in counts})
+		self.assertEqual(frappe.db.get_value("Sales Invoice", draft, "modified"), modified, "the table's order is not touched")
+		self.assertEqual(self.kitchen_sends, [], "nothing reaches the kitchen")
+		job = frappe.db.get_value(jobs.DOCTYPE, {"job_token": answer["job_token"]}, ["open_drawer", "expires_at", "creation", "printer"], as_dict=True)
+		self.assertEqual(job.open_drawer or "", "", "a provisional ticket never opens the drawer")
+		self.assertIsNone(jobs.drawer_for(job))
 		self.assertLessEqual((job.expires_at - job.creation).total_seconds(), jobs.RECEIPT_VALID_MINUTES * 60 + 1)
 		self.assertGreater((job.expires_at - job.creation).total_seconds(), 60)
-		# no job asks for the drawer, and none is journaled as opened for it
-		self.assertEqual(job.open_drawer or "", "")
-		self.assertIsNone(jobs.drawer_for(frappe._dict(job)))
-		self.assertEqual(
-			frappe.db.count(jobs.DOCTYPE, {"reference_name": doc.name, "open_drawer": ("in", ("start", "end"))}), 0
-		)
-		self.assertEqual(frappe.db.count(drawer.DOCTYPE, {"print_job": job.job_token}), 0)
-		self.assertEqual(frappe.db.count(jobs.DOCTYPE, {"printer": self.other}), 0, "the other till's printer gets nothing")
 
-	def test_the_printer_the_till_names_is_the_one_it_prints_on(self):
-		doc = order()
-		with patch("cloudprnt.provisional_ticket._open_order", return_value=doc):
-			print_provisional_ticket(doc.name, printer="_Test CloudPRNT other till")
-		self.assertEqual([job.printer for job in self.jobs_of(doc.name)], [self.other])
-		self.assertEqual([job.open_drawer or "" for job in self.jobs_of(doc.name)], [""])
+	def test_the_printer_is_the_tills_never_one_the_caller_names_nor_the_default(self):
+		order = self.order([self.line(self.steak, 1, 38.5)])
+		for printer in (" ", "", f"{T} other printer", self.default, {"name": self.other_printer}):
+			with self.subTest(printer=printer):
+				answer = frappe.call(print_provisional_ticket, order=json.dumps(order), printer=printer)
+				printed_on = frappe.db.get_value(jobs.DOCTYPE, {"job_token": answer["job_token"]}, "printer")
+				self.assertEqual(printed_on, self.printer)
 
-	def test_a_till_without_a_printer_is_refused_and_nothing_is_queued(self):
-		"""Never the site's default printer: it may stand in another room, or another restaurant."""
-		doc = order(pos_profile="_Test CloudPRNT till without printer")
-		with (
-			patch("cloudprnt.provisional_ticket._open_order", return_value=doc),
-			self.assertRaises(frappe.ValidationError) as refused,
-		):
-			print_provisional_ticket(doc.name)
-		self.assertIn("_Test CloudPRNT till without printer", str(refused.exception))
-		self.assertEqual(self.jobs_of(doc.name), [])
+	def test_a_blank_or_a_dict_till_is_refused_cleanly(self):
+		for till in (" ", "", None, {"name": self.till}, ["x"]):
+			with self.subTest(till=till), self.assertRaises(frappe.ValidationError):
+				print_provisional_ticket(json.dumps(self.order([self.line(self.steak, 1, 38.5)], pos_profile=till)))
+
+	def test_a_till_without_a_printer_is_said_so_and_nothing_is_queued(self):
+		frappe.db.delete(PRINTER, {"pos_profile": self.till})
+		before = frappe.db.count(jobs.DOCTYPE)
+		with self.assertRaises(NoTicketPrinter):
+			print_provisional_ticket(json.dumps(self.order([self.line(self.steak, 1, 38.5)])))
+		self.assertEqual(frappe.db.count(jobs.DOCTYPE), before)
+
+	def test_the_answer_says_when_the_printer_is_offline(self):
+		frappe.db.set_value(PRINTER, self.printer, "online", 0)
+		answer = print_provisional_ticket(json.dumps(self.order([self.line(self.steak, 1, 38.5)])))
+		self.assertFalse(answer["printer_online"])
+		self.assertEqual(answer["valid_minutes"], jobs.RECEIPT_VALID_MINUTES)
+
+	def test_the_tickets_status_follows_its_job(self):
+		answer = print_provisional_ticket(json.dumps(self.order([self.line(self.steak, 1, 38.5)])))
+		self.assertEqual(ticket_status(answer["job_token"])["status"], "Pending")
+		frappe.db.set_value(jobs.DOCTYPE, {"job_token": answer["job_token"]}, {"status": "Failed", "result_code": "Paper out"})
+		self.assertEqual(ticket_status(answer["job_token"]), {"status": "Failed", "printer_online": True, "reason": "Paper out"})
+		for job in (None, "", {"job_token": answer["job_token"]}, "no-such-job"):
+			with self.subTest(job=job), self.assertRaises(frappe.DoesNotExistError):
+				ticket_status(job)
 
 
-class TestWhoMayPrintIt(RolledBack):
+class TestWhatIsRefused(RealTill):
 	def test_a_portal_account_is_refused_whatever_its_roles(self):
 		make_user(PORTAL, ["Customer"], "Website User")
-		# a portal account given a role that reads invoices, by mistake: a role does not make it the till's staff
-		make_user(PORTAL_WITH_ROLES, ["Accounts User"], "Website User")
+		make_user(PORTAL_WITH_ROLES, ["Accounts User", "POSNext Cashier"], "Website User")
+		order = json.dumps(self.order([self.line(self.steak, 1, 38.5)]))
 		for user in (PORTAL, PORTAL_WITH_ROLES):
-			with self.subTest(user=user), as_user(user), self.assertRaises(frappe.PermissionError):
-				print_provisional_ticket("ACC-SINV-NO-SUCH-0001")
+			with self.subTest(user=user), as_user(user):
+				with self.assertRaises(frappe.PermissionError):
+					print_provisional_ticket(order)
+				with self.assertRaises(frappe.PermissionError):
+					ticket_status("no-such-job")
 
-	def test_a_desk_user_who_may_not_read_invoices_is_refused(self):
+	def test_a_desk_user_who_may_not_make_sales_is_refused(self):
 		make_user(DESK_WITHOUT_INVOICES, ["Blogger"], "System User")
 		with as_user(DESK_WITHOUT_INVOICES), self.assertRaises(frappe.PermissionError):
-			print_provisional_ticket("ACC-SINV-NO-SUCH-0001")
+			print_provisional_ticket(json.dumps(self.order([self.line(self.steak, 1, 38.5)])))
 
-	def test_a_name_that_is_not_a_name_is_refused(self):
-		for name in ({"name": "ACC-SINV-0001"}, ["ACC-SINV-0001"], 7, ""):
-			with self.subTest(name=name), self.assertRaises(frappe.DoesNotExistError):
-				print_provisional_ticket(name)
+	def test_a_till_does_not_print_another_restaurants_table(self):
+		with self.assertRaises(frappe.PermissionError):
+			print_provisional_ticket(json.dumps(self.order([self.line(self.steak, 1, 38.5)], restaurant_table=self.other_table)))
 
-	def test_the_staff_reaches_the_order(self):
-		"""Past the guards, an order that does not exist is reported as such: nothing here is a refusal."""
-		with self.assertRaises(frappe.DoesNotExistError):
-			print_provisional_ticket("ACC-SINV-NO-SUCH-0001")
-
-	def test_an_order_of_a_restaurant_the_user_may_not_read_is_refused(self):
-		if not provisional_ticket._restaurants_known():
-			raise unittest.SkipTest("POS Next with restaurants is not installed on this site")
-		company = frappe.get_all("Company", limit=1, pluck="name")
-		if not company:
-			self.skipTest("The site has no company")
-
-		def insert(doctype, **values):
-			return frappe.get_doc({"doctype": doctype, **values}).insert(ignore_permissions=True).name
-
-		ours, theirs = (
-			insert("Restaurant", restaurant_name=f"_Test CloudPRNT Restaurant {key}", company=company[0], enable_tips=0)
-			for key in ("A", "B")
-		)
-		# the same label in both restaurants, as two places of one owner may have
-		our_table, their_table = (
-			insert(
-				"Restaurant Table",
-				area=insert("Restaurant Area", restaurant=restaurant, area_name="_Test CloudPRNT Room"),
-				table_name="_Test CloudPRNT T1",
-			)
-			for restaurant in (ours, theirs)
-		)
+	def test_a_cashier_kept_to_another_restaurant_is_refused(self):
 		make_user(CASHIER, ["POSNext Cashier"], "System User")
-		insert("User Permission", user=CASHIER, allow="Restaurant", for_value=ours)
+		self.insert("User Permission", user=CASHIER, allow="Restaurant", for_value=self.other_restaurant)
 		self.addCleanup(frappe.clear_cache, user=CASHIER)
 		frappe.clear_cache(user=CASHIER)
-		with as_user(CASHIER):
-			with self.assertRaises(frappe.PermissionError):
-				provisional_ticket._require_restaurant_of(order(restaurant_table=their_table))
-			provisional_ticket._require_restaurant_of(order(restaurant_table=our_table))
-			# a takeaway order belongs to the restaurant of the till that took it
-			takeaway = order(restaurant_table=None, is_takeaway=1, pos_profile=OTHER_PROFILE)
-			with patch("pos_next.restaurant.settings.restaurant_for_profile", return_value=theirs):
-				with self.assertRaises(frappe.PermissionError):
-					provisional_ticket._require_restaurant_of(takeaway)
-			with patch("pos_next.restaurant.settings.restaurant_for_profile", return_value=ours):
-				provisional_ticket._require_restaurant_of(takeaway)
+		order = json.dumps(self.order([self.line(self.steak, 1, 38.5)], is_takeaway=1, restaurant_table=None))
+		with as_user(CASHIER), self.assertRaises(frappe.PermissionError):
+			print_provisional_ticket(order)
+
+	def test_a_paid_or_cancelled_order_is_refused(self):
+		draft = self.open_order()
+		frappe.db.set_value("Sales Invoice", draft, "docstatus", 1, update_modified=False)
+		with self.assertRaises(frappe.ValidationError) as refused:
+			print_provisional_ticket(json.dumps(self.order([self.line(self.steak, 1, 38.5)], draft=draft)))
+		self.assertIn(draft, str(refused.exception))
+		frappe.db.set_value("Sales Invoice", draft, "docstatus", 2, update_modified=False)
+		with self.assertRaises(frappe.ValidationError):
+			print_provisional_ticket(json.dumps(self.order([self.line(self.steak, 1, 38.5)], draft=draft)))
+
+	def test_another_tables_order_is_refused(self):
+		draft = self.open_order(table=self.other_table)
+		with self.assertRaises(frappe.ValidationError):
+			print_provisional_ticket(json.dumps(self.order([self.line(self.steak, 1, 38.5)], draft=draft)))
+
+	def test_an_order_with_no_lines_or_no_table_is_refused(self):
+		with self.assertRaises(frappe.ValidationError) as refused:
+			print_provisional_ticket(json.dumps(self.order([])))
+		self.assertIn(frappe._("there is nothing to print"), str(refused.exception))
+		with self.assertRaises(frappe.ValidationError):
+			print_provisional_ticket(json.dumps(self.order([self.line(self.steak, 1, 38.5)], restaurant_table=None)))
+		with self.assertRaises(frappe.ValidationError):
+			print_provisional_ticket("not json")
+
+	def test_the_endpoints_are_not_open_to_kitchen_tablets(self):
+		"""Task 16's device accounts call only the methods it lists (M10): the ticket is not one of them."""
+		try:
+			from pos_next.restaurant import devices
+		except ImportError:
+			raise unittest.SkipTest("Task 16's kitchen devices are not in this POS Next") from None
+		methods = set(getattr(devices, "TABLET_METHODS", ()))
+		self.assertFalse({m for m in methods if "provisional_ticket" in m}, methods)

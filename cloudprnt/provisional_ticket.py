@@ -1,44 +1,84 @@
-"""The provisional ticket of a table order: what the table ordered and what it comes to, before it pays.
+"""The provisional ticket of a table or takeaway order: what the table ordered and what it comes to, before it pays.
 
-A restaurant hands the table a priced summary before cashing in. A table (or takeaway) order of POS Next is a draft
-Sales Invoice, which the till saves first, as its screen shows it; the ticket is built here from that invoice, so the
-VAT of each rate and the total are the invoice's own, the total rounded as the till rounds it (CHF to 0.05).
+The ticket prints the order AS THE TILL SHOWS IT, and printing it saves nothing (ruling 93). The till sends its order the
+way its payment sends it: each line at its rate after its discount, the order's discount as the payment applies it
+(a whole-cart coupon included). The server builds an unsaved Sales Invoice from it, priced by ERPNext's own computation
+the way POS Next prices the payment's draft (`pos_next.api.invoices.update_invoice`: pricing rules ignored, rounding as
+the till's POS Profile says, `set_missing_values(for_validate=True)`, `calculate_taxes_and_totals`, then the VAT included
+or on top as the till's POS Settings say, POS Next's validate hook `apply_tax_inclusive`). Nothing is inserted, saved or
+committed; nothing reaches the kitchen. Lines not sent to
+the kitchen yet are on the bill and wait for « Validate »; a dish removed on the screen is not on the bill, and the
+kitchen hears of it at « Validate ». The table's open order is only read: its table, and what a guest already paid by
+phone (printed as « Already paid » and « Left to pay », the controller's ruling).
 
-It is not a receipt and says so: it shows no payment and no invoice barcode, and it never opens the cash drawer, even
-on a printer set to open it with every sale. Like a receipt it expires: a ticket the printer did not take within a few
-minutes (printer off, network down) is not printed by surprise later, when the table has paid and left.
+It is not a receipt and says so: no payment of the till, no barcode, and it never opens the cash drawer, even on a
+printer set to open it with every sale. It prints on the receipt printer of the till that sends it, never on a printer
+the caller names. Like a receipt it expires: a ticket the printer did not take within RECEIPT_VALID_MINUTES is not
+printed by surprise later, when the table has paid and left. The till follows the job (`ticket_status`) to show the
+waiter whether it printed (ruling 97).
 """
+
+import json
 
 import frappe
 from frappe import _
-from frappe.utils import flt, fmt_money, formatdate, now_datetime
+from frappe.utils import cint, flt, fmt_money, formatdate, now_datetime
 
 from cloudprnt import guards
 from cloudprnt import print_queue_manager as jobs
 from cloudprnt.api import _printer_for_profile
 from cloudprnt.kitchen_ticket import _modifiers, _plain, _where
-from cloudprnt.printers import find_printer
-from cloudprnt.receipt_markup import LINE_CHARS, _column, _qty, _tax_label, _text, _width
+from cloudprnt.printers import get_printer
+from cloudprnt.receipt_markup import LINE_CHARS, _column, _qty, _text, _width, charged_taxes, vat_lines
+
+#: What the ticket reads of a line the till sends (the fields of its payment's lines: useInvoice.formatItemsForSubmission).
+LINE_FIELDS = (
+	"item_code",
+	"item_name",
+	"qty",
+	"rate",
+	"price_list_rate",
+	"uom",
+	"conversion_factor",
+	"discount_percentage",
+	"discount_amount",
+	"is_free_item",
+	"is_rate_manually_edited",
+	"warehouse",
+	"posa_item_modifiers",
+	"posa_special_instructions",
+	# A row offered by the cashier (NeoRestau lot 1, task 24): it charges nothing and says « Offered »
+	"posa_is_offered",
+)
+
+
+class NoTicketPrinter(frappe.ValidationError):
+	"""The till has no CloudPRNT receipt printer: the till prints the ticket itself (its browser) instead."""
 
 
 @frappe.whitelist()
-def print_provisional_ticket(invoice, printer=None):
-	"""Print the provisional ticket of table order `invoice` (a draft Sales Invoice) on `printer`, else on the
-	printer of the order's till. Never on the site's default printer: it may stand in another room."""
-	guards.require("Sales Invoice", "read")
+def print_provisional_ticket(order):
+	"""Print the provisional ticket of `order` (JSON), the order the till shows: `pos_profile` (the till), the table
+	(`restaurant_table`) or the takeaway order (`is_takeaway`, `takeaway_number`), `draft` (the open order the server
+	holds for it, read only), `customer`, `discount_amount` and `items`, shaped as the till's payment sends them.
+	Prints on the receipt printer of that till."""
+	guards.require("Sales Invoice", "create")
 	guards.require_desk_account()
-	doc = _open_order(invoice)
-	row = find_printer(printer) if printer else _printer_for_profile(doc.get("pos_profile"))
+	order = _parse(order)
+	profile = _till(order)
+	restaurant = _restaurant_of(order, profile.name)
+	draft = _open_order(order)
+	row = _printer_for_profile(profile.name)
 	if not row:
-		frappe.throw(
-			_("No CloudPRNT printer prints the receipts of the till {0}").format(doc.get("pos_profile") or _("(none)"))
-		)
+		frappe.throw(_("No CloudPRNT printer prints the receipts of the till {0}").format(profile.name), NoTicketPrinter)
+	doc = build_unsaved_invoice(order, profile)
+	paid = already_paid(draft, restaurant)
 	paper = row.paper_width or frappe.db.get_single_value("CloudPRNT Settings", "default_paper_width")
 	result = jobs.enqueue(
 		row,
-		get_provisional_ticket_markup(doc, paper_width=paper),
-		reference_doctype="Sales Invoice",
-		reference_name=doc.name,
+		get_provisional_ticket_markup(doc, paper_width=paper, paid=paid),
+		reference_doctype="Sales Invoice" if draft else None,
+		reference_name=draft.name if draft else None,
 		# open_drawer is left out: a provisional ticket never opens the cash drawer
 		valid_seconds=jobs.RECEIPT_VALID_MINUTES * 60,
 	)
@@ -46,30 +86,69 @@ def print_provisional_ticket(invoice, printer=None):
 		"success": True,
 		"message": _("Provisional ticket sent to {0}").format(row.label),
 		"printer": row.label,
+		"printer_online": bool(cint(row.online)),
+		"valid_minutes": jobs.RECEIPT_VALID_MINUTES,
+		"total": flt(doc.rounded_total) or flt(doc.grand_total),
 		**result,
 	}
 
 
-def _open_order(invoice):
-	"""Table order `invoice`, which the caller may read: of a restaurant he may read, still open, with lines."""
-	# A name, nothing else: a dict from a JSON body would be read as filters by frappe.db.exists
-	if not invoice or not isinstance(invoice, str) or not frappe.db.exists("Sales Invoice", invoice):
-		frappe.throw(_("{0} {1} not found").format(_("Sales Invoice"), invoice), frappe.DoesNotExistError)
-	guards.require("Sales Invoice", "read", invoice)
-	doc = frappe.get_doc("Sales Invoice", invoice)
-	_require_restaurant_of(doc)
-	_check_order(doc)
-	return doc
+@frappe.whitelist()
+def ticket_status(job):
+	"""Where the ticket `job` (its job token) stands, for the till that printed it: Pending, Fetched (the printer took
+	it), Printed, Failed or Expired, whether its printer is online, and why it did not print. Only the status of a job
+	of a printer of a till the caller works at."""
+	guards.require("Sales Invoice", "create")
+	guards.require_desk_account()
+	if not job or not isinstance(job, str):
+		frappe.throw(_("{0} {1} not found").format(_("CloudPRNT Print Queue"), job), frappe.DoesNotExistError)
+	row = frappe.db.get_value(jobs.DOCTYPE, {"job_token": job}, ["status", "printer", "result_code"], as_dict=True)
+	printer = get_printer(row.printer) if row and row.printer else None
+	if not row or not printer or not printer.pos_profile:
+		frappe.throw(_("{0} {1} not found").format(_("CloudPRNT Print Queue"), job), frappe.DoesNotExistError)
+	_require_till_access(printer.pos_profile)
+	return {
+		"status": row.status,
+		"printer_online": bool(cint(printer.online)),
+		"reason": row.result_code if row.status in ("Failed", "Expired") else "",
+	}
 
 
-def _check_order(doc):
-	"""Refuse what is not an open table or takeaway order with lines: the ticket is printed before the table pays."""
-	if doc.docstatus != 0:
-		frappe.throw(_("{0} is no longer an open order").format(doc.name))
-	if not (doc.get("restaurant_table") or doc.get("is_takeaway")):
-		frappe.throw(_("{0} is not a table or takeaway order").format(doc.name))
-	if not doc.get("items"):
-		frappe.throw(_("Order {0} has no lines: there is nothing to print").format(doc.name))
+def _parse(order):
+	if isinstance(order, str):
+		try:
+			order = json.loads(order)
+		except ValueError:
+			order = None
+	if not isinstance(order, dict):
+		frappe.throw(_("The order to print is not readable"))
+	lines = order.get("items")
+	if not isinstance(lines, list) or not any(isinstance(line, dict) and line.get("item_code") for line in lines):
+		frappe.throw(_("This order has no lines: there is nothing to print"))
+	if not (order.get("restaurant_table") or cint(order.get("is_takeaway"))):
+		frappe.throw(_("Only a table or takeaway order has a provisional ticket"))
+	return order
+
+
+def _till(order):
+	"""The till that prints: the POS Profile the order names, which the caller must work at. A name, nothing else: a
+	blank value would read as no till, a dict as filters."""
+	name = order.get("pos_profile")
+	if not isinstance(name, str) or not name.strip() or not frappe.db.exists("POS Profile", name):
+		frappe.throw(_("The till of this order is not known"))
+	_require_till_access(name)
+	return frappe.get_cached_doc("POS Profile", name)
+
+
+def _require_till_access(pos_profile):
+	"""Whoever may work at till `pos_profile` (POS Next's rule: a desk account assigned to it, or reading sales invoices
+	as every cashier does, or a till manager); a site without POS Next: whoever reads the POS Profile."""
+	try:
+		from pos_next.api.cash_entry import require_till_access
+	except ImportError:
+		guards.require("POS Profile", "read", pos_profile)
+		return
+	require_till_access(pos_profile)
 
 
 def _restaurants_known():
@@ -81,24 +160,138 @@ def _restaurants_known():
 	return bool(frappe.db.exists("DocType", "Restaurant"))
 
 
-def _require_restaurant_of(doc):
-	"""Refuse an order of a restaurant the caller may not read (POS Next's per-restaurant user permissions): a user
-	kept to one restaurant prints no other restaurant's order. An order belongs to the restaurant of its table, else
-	to the one of the till that took it, else to the default restaurant (pos_next.restaurant.scope.keep_orders_of)."""
+def _restaurant_of(order, pos_profile):
+	"""The restaurant of the order, which the caller must be allowed to read (POS Next's per-restaurant permissions),
+	and which must be the till's: a till prints the tables of its own restaurant only. A takeaway order belongs to the
+	restaurant of its till, else to the default restaurant (pos_next.restaurant.scope.keep_orders_of). None when POS
+	Next knows no restaurants."""
+	table = order.get("restaurant_table")
+	if table and (not isinstance(table, str) or not frappe.db.exists("Restaurant Table", table)):
+		frappe.throw(_("{0} {1} not found").format(_("Restaurant Table"), table), frappe.DoesNotExistError)
 	if not _restaurants_known():
-		return
+		return None
 	from pos_next.restaurant import permissions, scope
 	from pos_next.restaurant.settings import default_restaurant, restaurant_for_profile
 
-	if doc.get("restaurant_table"):
-		restaurant = scope.restaurant_of_record("Restaurant Table", doc.restaurant_table)
+	till_restaurant = restaurant_for_profile(pos_profile)
+	if table:
+		restaurant = scope.restaurant_of_record("Restaurant Table", table)
+		if restaurant != till_restaurant:
+			frappe.throw(_("This till does not serve this table"), frappe.PermissionError)
 	else:
-		restaurant = restaurant_for_profile(doc.get("pos_profile")) or default_restaurant()
+		restaurant = till_restaurant or default_restaurant()
 	permissions.require_restaurant(restaurant)
+	return restaurant
 
 
-def get_provisional_ticket_markup(doc, paper_width=80):
-	"""Star Document Markup of the provisional ticket of table order `doc`."""
+def _open_order(order):
+	"""The open order the server holds for the table (or the one the till names), read only; None when there is none
+	yet. An order already paid or cancelled is refused: its table has nothing left to pay on it."""
+	name = order.get("draft")
+	table = order.get("restaurant_table") or None
+	if name is not None and not isinstance(name, str):
+		frappe.throw(_("{0} {1} not found").format(_("Sales Invoice"), name), frappe.DoesNotExistError)
+	if not name and table:
+		name = frappe.db.get_value(
+			"Sales Invoice", {"docstatus": 0, "restaurant_table": table}, "name", order_by="modified desc"
+		)
+	if not name:
+		return None
+	if not frappe.db.exists("Sales Invoice", name):
+		frappe.throw(_("{0} {1} not found").format(_("Sales Invoice"), name), frappe.DoesNotExistError)
+	guards.require("Sales Invoice", "read", name)
+	draft = frappe.get_doc("Sales Invoice", name)
+	if draft.docstatus != 0:
+		frappe.throw(_("{0} is no longer an open order").format(draft.name))
+	if table and (draft.get("restaurant_table") or None) != table:
+		frappe.throw(_("{0} is not the order of this table").format(draft.name))
+	return draft
+
+
+def build_unsaved_invoice(order, profile):
+	"""The order as an unsaved Sales Invoice of till `profile`, priced by ERPNext as the payment's draft is: the company,
+	currency, price list and warehouse are the till's, never the caller's; each line keeps the rate the till sends (its
+	rate after its discount), pricing rules are ignored, the total is rounded as the till rounds it. Never inserted."""
+	customer = order.get("customer")
+	if not isinstance(customer, str) or not frappe.db.exists("Customer", customer):
+		# A customer typed at the till and not created yet (the payment creates it): the till's own prices the order
+		customer = profile.customer
+	doc = frappe.new_doc("Sales Invoice")
+	doc.update(
+		{
+			"pos_profile": profile.name,
+			"company": profile.company,
+			"currency": profile.currency,
+			"selling_price_list": profile.selling_price_list,
+			"set_warehouse": profile.warehouse,
+			"customer": customer,
+			"is_pos": 1,
+			"update_stock": 1,
+			"discount_amount": max(flt(order.get("discount_amount")), 0),
+			"restaurant_table": order.get("restaurant_table") or None,
+			"is_takeaway": 1 if cint(order.get("is_takeaway")) else 0,
+			"takeaway_number": str(order.get("takeaway_number") or ""),
+		}
+	)
+	for line in order.get("items") or []:
+		if isinstance(line, dict) and line.get("item_code"):
+			doc.append("items", {field: line.get(field) for field in LINE_FIELDS if line.get(field) is not None})
+	doc.flags.ignore_permissions = True
+	ignore_account_permission = frappe.flags.ignore_account_permission
+	frappe.flags.ignore_account_permission = True
+	try:
+		doc.ignore_pricing_rule = 1
+		doc.flags.ignore_pricing_rule = True
+		doc.disable_rounded_total = cint(profile.disable_rounded_total)
+		doc.set_missing_values(for_validate=True)
+		# set_missing_values() resets ignore_pricing_rule from the POS Profile, as update_invoice notes
+		doc.ignore_pricing_rule = 1
+		doc.flags.ignore_pricing_rule = True
+		_takeaway_tax(doc)
+		doc.calculate_taxes_and_totals()
+		_tax_inclusive(doc)
+	finally:
+		frappe.flags.ignore_account_permission = ignore_account_permission
+	return doc
+
+
+def _tax_inclusive(doc):
+	"""Prices with the VAT in them, or the VAT on top, as the till's POS Settings say (`tax_inclusive`), whatever its tax
+	template says: POS Next's own rule, which its validate hook applies to the payment's draft (and recomputes the
+	totals when it changes something)."""
+	try:
+		from pos_next.api.sales_invoice_hooks import apply_tax_inclusive
+	except ImportError:
+		return
+	apply_tax_inclusive(doc)
+
+
+def _takeaway_tax(doc):
+	"""A takeaway order takes its restaurant's takeaway tax category, as the paid invoice will in its before_validate
+	(POS Next, NeoRestau lot 1, task 10), when that POS Next is installed."""
+	try:
+		from pos_next.restaurant.takeaway_tax import apply_takeaway_tax_category
+	except ImportError:
+		return
+	apply_takeaway_tax_category(doc)
+
+
+def already_paid(draft, restaurant=None):
+	"""What a guest already paid by phone on the open order `draft`: its payments less the tips among them (the tip
+	line is not the order's, as the till reads it: get_table_order). 0 without an open order."""
+	if not draft:
+		return 0.0
+	tip_item = None
+	if restaurant and _restaurants_known():
+		from pos_next.restaurant.settings import get_restaurant_settings
+
+		tip_item = get_restaurant_settings(restaurant).get("tip_item")
+	tips = sum(flt(row.amount) for row in draft.items if tip_item and row.item_code == tip_item)
+	return max(flt(draft.paid_amount) - tips, 0.0)
+
+
+def get_provisional_ticket_markup(doc, paper_width=80, paid=0):
+	"""Star Document Markup of the provisional ticket of `doc`, an order priced by ERPNext (build_unsaved_invoice)."""
 	chars = LINE_CHARS.get(_width(paper_width), 48)
 	rule = "-" * chars
 
@@ -108,41 +301,41 @@ def get_provisional_ticket_markup(doc, paper_width=80):
 	now = now_datetime()
 	out = [
 		"[align: centre]",
-		f"[magnify: width 2; height 1]{_text(doc.company)}[magnify]",
+		_big(doc.company, chars, height=1),
 		"",
-		f"[magnify: width 2; height 2][bold: on]{_text(_('PROVISIONAL TICKET'))}[bold: off][magnify]",
+		_big(_("PROVISIONAL TICKET"), chars, bold=True),
 		# The label of the table, or "Takeaway" and the order's number
-		f"[magnify: width 2; height 2]{_text(_where(doc))}[magnify]",
+		_big(_where(doc), chars),
 		"[align: left]",
 		"",
 		f"{_('Date')}: {formatdate(now.date())} {now.strftime('%H:%M')}",
 		rule,
 	]
 	for line in doc.items:
-		left = f"{_qty(line.qty)} x {line.item_name or line.item_code}"
-		right = money(line.amount)
-		if len(left) + len(right) + 1 <= chars:
-			out.append(_column(left, right))
-		else:
-			# A name too long for the line: on its own (the printer wraps it), the amount on the next line
-			out += [_text(left), _column("", right)]
+		offered = cint(line.get("posa_is_offered"))
+		_fit(out, f"{_qty(line.qty)} x {line.item_name or line.item_code}", money(0 if offered else line.amount), chars)
 		for remark in _modifiers(line.get("posa_item_modifiers")) + _plain(line.get("posa_special_instructions")):
 			out.append(f"   {_text(remark)}")
+		if offered:
+			out.append(f"   {_text(_('Offered', context='Given for free'))}")
 	out.append(rule)
 
-	# The totals as the invoice holds them, laid out as on its receipt
+	# The totals as ERPNext worked them out, laid out as on the paid receipt (receipt_markup)
 	if flt(doc.get("discount_amount")):
-		out.append(_column(f"{_('Discount')}:", money(doc.discount_amount)))
-	taxes = [tax for tax in doc.get("taxes") or [] if flt(tax.tax_amount)]
-	if any(not tax.get("included_in_print_rate") for tax in taxes):
-		out.append(_column(f"{_('Net Total')}:", money(doc.net_total)))
-	abbr = frappe.get_cached_value("Company", doc.company, "abbr") or ""
-	for tax in taxes:
-		out.append(_column(f"{_tax_label(tax, abbr)}:", money(tax.tax_amount)))
-	# What the table will pay: the total rounded as the till rounds it (0 when the till does not round)
+		_fit(out, f"{_('Discount')}:", money(doc.discount_amount), chars)
+	if any(not tax.get("included_in_print_rate") for tax in charged_taxes(doc)):
+		_fit(out, f"{_('Net Total')}:", money(doc.net_total), chars)
+	for label, _base, amount in vat_lines(doc):
+		_fit(out, f"{label}:", money(amount), chars)
 	total = flt(doc.get("rounded_total")) or flt(doc.grand_total)
+	if flt(doc.get("rounded_total")) and flt(doc.get("rounding_adjustment")):
+		# The lines and the VAT add up to the grand total; the till charges it rounded to the 5 centimes
+		_fit(out, f"{_('Rounding Adjustment')}:", money(doc.rounding_adjustment), chars)
+	out.append(f"[magnify: width 1; height 2][bold: on]{_column(_('Total') + ':', money(total))}[bold: off][magnify]")
+	if flt(paid):
+		_fit(out, f"{_('Already paid')}:", money(paid), chars)
+		out.append(f"[bold: on]{_column(_('Left to pay') + ':', money(max(total - flt(paid), 0)))}[bold: off]")
 	out += [
-		f"[magnify: width 1; height 2][bold: on]{_column(_('Total') + ':', money(total))}[bold: off][magnify]",
 		rule,
 		"[align: centre]",
 		f"[magnify: width 1; height 2][bold: on]{_text(_('THIS IS NOT A RECEIPT'))}[bold: off][magnify]",
@@ -150,3 +343,19 @@ def get_provisional_ticket_markup(doc, paper_width=80):
 		"[cut: feed; partial]",
 	]
 	return "\n".join(out)
+
+
+def _fit(out, left, right, chars):
+	"""A line with an amount on the right; a text too long for it goes on its own line, its amount on the next."""
+	if len(left) + len(right) + 1 <= chars:
+		out.append(_column(left, right))
+	else:
+		out += [_text(left), _column("", right)]
+
+
+def _big(text, chars, height=2, bold=False):
+	"""A heading twice as wide when it fits the paper (24 characters on 80 mm, 16 on 58 mm), else only twice as tall."""
+	text = str(text or "")
+	width = 2 if len(text) * 2 <= chars else 1
+	body = f"[bold: on]{_text(text)}[bold: off]" if bold else _text(text)
+	return f"[magnify: width {width}; height {height}]{body}[magnify]"
