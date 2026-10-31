@@ -13,3 +13,13 @@ def require(doctype, ptype="read", name=None):
 	"""Refuse the call unless the session holds `ptype` on `doctype`, or on the document `name`."""
 	if not frappe.has_permission(doctype, ptype, doc=name):
 		frappe.throw(_("Not permitted"), frappe.PermissionError)
+
+
+def require_desk_account():
+	"""Refuse a visitor and a portal account (Website User), whatever roles it was given: what a till prints is its
+	staff's to print."""
+	user = frappe.session.user
+	if user == "Administrator":
+		return
+	if user == "Guest" or frappe.get_cached_value("User", user, "user_type") != "System User":
+		frappe.throw(_("Not permitted"), frappe.PermissionError)

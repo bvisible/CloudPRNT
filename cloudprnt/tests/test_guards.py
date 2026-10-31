@@ -15,6 +15,7 @@ from cloudprnt.cloudprnt.doctype.cloudprnt_settings.cloudprnt_settings import pa
 from cloudprnt.cloudprnt.doctype.cloudprnt_settings.cloudprnt_settings import test_print as send_test_print
 from cloudprnt.print_queue_manager import print_again
 from cloudprnt.printer_discovery import add_discovered_printer, get_discovered_printers
+from cloudprnt.provisional_ticket import print_provisional_ticket
 
 PORTAL = "_test_cloudprnt_portal@example.invalid"
 MAC = "00:11:62:00:00:01"
@@ -54,6 +55,7 @@ class TestGuards(FrappeTestCase):
 		calls = {
 			"print_pos_invoice": lambda: print_pos_invoice("ACC-PSINV-NO-SUCH-0001"),
 			"print_receipt": lambda: print_receipt("Sales Invoice", "ACC-SINV-NO-SUCH-0001"),
+			"print_provisional_ticket": lambda: print_provisional_ticket("ACC-SINV-NO-SUCH-0001"),
 			"open_cash_drawer": lambda: open_cash_drawer(MAC),
 			"pair_printer": lambda: pair_printer(label="_portal printer"),
 			"test_print": lambda: send_test_print(MAC),
