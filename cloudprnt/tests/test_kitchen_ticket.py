@@ -7,7 +7,7 @@ import frappe
 from frappe.tests.utils import FrappeTestCase
 
 from cloudprnt.kitchen_ticket import _lines, get_kitchen_ticket_markup, print_kitchen_ticket
-from cloudprnt.labels import label_of, station_label, table_label
+from cloudprnt.labels import label_of, room_and_digits_of, station_label, table_label, ticket_reference
 
 # POS Next names a new table and a new station by a hash, and keeps what a person reads in a label
 TABLE_NAME = "k3x9q2m7ab"
@@ -180,3 +180,142 @@ class TestLabels(FrappeTestCase):
 	def test_nothing_has_no_label(self):
 		self.assertEqual(label_of("Restaurant Table", "table_name", None), "")
 		self.assertEqual(label_of("Restaurant Table", "table_name", ""), "")
+
+
+class TestTheReferenceOfTheOrder(FrappeTestCase):
+	"""The small line under the table: the ticket number the restaurant gave the order, never the draft's invoice number."""
+
+	def markup(self, doc, room="S01", digits=4):
+		with (
+			patch("cloudprnt.labels.label_of", read_labels),
+			patch("cloudprnt.labels.room_and_digits_of", return_value=(room, digits)),
+		):
+			return get_kitchen_ticket_markup(doc, "Kitchen", _lines(doc, "Kitchen", None))
+
+	def test_an_order_with_a_ticket_number_prints_its_room_its_table_and_its_number_not_its_invoice_number(self):
+		doc = order()
+		doc.posa_ticket_no = 7
+
+		markup = self.markup(doc)
+
+		self.assertIn("S01-Table 5-0007", markup)
+		self.assertNotIn("ACC-SINV-TEST-0002", markup, "a draft takes its invoice number in an order nobody chose")
+
+	def test_the_number_is_written_with_the_digits_of_the_restaurant(self):
+		doc = order()
+		doc.posa_ticket_no = 7
+
+		self.assertIn("S01-Table 5-007", self.markup(doc, digits=3))
+		self.assertIn("S01-Table 5-7", self.markup(doc, digits=1))
+
+	def test_a_number_longer_than_its_digits_is_not_cut(self):
+		doc = order()
+		doc.posa_ticket_no = 12345
+
+		self.assertIn("S01-Table 5-12345", self.markup(doc))
+
+	def test_a_takeaway_order_prints_its_code_and_its_number(self):
+		doc = order()
+		doc.restaurant_table = None
+		doc.is_takeaway = 1
+		doc.takeaway_number = "T-004"
+		doc.posa_ticket_no = 12
+
+		markup = self.markup(doc, room="EMP")
+
+		self.assertIn("EMP-0012", markup)
+		self.assertNotIn("ACC-SINV-TEST-0002", markup)
+
+	def test_a_room_that_has_no_code_is_left_out(self):
+		doc = order()
+		doc.posa_ticket_no = 7
+
+		self.assertIn("Table 5-0007", self.markup(doc, room=""))
+
+	def test_an_order_without_a_ticket_number_keeps_its_name(self):
+		doc = order()
+
+		markup = self.markup(doc)
+
+		self.assertIn("ACC-SINV-TEST-0002", markup)
+		self.assertNotIn("S01-", markup)
+
+	def test_an_order_whose_ticket_number_is_zero_has_none(self):
+		doc = order()
+		doc.posa_ticket_no = 0
+
+		self.assertEqual(ticket_reference(doc), "ACC-SINV-TEST-0002")
+
+
+class TestWhereTheReferenceComesFrom(FrappeTestCase):
+	"""The room's code and the restaurant's digits, read from POS Next's records when the site has them."""
+
+	def lookups(self, values):
+		def get_value(doctype, name, fields=None, as_dict=False, **kwargs):
+			return values.get((doctype, name if not isinstance(name, dict) else tuple(sorted(name.items()))))
+
+		return get_value
+
+	def test_the_room_is_that_of_the_table_and_the_digits_those_of_its_restaurant(self):
+		doc = order()
+		doc.restaurant_table = TABLE_NAME
+		found = {
+			("Restaurant Table", TABLE_NAME): frappe._dict(area="AREA-1", restaurant="Bistro"),
+			("Restaurant Area", "AREA-1"): frappe._dict(area_name="Salle 2", short_code=None),
+			("Restaurant", "Bistro"): 3,
+		}
+		with (
+			patch.object(frappe.db, "exists", return_value=True),
+			patch.object(frappe.db, "has_column", return_value=True),
+			patch.object(frappe.db, "get_value", self.lookups(found)),
+		):
+			self.assertEqual(room_and_digits_of(doc), ("S02", 3))
+
+	def test_a_code_typed_on_the_room_wins(self):
+		doc = order()
+		doc.restaurant_table = TABLE_NAME
+		found = {
+			("Restaurant Table", TABLE_NAME): frappe._dict(area="AREA-1", restaurant="Bistro"),
+			("Restaurant Area", "AREA-1"): frappe._dict(area_name="Salle 2", short_code="RDC"),
+			("Restaurant", "Bistro"): None,
+		}
+		with (
+			patch.object(frappe.db, "exists", return_value=True),
+			patch.object(frappe.db, "has_column", return_value=True),
+			patch.object(frappe.db, "get_value", self.lookups(found)),
+		):
+			self.assertEqual(room_and_digits_of(doc), ("RDC", 4))
+
+	def test_a_takeaway_order_has_the_code_of_a_takeaway(self):
+		doc = order()
+		doc.restaurant_table = None
+		doc.is_takeaway = 1
+		with (
+			patch.object(frappe.db, "exists", return_value=True),
+			patch.object(frappe.db, "has_column", return_value=True),
+			patch.object(frappe.db, "get_value", return_value=None),
+		):
+			self.assertEqual(room_and_digits_of(doc), ("EMP", 4))
+
+	def test_a_takeaway_order_has_the_digits_of_the_restaurant_of_the_till_that_took_it(self):
+		doc = order()
+		doc.restaurant_table = None
+		doc.is_takeaway = 1
+		doc.pos_profile = "Till"
+		found = {
+			("POS Settings", (("enabled", 1), ("pos_profile", "Till"))): "Bistro",
+			("Restaurant", "Bistro"): 3,
+		}
+		with (
+			patch.object(frappe.db, "exists", return_value=True),
+			patch.object(frappe.db, "has_column", return_value=True),
+			patch.object(frappe.db, "get_value", self.lookups(found)),
+		):
+			self.assertEqual(room_and_digits_of(doc), ("EMP", 3))
+
+	def test_without_pos_next_there_is_no_room_and_four_digits(self):
+		doc = order()
+		doc.restaurant_table = TABLE_NAME
+		with patch.object(frappe.db, "exists", return_value=False), patch.object(frappe.db, "get_value") as found:
+			self.assertEqual(room_and_digits_of(doc), ("", 4))
+		found.assert_not_called()

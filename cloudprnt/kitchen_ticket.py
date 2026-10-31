@@ -22,7 +22,7 @@ from frappe.utils import flt, format_datetime, get_datetime
 
 from cloudprnt import guards
 from cloudprnt import print_queue_manager as jobs
-from cloudprnt.labels import station_label, table_label
+from cloudprnt.labels import station_label, table_label, ticket_reference
 from cloudprnt.printers import all_printers, find_printer, stations_of
 
 LINE_CHARS = {58: 32, 80: 48, 112: 69}
@@ -139,7 +139,8 @@ def get_kitchen_ticket_markup(doc, station, lines, batch=None, paper_width=80, t
 		"[align: left]",
 		_column(f"{_('Waiter')}: {waiter}", sent),
 		# "Send no. 2": the second time this table's order went to the kitchen (a bare "Send" reads as the verb)
-		_column(doc.name, _("Send no. {0}").format(batch) if batch else ""),
+		# The restaurant's ticket number (room-table-number), not the draft's invoice number: that one comes in an order nobody chose
+		_column(ticket_reference(doc), _("Send no. {0}").format(batch) if batch else ""),
 		"-" * chars,
 	]
 	for line in lines:
