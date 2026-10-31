@@ -578,11 +578,11 @@ class RealTill(RolledBack):
 
 class TestTheAmountsAreERPNexts(RealTill):
 	def test_a_discounted_line_is_printed_at_what_the_payment_charges_never_at_its_full_price(self):
-		# C1: 3 x 12.35 at 10 %. The till takes 3.70 off the line (37.05 x 10 % is 3.70499... in floating point) and
-		# shows 33.35; its payment sends 11.12 a unit (its rate after the discount, rounded per unit) and ERPNext
-		# charges 33.36. The ticket prints what the payment will charge, never the price before the discount (37.05).
+		# C1: 3 x 12.35 at 10 %. The till's payment sends 11.12 a unit (its rate after the discount, rounded per unit) and
+		# ERPNext charges 33.36; the cart takes 3.69 off the line to come to it (01fab002; it took 3.70 off and showed 33.35
+		# before). The ticket prints what the payment will charge, never the price before the discount (37.05).
 		# what the till's payment sends for it (provisionalTicket.spec.js asserts these numbers from the real cart)
-		line = self.line(self.steak, 3, 12.35, 10, discount_amount=3.7, rate=11.12)
+		line = self.line(self.steak, 3, 12.35, 10, discount_amount=3.69, rate=11.12)
 		order = self.order([line])
 		doc = self.priced(order)
 		self.assertEqual(flt(doc.items[0].amount), 33.36)
@@ -600,7 +600,7 @@ class TestTheAmountsAreERPNexts(RealTill):
 		self.assertNotIn(chf(37.05), job.job_data)
 
 	def test_the_total_is_rounded_to_the_5_centimes_and_the_rounding_is_said(self):
-		order = self.order([self.line(self.steak, 3, 12.35, 10, discount_amount=3.7, rate=11.12)])
+		order = self.order([self.line(self.steak, 3, 12.35, 10, discount_amount=3.69, rate=11.12)])
 		doc = self.priced(order)
 		self.assertEqual((flt(doc.grand_total), flt(doc.rounded_total)), (33.36, 33.35))
 		_answer, job = self.printed(order)
