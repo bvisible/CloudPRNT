@@ -1,5 +1,6 @@
 """The kitchen ticket of a table order: one station's lines, of one send, without prices."""
 
+import json
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -8,6 +9,7 @@ from frappe.tests.utils import FrappeTestCase
 
 from cloudprnt.kitchen_ticket import _lines, get_kitchen_ticket_markup, print_kitchen_ticket
 from cloudprnt.labels import label_of, room_and_digits_of, station_label, table_label, ticket_reference
+from cloudprnt.tests.hostile_text import CLEAN, HOSTILE, unsafe_characters
 
 # POS Next names a new table and a new station by a hash, and keeps what a person reads in a label
 TABLE_NAME = "k3x9q2m7ab"
@@ -94,6 +96,42 @@ class TestKitchenTicket(FrappeTestCase):
 			markup = get_kitchen_ticket_markup(doc, "Kitchen", _lines(doc, "Kitchen", None))
 		self.assertIn("Table 5", markup)
 		self.assertIn("KITCHEN", markup)
+
+	def test_the_cooks_paper_holds_no_control_character_whatever_a_guest_or_a_waiter_typed(self):
+		# A guest's QR remark is stored as typed. BEL and SUB drive the cash drawer in Star line mode, ESC @ resets the
+		# printer: the kitchen's paper is as safe as the receipt's.
+		doc = order()
+		doc.restaurant_table = TABLE_NAME
+		for ticket_line in doc.items:
+			if ticket_line.preparation_station == "Kitchen":
+				ticket_line.preparation_station = STATION_NAME
+		doc.items[0].item_name = HOSTILE
+		doc.items[0].posa_special_instructions = HOSTILE
+		doc.items[0].posa_item_modifiers = json.dumps([{"group": HOSTILE, "options": [{"name": HOSTILE}]}])
+		labels = {TABLE_NAME: HOSTILE, STATION_NAME: HOSTILE}
+		with patch("cloudprnt.labels.label_of", lambda doctype, field, name: labels.get(name, name)):
+			markup = get_kitchen_ticket_markup(doc, STATION_NAME, _lines(doc, STATION_NAME, None), title=HOSTILE)
+		self.assertEqual(unsafe_characters(markup), [])
+		self.assertIn(f"2 x {CLEAN}", markup)
+		self.assertIn(f"> {CLEAN}: {CLEAN}", markup, "an option group and its option")
+		# a remark is read line by line first (a form feed or a C1 line break starts a new row), then made safe
+		for row in ("ABC@DE", "F GHIJK", "LM"):
+			self.assertIn(f"\n   [magnify: width 1; height 2]> {row}[magnify]", markup, "a remark")
+		self.assertIn(f"[magnify: width 3; height 3][bold: on]{CLEAN}[bold: off][magnify]", markup, "the table")
+		self.assertIn(CLEAN.upper(), markup, "the station")
+
+	def test_a_name_with_a_backslash_or_a_semicolon_keeps_the_kitchens_columns(self):
+		doc = order()
+		doc.owner = "Administrator"
+		real = frappe.db.get_value
+
+		def get_value(doctype, *args, **kwargs):
+			return "Anne\\; [x]" if doctype == "User" else real(doctype, *args, **kwargs)
+
+		with patch.object(frappe.db, "get_value", get_value), patch("cloudprnt.labels.label_of", read_labels):
+			markup = get_kitchen_ticket_markup(doc, "Kitchen", _lines(doc, "Kitchen", None))
+		# a value never escapes ';' and never ends a tag; a backslash is cputil's escape, doubled it prints once
+		self.assertIn("[column: left Waiter: Anne\\\\, (x); right", markup)
 
 	def test_a_station_without_a_printer_is_named_by_its_label_in_the_refusal(self):
 		doc = order()

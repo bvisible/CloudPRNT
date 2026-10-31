@@ -10,7 +10,8 @@ from frappe.utils import fmt_money
 
 from PIL import Image
 
-from cloudprnt.receipt_markup import flatten_for_paper, get_receipt_markup
+from cloudprnt.receipt_markup import _column, _param, _text, flatten_for_paper, get_receipt_markup, printable
+from cloudprnt.tests.hostile_text import CLEAN, HOSTILE, unsafe_characters
 
 
 class Sale(SimpleNamespace):
@@ -95,6 +96,48 @@ class TestReceiptMarkup(FrappeTestCase):
 		self.assertIn("-" * 32 + "\n", get_receipt_markup(sale(), paper_width="58mm"))
 		self.assertNotIn("-" * 33, get_receipt_markup(sale(), paper_width="58mm"))
 		self.assertIn("-" * 48, get_receipt_markup(sale(), paper_width=80))
+
+
+class TestWhatNeverReachesThePrinter(FrappeTestCase):
+	"""A guest's QR remark is stored as typed, a waiter's note too: the markup is the last place to make them safe."""
+
+	def test_every_control_character_is_removed_by_the_one_shared_function(self):
+		controls = [*range(0x00, 0x20), *range(0x7F, 0xA0), *range(0x200B, 0x2010), 0x2028, 0x2029]
+		controls += [*range(0x202A, 0x202F), *range(0x2066, 0x206A), 0xFEFF]
+		for helper in (printable, _text, _param):
+			survivors = [hex(code) for code in controls if unsafe_characters(helper(f"a{chr(code)}b"))]
+			self.assertEqual(survivors, [], helper.__name__)
+			self.assertEqual(helper(HOSTILE), CLEAN, helper.__name__)
+
+	def test_a_line_break_or_a_tab_reads_as_a_space_and_the_other_controls_vanish(self):
+		for text in ("a\nb", "a\rb", "a\tb", "a\x0bb", "a\x0cb", "a\r\nb"):
+			with self.subTest(text=repr(text)):
+				self.assertEqual(printable(text).replace("  ", " "), "a b")
+		self.assertEqual(printable("a\x07b\x1ab\x1b@c\x00"), "abb@c")
+		self.assertEqual(printable(None), "")
+		self.assertEqual(printable("  kept  "), "  kept  ")
+
+	def test_the_markups_own_characters_are_still_escaped_after_the_cleaning(self):
+		self.assertEqual(_text("a[b]\\c"), "a\\[b\\]\\\\c")
+		self.assertEqual(_param("a;b[c]\\"), "a,b(c)\\\\")
+
+	def test_a_column_holds_no_control_character_in_either_side(self):
+		self.assertEqual(unsafe_characters(_column(HOSTILE, HOSTILE)), [])
+
+	def test_the_paid_receipt_prints_no_control_character_whatever_the_names_hold(self):
+		row = frappe._dict
+		doc = sale(
+			company=HOSTILE,
+			customer_name=HOSTILE,
+			terms=HOSTILE,
+			items=[row(item_code="ESP", item_name=HOSTILE, qty=1, rate=4.5, amount=4.5, net_amount=4.5)],
+			payments=[row(mode_of_payment=HOSTILE, amount=4.5)],
+		)
+		markup = get_receipt_markup(doc)
+		self.assertEqual(unsafe_characters(markup), [])
+		self.assertIn(f"{frappe._('Customer')}: {CLEAN}", markup)
+		self.assertIn(f"[bold: on]{CLEAN} (ESP)[bold: off]", markup)
+		self.assertIn(f"[magnify: width 2; height 1]{CLEAN}[magnify]", markup)
 
 
 class TestLogoOnPaper(FrappeTestCase):

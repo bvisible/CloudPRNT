@@ -26,12 +26,15 @@ from cloudprnt.provisional_ticket import (
 	ticket_status,
 )
 from cloudprnt.receipt_markup import get_receipt_markup
+from cloudprnt.tests.hostile_text import CLEAN, HOSTILE, unsafe_characters
 
 T = "_Test Prov"
 PORTAL = "cloudprnt-provisional-portal@yopmail.com"
 PORTAL_WITH_ROLES = "cloudprnt-provisional-portal-roles@yopmail.com"
 DESK_WITHOUT_INVOICES = "cloudprnt-provisional-desk@yopmail.com"
 CASHIER = "cloudprnt-provisional-cashier@yopmail.com"
+READER = "cloudprnt-provisional-reader@yopmail.com"
+MANAGER = "cloudprnt-provisional-manager@yopmail.com"
 # POS Next names a new table by a hash, and keeps what a person reads in its label
 TABLE_NAME = "k3x9q2m7ab"
 LABELS = {TABLE_NAME: "Table 5"}
@@ -153,10 +156,18 @@ def written_order(**overrides):
 class RolledBack(FrappeTestCase):
 	"""Whatever a test writes is rolled back: nothing of it stays on the site."""
 
+	permissions_changed = False
+
+	def forget_cached_permissions(self):
+		"""The rollback does not reach the caches: a test that wrote permission rules clears them once it is rolled back."""
+		if self.permissions_changed:
+			frappe.clear_cache()
+
 	def setUp(self):
 		super().setUp()
 		frappe.set_user("Administrator")
 		self.addCleanup(frappe.set_user, "Administrator")
+		self.addCleanup(self.forget_cached_permissions)
 		self.addCleanup(frappe.db.rollback)
 		commit = patch.object(frappe.db, "commit")
 		commit.start()
@@ -214,6 +225,34 @@ class TestTheTicketsLayout(FrappeTestCase):
 		self.assertIn(f"[column: left 2 x Steak\\\\; right {chf(77)}]", self.markup(doc), "a value never escapes ';'")
 		doc.items[0].item_name = "Steak; well\rdone"
 		self.assertIn(f"[column: left 2 x Steak, well done; right {chf(77)}]", self.markup(doc))
+
+	def test_no_control_character_reaches_the_printer_whatever_the_names_and_remarks_hold(self):
+		# A guest's QR remark is stored as typed. BEL and SUB drive the cash drawer in Star line mode, ESC @ resets the
+		# printer: the ticket is as safe as the receipt, in an item name, an option, a remark and the table's label.
+		doc = written_order()
+		doc.items[0].item_name = HOSTILE
+		doc.items[0].posa_special_instructions = HOSTILE
+		doc.items[0].posa_item_modifiers = json.dumps([{"group": HOSTILE, "options": [{"name": HOSTILE}]}])
+		with patch("cloudprnt.labels.label_of", lambda doctype, field, name: HOSTILE if name == TABLE_NAME else name):
+			markup = get_provisional_ticket_markup(doc)
+		self.assertEqual(unsafe_characters(markup), [])
+		self.assertIn(f"[column: left 2 x {CLEAN}; right {chf(77)}]", markup)
+		self.assertIn(f"   {CLEAN}: {CLEAN}", markup, "an option group and its option")
+		for row in ("ABC@DE", "F GHIJK", "LM"):
+			self.assertIn(f"\n   {row}\n", markup, "a remark is read line by line, then made safe")
+		self.assertIn(f"[magnify: width 2; height 2]{CLEAN}[magnify]", markup, "the table")
+		# the company, and the number of a takeaway order
+		doc = written_order(company=HOSTILE, restaurant_table=None, is_takeaway=1, takeaway_number=HOSTILE)
+		markup = self.markup(doc)
+		self.assertEqual(unsafe_characters(markup), [])
+		self.assertIn(f"{frappe._('Takeaway')} {CLEAN}", markup)
+
+	def test_a_line_break_in_a_name_does_not_start_another_line_of_the_ticket(self):
+		doc = written_order()
+		doc.items[0].item_name = "Steak\nfrites\n[cut: full]"
+		markup = self.markup(doc)
+		self.assertIn(f"[column: left 2 x Steak frites (cut: full); right {chf(77)}]", markup)
+		self.assertNotIn("\n[cut: full]", markup)
 
 	def test_a_takeaway_order_is_named_by_its_number(self):
 		markup = self.markup(written_order(restaurant_table=None, is_takeaway=1, takeaway_number="T-012"))
@@ -423,6 +462,12 @@ class RealTill(RolledBack):
 			**values,
 		}
 
+	def bad_line(self, field, value, qty=1):
+		"""A line as the till sends it, with `field` holding `value` (whatever it is)."""
+		line = self.line(self.steak, qty, 38.5)
+		line[field] = value
+		return line
+
 	def order(self, items, **values):
 		return {
 			"pos_profile": self.till,
@@ -468,8 +513,9 @@ class RealTill(RolledBack):
 		return frappe.get_doc("Sales Invoice", update_invoice(json.dumps(payload))["name"])
 
 
-	def open_order(self, paid=0, tip=0, table=None):
-		"""The table's open order, as the till saved it at « Validate », with what a guest paid from their phone."""
+	def open_order(self, paid=0, tip=0, table=None, takeaway=None, desk=False, pos_profile=None):
+		"""The table's open order, as the till saved it at « Validate », with what a guest paid from their phone. A takeaway
+		order (`takeaway`, its number) or a desk order (`desk`) names no table; `pos_profile` is the till that took it."""
 		mode = frappe.db.get_value("Mode of Payment Account", {"company": self.company}, "parent")
 		items = [{"item_code": self.steak, "qty": 1, "rate": 38.5}]
 		if tip:
@@ -477,7 +523,7 @@ class RealTill(RolledBack):
 		doc = frappe.get_doc(
 			{
 				"doctype": "Sales Invoice",
-				"pos_profile": self.till,
+				"pos_profile": pos_profile or self.till,
 				"company": self.company,
 				"customer": self.customer,
 				"is_pos": 1,
@@ -491,8 +537,43 @@ class RealTill(RolledBack):
 			doc.append("payments", {"mode_of_payment": mode, "amount": paid})
 		doc.insert(ignore_permissions=True)
 		self.assertEqual(flt(doc.paid_amount), paid)
-		frappe.db.set_value("Sales Invoice", doc.name, "restaurant_table", table or self.table, update_modified=False)
+		if takeaway or desk:
+			values = {"restaurant_table": None, "is_takeaway": 1 if takeaway else 0, "takeaway_number": takeaway or ""}
+		else:
+			values = {"restaurant_table": table or self.table}
+		frappe.db.set_value("Sales Invoice", doc.name, values, update_modified=False)
 		return doc.name
+
+	def cashier(self, email, create=True):
+		"""A desk account holding one role of the test's own: it reads Sales Invoices and Restaurants, and makes a sale when
+		`create`. Nothing else, so that only the right under test can refuse it."""
+		role = f"{T} Role {'create' if create else 'read'}"
+		if not frappe.db.exists("Role", role):
+			self.insert("Role", role_name=role, desk_access=1)
+		# ERPNext reads, as the user, what it prices the order from (the item, the receivable account...)
+		reads = ("Restaurant", "Account", "Item", "Customer", "POS Profile", "Company", "Price List", "Warehouse", "UOM", "Item Group")
+		rules = {"Sales Invoice": {"read": 1, "create": int(create)}, **{doctype: {"read": 1} for doctype in reads}}
+		for doctype, rights in rules.items():
+			self.insert(
+				"Custom DocPerm",
+				parent=doctype,
+				parenttype="DocType",
+				parentfield="permissions",
+				role=role,
+				permlevel=0,
+				**rights,
+			)
+			frappe.clear_cache(doctype=doctype)
+		self.permissions_changed = True
+		make_user(email, [role], "System User")
+		self.addCleanup(frappe.clear_cache, user=email)
+		return email
+
+	@contextmanager
+	def at_till(self, pos_profile):
+		"""The session user has a shift open at `pos_profile` (POS Next reads the restaurant a cashier works for there)."""
+		with patch("pos_next.restaurant.settings.open_shift_profile", return_value=pos_profile):
+			yield
 
 
 class TestTheAmountsAreERPNexts(RealTill):
@@ -550,7 +631,8 @@ class TestTheAmountsAreERPNexts(RealTill):
 		self.assertIn(f"[column: left {frappe._('Discount')}:; right {chf(10)}]", job.job_data)
 		self.assertIn(f"right {chf(67)}]", job.job_data)
 
-	def test_a_price_set_by_hand_is_the_one_printed(self):
+	def test_a_price_set_by_hand_is_the_one_printed_when_the_till_lets_the_cashier_set_it(self):
+		frappe.db.set_value("POS Settings", {"pos_profile": self.till}, "allow_user_to_edit_rate", 1)
 		line = self.line(self.steak, 2, 38.5, is_rate_manually_edited=1)
 		line["rate"] = 30
 		doc = self.priced(self.order([line]))
@@ -709,12 +791,12 @@ class TestWhatIsRefused(RealTill):
 			print_provisional_ticket(json.dumps(self.order([self.line(self.steak, 1, 38.5)], restaurant_table=self.other_table)))
 
 	def test_a_cashier_kept_to_another_restaurant_is_refused(self):
-		make_user(CASHIER, ["POSNext Cashier"], "System User")
+		# he works at this till (a shift open here) and may make sales: only his User Permission can refuse him
+		self.cashier(CASHIER)
 		self.insert("User Permission", user=CASHIER, allow="Restaurant", for_value=self.other_restaurant)
-		self.addCleanup(frappe.clear_cache, user=CASHIER)
 		frappe.clear_cache(user=CASHIER)
 		order = json.dumps(self.order([self.line(self.steak, 1, 38.5)], is_takeaway=1, restaurant_table=None))
-		with as_user(CASHIER), self.assertRaises(frappe.PermissionError):
+		with as_user(CASHIER), self.at_till(self.till), self.assertRaises(frappe.PermissionError):
 			print_provisional_ticket(order)
 
 	def test_a_paid_or_cancelled_order_is_refused(self):
@@ -749,3 +831,282 @@ class TestWhatIsRefused(RealTill):
 			raise unittest.SkipTest("Task 16's kitchen devices are not in this POS Next") from None
 		methods = set(getattr(devices, "TABLET_METHODS", ()))
 		self.assertFalse({m for m in methods if "provisional_ticket" in m}, methods)
+
+
+class TestWhoMayPrint(RealTill):
+	"""The right to make a sale, and the restaurant a cashier works for."""
+
+	def order_json(self, **values):
+		return json.dumps(self.order([self.line(self.steak, 1, 38.5)], **values))
+
+	def test_a_user_who_reads_sales_invoices_and_restaurants_but_may_not_create_one_is_refused(self):
+		answer = print_provisional_ticket(self.order_json())
+		self.cashier(READER, create=False)
+		with as_user(READER), self.at_till(self.till):
+			self.assertTrue(frappe.has_permission("Sales Invoice", "read"))
+			self.assertTrue(frappe.has_permission("Restaurant", "read"))
+			self.assertFalse(frappe.has_permission("Sales Invoice", "create"))
+			with self.assertRaises(frappe.PermissionError):
+				print_provisional_ticket(self.order_json())
+			with self.assertRaises(frappe.PermissionError):
+				ticket_status(answer["job_token"])
+		# the same rights plus the one to make a sale: he prints and follows his ticket
+		self.cashier(CASHIER, create=True)
+		with as_user(CASHIER), self.at_till(self.till):
+			own = print_provisional_ticket(self.order_json())
+			self.assertEqual(ticket_status(own["job_token"])["status"], "Pending")
+
+	def test_a_cashier_of_another_restaurant_prints_on_no_till_of_this_one(self):
+		self.cashier(CASHIER)
+		takeaway = self.order_json(restaurant_table=None, is_takeaway=1, takeaway_number="T-1")
+		before = frappe.db.count(jobs.DOCTYPE)
+		with as_user(CASHIER), self.at_till(self.other_till):
+			for order in (self.order_json(), takeaway):
+				with self.assertRaises(frappe.PermissionError):
+					print_provisional_ticket(order)
+		self.assertEqual(frappe.db.count(jobs.DOCTYPE), before, "nothing is queued on this restaurant's printer")
+		# at a till of this restaurant, the same cashier prints on it
+		with as_user(CASHIER), self.at_till(self.till):
+			for order in (self.order_json(), takeaway):
+				answer = print_provisional_ticket(order)
+				self.assertEqual(frappe.db.get_value(jobs.DOCTYPE, {"job_token": answer["job_token"]}, "printer"), self.printer)
+		# and at the other restaurant's till he prints that restaurant's tickets
+		other = json.dumps(self.order([self.line(self.steak, 1, 38.5)], pos_profile=self.other_till, restaurant_table=self.other_table))
+		with as_user(CASHIER), self.at_till(self.other_till):
+			answer = print_provisional_ticket(other)
+			self.assertEqual(frappe.db.get_value(jobs.DOCTYPE, {"job_token": answer["job_token"]}, "printer"), self.other_printer)
+
+	def test_a_cashier_of_another_restaurant_does_not_read_the_status_of_this_ones_tickets(self):
+		answer = print_provisional_ticket(self.order_json())
+		self.cashier(CASHIER)
+		with as_user(CASHIER):
+			with self.at_till(self.other_till), self.assertRaises(frappe.PermissionError):
+				ticket_status(answer["job_token"])
+			with self.at_till(self.till):
+				self.assertEqual(ticket_status(answer["job_token"])["status"], "Pending")
+
+	def test_a_till_manager_prints_on_any_restaurants_till_without_a_shift_open(self):
+		self.cashier(MANAGER)
+		role = "Nexus POS Manager" if frappe.db.exists("Role", "Nexus POS Manager") else "Admin"
+		if not frappe.db.exists("Role", role):
+			raise unittest.SkipTest("The site has no till manager role")
+		frappe.get_doc("User", MANAGER).add_roles(role)
+		frappe.clear_cache(user=MANAGER)
+		with as_user(MANAGER), self.at_till(None):
+			for till, table in ((self.till, self.table), (self.other_till, self.other_table)):
+				order = json.dumps(self.order([self.line(self.steak, 1, 38.5)], pos_profile=till, restaurant_table=table))
+				self.assertTrue(print_provisional_ticket(order)["success"])
+
+
+class TestTheOrderANamedDraftMayBe(RealTill):
+	def takeaway(self, **values):
+		return self.order([self.line(self.steak, 1, 38.5)], restaurant_table=None, is_takeaway=1, takeaway_number="T-1", **values)
+
+	def test_a_takeaway_order_may_not_name_any_other_open_order(self):
+		cases = {
+			"a table's order": self.open_order(paid=33),
+			"a desk order": self.open_order(desk=True),
+			"a takeaway order of another restaurant's till": self.open_order(takeaway="T-2", pos_profile=self.other_till),
+			"a takeaway order of another till of this restaurant": self.open_order(takeaway="T-3", pos_profile=self.till_excl),
+		}
+		before = frappe.db.count(jobs.DOCTYPE)
+		for label, draft in cases.items():
+			with self.subTest(label), self.assertRaises(frappe.ValidationError) as refused:
+				print_provisional_ticket(json.dumps(self.takeaway(draft=draft)))
+			self.assertIn(draft, str(refused.exception))
+		self.assertEqual(frappe.db.count(jobs.DOCTYPE), before)
+
+	def test_a_takeaway_order_names_its_own_open_order_and_gets_what_a_guest_paid(self):
+		draft = self.open_order(takeaway="T-1", paid=10)
+		_answer, job = self.printed(self.takeaway(draft=draft))
+		self.assertIn(f"[column: left {frappe._('Already paid')}:; right {chf(10)}]", job.job_data)
+		self.assertEqual(job.reference_name, draft)
+
+
+class TestLimits(RealTill):
+	def refused(self, order, kind=frappe.ValidationError):
+		before = frappe.db.count(jobs.DOCTYPE)
+		with self.assertRaises(kind) as refused:
+			print_provisional_ticket(json.dumps(order))
+		self.assertEqual(frappe.db.count(jobs.DOCTYPE), before, "nothing is queued")
+		return refused.exception
+
+	def test_a_remark_or_an_option_is_cut_at_the_limit_and_says_so(self):
+		self.assertEqual(provisional_ticket.MAX_REMARK_CHARS, 500)
+		long = "x" * 600
+		options = json.dumps([{"group": "Cooking", "options": [{"name": long}]}])
+		line = self.line(self.steak, 1, 38.5, posa_special_instructions=long, posa_item_modifiers=options)
+		_answer, job = self.printed(self.order([line]))
+		self.assertIn("   " + "x" * 497 + "...\n", job.job_data, "the remark")
+		self.assertIn("   Cooking: " + "x" * 488 + "...\n", job.job_data, "the option, with its group in the limit")
+		self.assertNotIn("x" * 498, job.job_data)
+
+	def test_a_dish_name_is_cut_at_the_length_of_an_item_name(self):
+		self.assertEqual(provisional_ticket.MAX_NAME_CHARS, 140)
+		_answer, job = self.printed(self.order([self.line(self.steak, 1, 38.5, item_name="n" * 200)]))
+		self.assertIn("1 x " + "n" * 137 + "...", job.job_data)
+		self.assertNotIn("n" * 138, job.job_data)
+
+	def test_a_field_far_beyond_any_remark_is_refused(self):
+		for field in ("posa_special_instructions", "posa_item_modifiers", "item_name"):
+			with self.subTest(field=field):
+				self.refused(self.order([self.line(self.steak, 1, 38.5, **{field: "x" * 5001})]))
+
+	def test_an_order_holds_at_most_200_lines(self):
+		self.assertEqual(provisional_ticket.MAX_LINES, 200)
+		self.assertTrue(print_provisional_ticket(json.dumps(self.order([self.line(self.water, 1, 3)] * 200)))["success"])
+		refused = self.refused(self.order([self.line(self.water, 1, 3)] * 201))
+		self.assertIn("200", str(refused))
+
+	def test_a_number_that_is_not_one_or_not_finite_or_beyond_a_million_is_refused(self):
+		bad = [
+			("qty", float("nan")),
+			("qty", float("inf")),
+			("qty", "abc"),
+			("qty", 1e7),
+			("qty", {"a": 1}),
+			("qty", [1]),
+			("rate", float("-inf")),
+			("rate", 1e6 + 1),
+			("rate", "1; DROP"),
+			("price_list_rate", float("nan")),
+			("conversion_factor", "x"),
+			("discount_amount", float("nan")),
+			("discount_percentage", 101),
+			("discount_percentage", -1),
+			("discount_percentage", "abc"),
+		]
+		for field, value in bad:
+			with self.subTest(field=field, value=value):
+				self.refused(self.order([self.bad_line(field, value)]))
+		for value in ("abc", float("nan"), float("inf"), 1e9, {"a": 1}):
+			with self.subTest(order_discount=value):
+				self.refused(self.order([self.line(self.steak, 1, 38.5)], discount_amount=value))
+
+	def test_a_discount_beyond_what_it_takes_off_is_refused(self):
+		# a line's discount cannot exceed its total (2 x 38.50)
+		self.refused(self.order([self.line(self.steak, 2, 38.5, discount_amount=100)]))
+		# nor the order's discount the order's total
+		self.refused(self.order([self.line(self.steak, 2, 38.5)], discount_amount=1000))
+
+	def test_a_number_written_as_text_is_still_a_number(self):
+		line = self.line(self.steak, 2, 38.5)
+		line.update(qty="2", rate="38.5", price_list_rate=" 38.5 ")
+		_answer, job = self.printed(self.order([line]))
+		self.assertIn(f"[column: left 2 x {self.steak}; right {chf(77)}]", job.job_data)
+
+	def test_a_user_prints_a_limited_number_of_tickets_a_minute(self):
+		self.assertEqual(provisional_ticket.PRINTS_PER_MINUTE, 20)
+		order = json.dumps(self.order([self.line(self.steak, 1, 38.5)]))
+		with patch.object(provisional_ticket, "PRINTS_PER_MINUTE", 3):
+			tokens = [print_provisional_ticket(order)["job_token"] for _ in range(3)]
+			before = frappe.db.count(jobs.DOCTYPE)
+			with self.assertRaises(frappe.RateLimitExceededError):
+				print_provisional_ticket(order)
+			self.assertEqual(frappe.db.count(jobs.DOCTYPE), before)
+			# following a ticket is not printing one: the button polls every second and a half
+			for _ in range(10):
+				self.assertEqual(ticket_status(tokens[0])["status"], "Pending")
+			# another user has his own count
+			self.cashier(CASHIER)
+			with as_user(CASHIER), self.at_till(self.till):
+				self.assertTrue(print_provisional_ticket(order)["success"])
+			# the count is for a minute
+			keys = frappe.cache().get_keys("cloudprnt_provisional_ticket")
+			self.assertTrue(keys)
+			for key in keys:
+				self.assertTrue(0 < frappe.cache().ttl(key) <= 60, "the count expires with its minute")
+			frappe.cache().delete_keys("cloudprnt_")
+			self.assertTrue(print_provisional_ticket(order)["success"])
+
+
+class TestAHandSetPrice(RealTill):
+	def hand_set(self, rate):
+		line = self.line(self.steak, 2, 38.5, is_rate_manually_edited=1)
+		line["rate"] = rate
+		return self.order([line])
+
+	def test_a_till_that_forbids_rate_edits_refuses_a_price_set_by_hand_as_the_payment_does(self):
+		order = self.hand_set(30)
+		before = frappe.db.count(jobs.DOCTYPE)
+		with self.assertRaises(frappe.ValidationError) as refused:
+			print_provisional_ticket(json.dumps(order))
+		self.assertIn("Rate editing is not allowed", str(refused.exception))
+		self.assertEqual(frappe.db.count(jobs.DOCTYPE), before)
+		with self.assertRaises(frappe.ValidationError) as paid:
+			self.payments_draft(order)
+		self.assertEqual(str(refused.exception), str(paid.exception), "the payment says no with the same words")
+
+	def test_a_till_that_allows_rate_edits_prints_the_price_within_the_maximum_discount(self):
+		frappe.db.set_value("POS Settings", {"pos_profile": self.till}, {"allow_user_to_edit_rate": 1, "max_discount_allowed": 10})
+		_answer, job = self.printed(self.hand_set(36))
+		self.assertIn(f"right {chf(72)}]", job.job_data)
+		with self.assertRaises(frappe.ValidationError) as refused:
+			print_provisional_ticket(json.dumps(self.hand_set(30)))
+		self.assertIn("exceeds the maximum allowed discount", str(refused.exception))
+
+
+class TestABadPayloadIsARefusalNotACrash(RealTill):
+	def test_a_line_whose_code_or_texts_are_not_text_is_refused_cleanly(self):
+		bad = [
+			("item_code", {"a": "b'c"}),
+			("item_code", ["x"]),
+			("item_name", {"a": 1}),
+			("uom", ["Nos"]),
+			("warehouse", {"a": 1}),
+			("posa_special_instructions", {"a": 1}),
+			("posa_special_instructions", ["x"]),
+			("posa_item_modifiers", ["x"]),
+		]
+		for field, value in bad:
+			with self.subTest(field=field), self.assertRaises(frappe.ValidationError):
+				print_provisional_ticket(json.dumps(self.order([self.bad_line(field, value)])))
+
+	def test_a_number_given_as_a_remark_or_a_takeaway_number_is_printed_as_text(self):
+		_answer, job = self.printed(self.order([self.line(self.steak, 1, 38.5, posa_special_instructions=5)]))
+		self.assertIn("\n   5\n", job.job_data)
+		order = self.order([self.line(self.steak, 1, 38.5)], restaurant_table=None, is_takeaway=1, takeaway_number=12)
+		_answer, job = self.printed(order)
+		self.assertIn(f"{frappe._('Takeaway')} 12", job.job_data)
+		order["takeaway_number"] = {"a": 1}
+		_answer, job = self.printed(order)
+		self.assertNotIn("{", job.job_data, "a takeaway number that is not text or a number is left out")
+
+	def test_a_validation_error_of_a_kind_the_till_does_not_know_is_a_plain_refusal(self):
+		order = json.dumps(self.order([self.line(self.steak, 1, 38.5)]))
+		for kind in (frappe.LinkValidationError, frappe.MandatoryError, frappe.UpdateAfterSubmitError):
+			with self.subTest(kind=kind.__name__):
+				with patch.object(provisional_ticket, "build_unsaved_invoice", side_effect=kind("Something is broken")):
+					with self.assertRaises(frappe.ValidationError) as refused:
+						print_provisional_ticket(order)
+				self.assertIs(type(refused.exception), frappe.ValidationError, "the till knows ValidationError by its name")
+				self.assertIn("Something is broken", str(refused.exception))
+
+	def test_the_refusals_the_till_knows_by_name_keep_their_names(self):
+		order = self.order([self.line(self.steak, 1, 38.5)])
+		with patch.object(provisional_ticket, "build_unsaved_invoice", side_effect=NoTicketPrinter("no")):
+			with self.assertRaises(NoTicketPrinter):
+				print_provisional_ticket(json.dumps(order))
+		with patch.object(provisional_ticket, "build_unsaved_invoice", side_effect=frappe.DoesNotExistError("gone")):
+			with self.assertRaises(frappe.DoesNotExistError):
+				print_provisional_ticket(json.dumps(order))
+		order["items"][0]["item_code"] = "NO SUCH ITEM"
+		with self.assertRaises(frappe.DoesNotExistError):
+			print_provisional_ticket(json.dumps(order))
+
+
+class TestWhatTheJobHolds(RealTill):
+	def test_no_control_character_reaches_the_printers_job(self):
+		line = self.line(
+			self.steak,
+			1,
+			38.5,
+			item_name=HOSTILE,
+			posa_special_instructions=HOSTILE,
+			posa_item_modifiers=json.dumps([{"group": HOSTILE, "options": [{"name": HOSTILE}]}]),
+		)
+		order = self.order([line], restaurant_table=None, is_takeaway=1, takeaway_number=HOSTILE)
+		_answer, job = self.printed(order)
+		self.assertEqual(unsafe_characters(job.job_data), [])
+		self.assertIn(f"{frappe._('Takeaway')} {CLEAN}", job.job_data)
+		self.assertIn(f"   {CLEAN}: {CLEAN}", job.job_data)

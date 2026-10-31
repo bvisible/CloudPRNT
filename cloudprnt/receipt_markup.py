@@ -8,6 +8,7 @@ width, so the same receipt fits a 58 mm and an 80 mm roll.
 import hashlib
 import json
 import os
+import re
 
 import frappe
 from frappe import _
@@ -167,16 +168,27 @@ def _width(paper_width):
 		return 80
 
 
+#: A line break, a tab, a vertical tab, a form feed, the Unicode line and paragraph separators: read as a space.
+_AS_A_SPACE = re.compile("[\t\n\r\x0b\x0c\u2028\u2029]")
+#: What a printer must never be sent as text a person typed: the other C0 controls (BEL and SUB drive the cash drawer
+#: in Star line mode, ESC @ resets the printer, NUL ends a string), DEL, the C1 controls, the right-to-left and other
+#: bidirectional overrides and isolates (they reorder what the paper reads), the zero-width controls and the byte order mark.
+_UNSAFE = re.compile("[\x00-\x1f\x7f-\x9f\u200b-\u200f\u202a-\u202e\u2066-\u2069\ufeff]")
+
+
+def printable(value):
+	"""`value` as text a printer may be sent, the ONE function every text of a ticket goes through (`_text`, `_param`,
+	so `_column`, in the receipt, the provisional ticket and the kitchen ticket).
+
+	A guest's remark is stored as typed and a waiter's note too, and a dish's name is a person's: none may carry a
+	character that drives the printer or the reader's eye. A line break or a tab reads as a space, so that two words
+	never run together; every other control character is removed."""
+	return _UNSAFE.sub("", _AS_A_SPACE.sub(" ", str(value or "")))
+
+
 def _text(value):
-	"""Text printed as it is: markup's own characters escaped, a line break printed as a space."""
-	return (
-		str(value or "")
-		.replace("\\", "\\\\")
-		.replace("[", "\\[")
-		.replace("]", "\\]")
-		.replace("\r", " ")
-		.replace("\n", " ")
-	)
+	"""Text printed as it is: made safe (`printable`), the markup's own characters escaped."""
+	return printable(value).replace("\\", "\\\\").replace("[", "\\[").replace("]", "\\]")
 
 
 def _param(value):
@@ -184,15 +196,7 @@ def _param(value):
 
 	A backslash is cputil's escape there too: "AB\\" prints "AB\", and a lone "AB\" before the ';' is eaten (seen with
 	cputil 2.0.1, 31.10.2026). It is doubled, so a remark ending with a backslash keeps it and keeps the column."""
-	return (
-		str(value or "")
-		.replace("\\", "\\\\")
-		.replace(";", ",")
-		.replace("[", "(")
-		.replace("]", ")")
-		.replace("\r", " ")
-		.replace("\n", " ")
-	)
+	return printable(value).replace("\\", "\\\\").replace(";", ",").replace("[", "(").replace("]", ")")
 
 
 def _column(left, right):

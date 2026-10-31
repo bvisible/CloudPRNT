@@ -25,6 +25,11 @@ from cloudprnt import print_queue_manager as jobs
 from cloudprnt.labels import station_label, table_label, ticket_reference
 from cloudprnt.printers import all_printers, find_printer, stations_of
 
+# The kitchen's text goes through the same helpers as the receipt's: one function makes it safe for a printer (a guest's
+# remark is stored as typed, and BEL or ESC @ in it must not reach the printer), and its columns keep a backslash or a
+# ';' from breaking the line.
+from cloudprnt.receipt_markup import _column, _text
+
 LINE_CHARS = {58: 32, 80: 48, 112: 69}
 #: The states of a line not sent to the kitchen yet (POS Next kds_status); any other state is at the kitchen.
 NOT_SENT = ("", "Waiting")
@@ -212,14 +217,3 @@ def _width(paper_width):
 		return round(float(str(paper_width or 80).replace("mm", "")))
 	except ValueError:
 		return 80
-
-
-def _text(value):
-	return str(value or "").replace("\\", "\\\\").replace("[", "\\[").replace("]", "\\]").replace("\n", " ")
-
-
-def _column(left, right):
-	def param(text):
-		return str(text or "").replace(";", ",").replace("[", "(").replace("]", ")").replace("\n", " ")
-
-	return f"[column: left {param(left)}; right {param(right)}]"

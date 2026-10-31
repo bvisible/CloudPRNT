@@ -11,6 +11,11 @@ the kitchen yet are on the bill and wait for « Validate »; a dish removed on t
 kitchen hears of it at « Validate ». The table's open order is only read: its table, and what a guest already paid by
 phone (printed as « Already paid » and « Left to pay », the controller's ruling).
 
+What the till sends is read before it is priced (`_parse`): no more than MAX_LINES lines, every amount a finite number
+within MAX_AMOUNT, every text a text, a remark cut at MAX_REMARK_CHARS on the paper, a discount no larger than what it takes
+off, at most PRINTS_PER_MINUTE tickets per user per minute, a price set by hand only where the payment would take it, and a
+cashier prints on the tills of his own restaurant only. Whatever is wrong is a refusal the till shows, never a crash.
+
 It is not a receipt and says so: no payment of the till, no barcode, and it never opens the cash drawer, even on a
 printer set to open it with every sale. It prints on the receipt printer of the till that sends it, never on a printer
 the caller names. Like a receipt it expires: a ticket the printer did not take within RECEIPT_VALID_MINUTES is not
@@ -19,6 +24,7 @@ waiter whether it printed (ruling 97).
 """
 
 import json
+import math
 
 import frappe
 from frappe import _
@@ -29,7 +35,7 @@ from cloudprnt import print_queue_manager as jobs
 from cloudprnt.api import _printer_for_profile
 from cloudprnt.kitchen_ticket import _modifiers, _plain, _where
 from cloudprnt.printers import get_printer
-from cloudprnt.receipt_markup import LINE_CHARS, _column, _qty, _text, _width, charged_taxes, vat_lines
+from cloudprnt.receipt_markup import LINE_CHARS, _column, _qty, _text, _width, charged_taxes, printable, vat_lines
 
 #: What the ticket reads of a line the till sends (the fields of its payment's lines: useInvoice.formatItemsForSubmission).
 LINE_FIELDS = (
@@ -52,6 +58,30 @@ LINE_FIELDS = (
 )
 
 
+#: What a till may ask a ticket to print. A tablet sends an order; anything else can send anything, and the paper, the
+#: printer and the queue are not for a flood.
+#: The most lines an order holds.
+MAX_LINES = 200
+#: A remark or an option is cut here on the paper (a longer text is a person's essay, not a note for the table).
+MAX_REMARK_CHARS = 500
+#: The most rows of options and remarks printed under one dish.
+MAX_REMARK_ROWS = 20
+#: A dish's name is cut at the length of an item name.
+MAX_NAME_CHARS = 140
+#: A text field far beyond any remark refuses the order, instead of being read.
+MAX_FIELD_CHARS = 5000
+#: A quantity, a price or a discount is a finite number of at most this size.
+MAX_AMOUNT = 1_000_000
+#: The tickets one user may ask for in a minute (the button polls the status of a ticket, which is not counted).
+PRINTS_PER_MINUTE = 20
+RATE_WINDOW_SECONDS = 60
+
+#: How the fields of a line the till sends are read.
+NUMBER_FIELDS = ("qty", "rate", "price_list_rate", "conversion_factor", "discount_percentage", "discount_amount")
+TEXT_FIELDS = ("item_name", "uom", "warehouse", "posa_item_modifiers", "posa_special_instructions")
+FLAG_FIELDS = ("is_free_item", "is_rate_manually_edited", "posa_is_offered")
+
+
 class NoTicketPrinter(frappe.ValidationError):
 	"""The till has no CloudPRNT receipt printer: the till prints the ticket itself (its browser) instead."""
 
@@ -61,17 +91,40 @@ def print_provisional_ticket(order):
 	"""Print the provisional ticket of `order` (JSON), the order the till shows: `pos_profile` (the till), the table
 	(`restaurant_table`) or the takeaway order (`is_takeaway`, `takeaway_number`), `draft` (the open order the server
 	holds for it, read only), `customer`, `discount_amount` and `items`, shaped as the till's payment sends them.
-	Prints on the receipt printer of that till."""
+	Prints on the receipt printer of that till.
+
+	Whatever is wrong with the order is a refusal the till shows (a ValidationError, by its plain name), never a crash
+	that sends the waiter to the browser's print window: a kind of ValidationError the till does not know by name
+	(LinkValidationError, MandatoryError...) is raised again as a plain one with the same words."""
 	guards.require("Sales Invoice", "create")
 	guards.require_desk_account()
+	_throttle()
+	try:
+		return _print(order)
+	except (NoTicketPrinter, frappe.DoesNotExistError):
+		raise
+	except frappe.ValidationError as error:
+		if type(error) is frappe.ValidationError:
+			raise
+		message = str(error)
+		frappe.clear_last_message()
+		frappe.throw(message, frappe.ValidationError)
+
+
+def _print(order):
 	order = _parse(order)
 	profile = _till(order)
 	restaurant = _restaurant_of(order, profile.name)
-	draft = _open_order(order)
+	_require_own_restaurant(restaurant)
+	draft = _open_order(order, profile.name)
+	_require_rates_the_till_allows(order, profile)
 	row = _printer_for_profile(profile.name)
 	if not row:
 		frappe.throw(_("No CloudPRNT printer prints the receipts of the till {0}").format(profile.name), NoTicketPrinter)
 	doc = build_unsaved_invoice(order, profile)
+	if flt(doc.grand_total) < 0 or flt(doc.get("rounded_total")) < 0:
+		# a discount beyond the order's total
+		_invalid("total")
 	paid = already_paid(draft, restaurant)
 	paper = row.paper_width or frappe.db.get_single_value("CloudPRNT Settings", "default_paper_width")
 	result = jobs.enqueue(
@@ -93,6 +146,18 @@ def print_provisional_ticket(order):
 	}
 
 
+def _throttle():
+	"""At most PRINTS_PER_MINUTE tickets per user per minute (RateLimitExceededError, which the till shows as a refusal).
+	A count that kept no expiry (a worker killed between its two calls) is given one, so that nobody stays locked out."""
+	cache = frappe.cache()
+	key = cache.make_key(f"cloudprnt_provisional_ticket_rate:{frappe.session.user}")
+	count = cache.incrby(key, 1)
+	if cache.ttl(key) < 0:
+		cache.expire(key, RATE_WINDOW_SECONDS)
+	if count > PRINTS_PER_MINUTE:
+		frappe.throw(_("Too many tickets in a minute: wait a moment before printing another"), frappe.RateLimitExceededError)
+
+
 @frappe.whitelist()
 def ticket_status(job):
 	"""Where the ticket `job` (its job token) stands, for the till that printed it: Pending, Fetched (the printer took
@@ -107,6 +172,7 @@ def ticket_status(job):
 	if not row or not printer or not printer.pos_profile:
 		frappe.throw(_("{0} {1} not found").format(_("CloudPRNT Print Queue"), job), frappe.DoesNotExistError)
 	_require_till_access(printer.pos_profile)
+	_require_own_restaurant(_restaurant_of_till(printer.pos_profile))
 	return {
 		"status": row.status,
 		"printer_online": bool(cint(printer.online)),
@@ -115,6 +181,9 @@ def ticket_status(job):
 
 
 def _parse(order):
+	"""The order the till sent, read: a JSON dict with lines, for a table or a takeaway order, within the limits (MAX_LINES,
+	MAX_AMOUNT...). Every value is read as what it must be, a refusal when it is not, so that no payload reaches the pricing as
+	a dict where a code was expected, or as NaN where a quantity was."""
 	if isinstance(order, str):
 		try:
 			order = json.loads(order)
@@ -125,9 +194,76 @@ def _parse(order):
 	lines = order.get("items")
 	if not isinstance(lines, list) or not any(isinstance(line, dict) and line.get("item_code") for line in lines):
 		frappe.throw(_("This order has no lines: there is nothing to print"))
+	if len(lines) > MAX_LINES:
+		frappe.throw(_("An order of more than {0} lines cannot be printed").format(MAX_LINES))
 	if not (order.get("restaurant_table") or cint(order.get("is_takeaway"))):
 		frappe.throw(_("Only a table or takeaway order has a provisional ticket"))
+	order = dict(order)
+	order["items"] = [_clean_line(line) for line in lines if isinstance(line, dict) and line.get("item_code")]
+	if order.get("discount_amount") not in (None, ""):
+		order["discount_amount"] = _number(order["discount_amount"], "discount_amount")
+	number = order.get("takeaway_number")
+	order["takeaway_number"] = _text_value(number, "takeaway_number") if isinstance(number, (str, int, float)) else ""
 	return order
+
+
+def _clean_line(line):
+	"""A line of the order, with only the fields of a payment's line, each read as what it is: a code is a text, an amount a
+	finite number of at most MAX_AMOUNT (a number written as text is read), a remark a text (a number is printed as one), a flag a
+	flag. A discount takes off no more than the line comes to."""
+	code = line.get("item_code")
+	if not isinstance(code, str) or not code.strip():
+		_invalid("item_code")
+	clean = {"item_code": code}
+	for field in NUMBER_FIELDS:
+		if line.get(field) not in (None, ""):
+			clean[field] = _number(line[field], field)
+	for field in TEXT_FIELDS:
+		if line.get(field) is not None:
+			clean[field] = _text_value(line[field], field)
+	for field in FLAG_FIELDS:
+		if line.get(field) is not None:
+			clean[field] = cint(line[field])
+	if not 0 <= clean.get("discount_percentage", 0) <= 100:
+		_invalid("discount_percentage")
+	discount = clean.get("discount_amount", 0)
+	gross = clean.get("qty", 0) * max(clean.get("price_list_rate", 0), clean.get("rate", 0))
+	if discount < 0 or (gross > 0 and discount > gross + 0.01):
+		_invalid("discount_amount")
+	return clean
+
+
+def _number(value, field):
+	"""A finite number of at most MAX_AMOUNT, from a number or a number written as text; any other value refuses the order."""
+	if isinstance(value, bool) or not isinstance(value, (int, float, str)):
+		_invalid(field)
+	try:
+		number = float(value)
+	except (ValueError, OverflowError):
+		_invalid(field)
+	if not math.isfinite(number) or abs(number) > MAX_AMOUNT:
+		_invalid(field)
+	return number
+
+
+def _text_value(value, field):
+	"""A text of at most MAX_FIELD_CHARS; a number is read as the text it is written as; any other value refuses the order."""
+	if isinstance(value, bool) or not isinstance(value, (str, int, float)):
+		_invalid(field)
+	text = value if isinstance(value, str) else str(value)
+	if len(text) > MAX_FIELD_CHARS:
+		_invalid(field)
+	return text
+
+
+def _invalid(field):
+	frappe.throw(_("The order to print holds a value that is not valid ({0})").format(field))
+
+
+def _cut(text, limit):
+	"""`text` made safe for the printer (printable), and cut at `limit` characters with « ... » when it is longer."""
+	text = printable(text)
+	return text if len(text) <= limit else text[: limit - 3] + "..."
 
 
 def _till(order):
@@ -160,6 +296,41 @@ def _restaurants_known():
 	return bool(frappe.db.exists("DocType", "Restaurant"))
 
 
+def _restaurant_of_till(pos_profile):
+	"""The restaurant a till belongs to (the default restaurant for a till that names none, as an order's takeaway does);
+	None when POS Next knows no restaurants."""
+	if not _restaurants_known():
+		return None
+	from pos_next.restaurant.settings import default_restaurant, restaurant_for_profile
+
+	return restaurant_for_profile(pos_profile) or default_restaurant()
+
+
+def _require_own_restaurant(restaurant):
+	"""A cashier prints on the tills of the restaurant he works for, and on no other's, even when no User Permission keeps
+	him out of it: the restaurant of his open shift (pos_next.restaurant.scope.current_restaurant, the one every restaurant
+	list of the till is read for; the default restaurant when no shift is open). Whoever runs every till, a till manager or
+	a restaurant manager, is not held to one."""
+	if not _restaurants_known():
+		return
+	from pos_next.restaurant import scope
+	from pos_next.restaurant.settings import default_restaurant
+
+	if _runs_every_till():
+		return
+	if (scope.current_restaurant() or default_restaurant()) != (restaurant or default_restaurant()):
+		frappe.throw(_("Not permitted"), frappe.PermissionError)
+
+
+def _runs_every_till():
+	try:
+		from pos_next.api.cash_entry import is_till_manager
+		from pos_next.restaurant.permissions import MANAGER_ROLE
+	except ImportError:
+		return False
+	return bool(is_till_manager() or MANAGER_ROLE in frappe.get_roles())
+
+
 def _restaurant_of(order, pos_profile):
 	"""The restaurant of the order, which the caller must be allowed to read (POS Next's per-restaurant permissions),
 	and which must be the till's: a till prints the tables of its own restaurant only. A takeaway order belongs to the
@@ -184,9 +355,11 @@ def _restaurant_of(order, pos_profile):
 	return restaurant
 
 
-def _open_order(order):
+def _open_order(order, pos_profile):
 	"""The open order the server holds for the table (or the one the till names), read only; None when there is none
-	yet. An order already paid or cancelled is refused: its table has nothing left to pay on it."""
+	yet. An order already paid or cancelled is refused: its table has nothing left to pay on it. A table's order is the
+	table's; a takeaway order names only a takeaway order of the till that sends it (and so of the same restaurant), never
+	another table's or a desk order."""
 	name = order.get("draft")
 	table = order.get("restaurant_table") or None
 	if name is not None and not isinstance(name, str):
@@ -203,9 +376,32 @@ def _open_order(order):
 	draft = frappe.get_doc("Sales Invoice", name)
 	if draft.docstatus != 0:
 		frappe.throw(_("{0} is no longer an open order").format(draft.name))
-	if table and (draft.get("restaurant_table") or None) != table:
+	if table:
+		its_own = (draft.get("restaurant_table") or None) == table
+	else:
+		its_own = (
+			cint(draft.get("is_takeaway"))
+			and not draft.get("restaurant_table")
+			and draft.get("pos_profile") == pos_profile
+		)
+	if not its_own:
 		frappe.throw(_("{0} is not the order of this table").format(draft.name))
 	return draft
+
+
+def _require_rates_the_till_allows(order, profile):
+	"""A price set by hand follows the rules of the payment: POS Next refuses it when the till forbids editing a rate, or
+	when it lowers the price beyond the till's maximum discount (pos_next.api.invoices.validate_manual_rate_edit, which
+	update_invoice calls for every line). The ticket says no with the same words, so that it never prints a price the payment
+	will refuse."""
+	try:
+		from pos_next.api.invoices import validate_manual_rate_edit
+	except ImportError:
+		return
+	for line in order["items"]:
+		verdict = validate_manual_rate_edit(line, profile.name)
+		if not verdict.get("valid"):
+			frappe.throw(verdict.get("message"))
 
 
 def build_unsaved_invoice(order, profile):
@@ -313,9 +509,11 @@ def get_provisional_ticket_markup(doc, paper_width=80, paid=0):
 	]
 	for line in doc.items:
 		offered = cint(line.get("posa_is_offered"))
-		_fit(out, f"{_qty(line.qty)} x {line.item_name or line.item_code}", money(0 if offered else line.amount), chars)
-		for remark in _modifiers(line.get("posa_item_modifiers")) + _plain(line.get("posa_special_instructions")):
-			out.append(f"   {_text(remark)}")
+		name = _cut(line.item_name or line.item_code, MAX_NAME_CHARS)
+		_fit(out, f"{_qty(line.qty)} x {name}", money(0 if offered else line.amount), chars)
+		remarks = _modifiers(line.get("posa_item_modifiers")) + _plain(line.get("posa_special_instructions"))
+		for remark in remarks[:MAX_REMARK_ROWS]:
+			out.append(f"   {_text(_cut(remark, MAX_REMARK_CHARS))}")
 		if offered:
 			out.append(f"   {_text(_('Offered', context='Given for free'))}")
 	out.append(rule)
@@ -347,6 +545,7 @@ def get_provisional_ticket_markup(doc, paper_width=80, paid=0):
 
 def _fit(out, left, right, chars):
 	"""A line with an amount on the right; a text too long for it goes on its own line, its amount on the next."""
+	left = printable(left)
 	if len(left) + len(right) + 1 <= chars:
 		out.append(_column(left, right))
 	else:
@@ -355,7 +554,7 @@ def _fit(out, left, right, chars):
 
 def _big(text, chars, height=2, bold=False):
 	"""A heading twice as wide when it fits the paper (24 characters on 80 mm, 16 on 58 mm), else only twice as tall."""
-	text = str(text or "")
+	text = printable(text)
 	width = 2 if len(text) * 2 <= chars else 1
 	body = f"[bold: on]{_text(text)}[bold: off]" if bold else _text(text)
 	return f"[magnify: width {width}; height {height}]{body}[magnify]"
