@@ -12,18 +12,24 @@ printed (CloudPRNT Print Queue.kitchen_rows); a ticket prints the difference, ho
 whether or not the till numbered its send.
 
 Unlike a till receipt, a kitchen ticket never expires: an order waits for its printer for as long as it takes.
+
+A COPY is the same paper asked for again from the kitchen's or the runner's screen (POS Next names the moment, the hook
+`pos_next_kitchen_reprint`): a big order is carried to the pass on paper. It holds the lines of one station that are at the
+kitchen (or the whole order), marked COPY and the time so that nobody cooks twice. It is not a send: it never writes down
+what it printed (`kitchen_rows`), so the next send prints exactly what it would have printed without it. It expires like a
+till receipt, since a copy that comes out an hour late, when the printer is back, is a ticket to cook twice.
 """
 
 import json
 
 import frappe
 from frappe import _
-from frappe.utils import flt, format_datetime, get_datetime
+from frappe.utils import cint, flt, format_datetime, get_datetime
 
 from cloudprnt import guards
 from cloudprnt import print_queue_manager as jobs
 from cloudprnt.labels import station_label, table_label, ticket_reference
-from cloudprnt.printers import all_printers, find_printer, stations_of
+from cloudprnt.printers import all_printers, find_printer, get_printer, stations_of
 
 # The kitchen's text goes through the same helpers as the receipt's: one function makes it safe for a printer (a guest's
 # remark is stored as typed, and BEL or ESC @ in it must not reach the printer), and its columns keep a backslash or a
@@ -33,6 +39,12 @@ from cloudprnt.receipt_markup import _column, _text
 LINE_CHARS = {58: 32, 80: 48, 112: 69}
 #: The states of a line not sent to the kitchen yet (POS Next kds_status); any other state is at the kitchen.
 NOT_SENT = ("", "Waiting")
+#: The state of a dish that is done with: nothing left to cook, so nothing on a copy.
+DELIVERED = "Delivered"
+#: A copy asked for again within this long is the same copy: a double tap, or the kitchen's tap and the runner's together,
+#: print once. The second asker is told which job to follow.
+COPY_WINDOW_SECONDS = 10
+COPY_CLAIM = "cloudprnt_kitchen_copy:"
 
 
 @frappe.whitelist()
@@ -88,6 +100,125 @@ def on_kitchen_send(invoice, batch=None):
 			reference_name=doc.name,
 			kitchen_rows={key: new[key] for key in keys},
 		)
+
+
+def on_kitchen_reprint(invoice, station=None, whole_order=False, mark_copy=True):
+	"""Hook pos_next_kitchen_reprint: print a COPY of the ticket of table order `invoice` for the screen that asked.
+
+	A station given: its printer prints the lines of that station that are at the kitchen, or the whole order when
+	`whole_order` (every line at the kitchen, whatever its station). No station (the screen shows them all): each station
+	with a printer prints its own lines, or each printer prints the whole order once. `mark_copy` puts "COPY hh:mm" at the
+	head of the paper. Lines not sent yet (a course held back) and lines delivered are never on a copy.
+
+	Answers {"tickets": [{station, station_name, printer, printer_online, job_token, queue_position}], "no_printer":
+	[stations at the kitchen with no printer], "valid_minutes", "duplicate"}: with no ticket and a station in `no_printer`,
+	the screen hides its button. The same copy asked for again within COPY_WINDOW_SECONDS prints nothing and answers the
+	first one's tickets with duplicate true. A copy writes down nothing the next send reads (no kitchen_rows).
+	"""
+	whole_order = bool(cint(whole_order))
+	mark_copy = mark_copy not in (0, "0", False, "false", "False")
+	claim = frappe.cache().make_key(f"{COPY_CLAIM}{invoice}:{station or '*'}:{'order' if whole_order else 'station'}")
+	cache = frappe.cache()
+	if not cache.set(claim, "pending", nx=True, ex=COPY_WINDOW_SECONDS):
+		return {**_remembered(cache.get(claim)), "duplicate": True}
+	try:
+		answer = _print_copy(frappe.get_doc("Sales Invoice", invoice), station, whole_order, mark_copy)
+	except Exception:
+		# Nothing came out: the next tap tries again
+		cache.delete(claim)
+		raise
+	cache.set(claim, json.dumps(answer), ex=COPY_WINDOW_SECONDS)
+	return {**answer, "duplicate": False}
+
+
+def _remembered(value):
+	"""The answer a first tap left for the second (nothing yet when the first is still printing)."""
+	try:
+		answer = json.loads(value)
+	except (TypeError, ValueError):
+		answer = None
+	return answer if isinstance(answer, dict) else {"tickets": [], "no_printer": [], "valid_minutes": jobs.RECEIPT_VALID_MINUTES}
+
+
+def _print_copy(doc, station, whole_order, mark_copy):
+	targets, no_printer = _copy_targets(doc, station, whole_order)
+	title = _("COPY {0}").format(format_datetime(get_datetime(), "HH:mm")) if mark_copy else None
+	tickets = []
+	for name, row, lines in targets:
+		send = max(int(line.get("kds_batch") or 0) for line in lines) or None
+		# The header names the station whose lines these are; a whole order belongs to no station
+		markup = get_kitchen_ticket_markup(
+			doc, "" if whole_order else name, lines, send, paper_width=row.paper_width, title=title
+		)
+		result = jobs.enqueue(
+			row,
+			markup,
+			reference_doctype="Sales Invoice",
+			reference_name=doc.name,
+			valid_seconds=jobs.RECEIPT_VALID_MINUTES * 60,
+		)
+		tickets.append(
+			{
+				"station": name,
+				"station_name": station_label(name),
+				"printer": row.label,
+				"printer_online": bool(cint(row.online)),
+				"job_token": result.get("job_token"),
+				"queue_position": result.get("queue_position"),
+			}
+		)
+	return {"tickets": tickets, "no_printer": no_printer, "valid_minutes": jobs.RECEIPT_VALID_MINUTES}
+
+
+def _copy_targets(doc, station, whole_order):
+	"""What a copy prints and where: [(station, printer row, lines)], and the stations at the kitchen that have no printer."""
+	at_kitchen = [line for line in doc.items if (line.get("kds_status") or "") not in (*NOT_SENT, DELIVERED)]
+	stations = [station] if station else sorted({line.get("preparation_station") or "" for line in at_kitchen} - {""})
+	targets, no_printer, done = [], [], set()
+	for name in stations:
+		row = _printer_for_station(name)
+		if not row:
+			no_printer.append(name)
+			continue
+		if whole_order:
+			# One printer serves several stations: it prints the order once
+			if row.name in done:
+				continue
+			done.add(row.name)
+			lines = at_kitchen
+		else:
+			lines = [line for line in at_kitchen if (line.get("preparation_station") or "") == name]
+		if lines:
+			targets.append((name, row, lines))
+	return targets, no_printer
+
+
+def kitchen_copy_status(job, invoice):
+	"""Hook pos_next_kitchen_reprint_status: where the copy `job` of table order `invoice` stands (Pending, Fetched, Printed,
+	Failed or Expired), whether its printer is on, and why it did not print; None when it is no job of this app's kitchen
+	copies (a till's receipt is the till's business). POS Next has checked that the caller may follow this order."""
+	if not isinstance(job, str) or not job or not isinstance(invoice, str) or not invoice:
+		return None
+	row = frappe.db.get_value(
+		jobs.DOCTYPE,
+		{"job_token": job, "reference_doctype": "Sales Invoice", "reference_name": invoice},
+		["status", "printer", "result_code"],
+		as_dict=True,
+	)
+	printer = get_printer(row.printer) if row and row.printer else None
+	if not row or not printer or not stations_of(printer):
+		return None
+	return {
+		"status": row.status,
+		"printer_online": bool(cint(printer.online)),
+		"reason": row.result_code if row.status in ("Failed", "Expired") else "",
+	}
+
+
+def stations_with_a_printer():
+	"""Hook pos_next_kitchen_printers: the preparation stations some printer prints for. A screen shows the button of a copy
+	only for these."""
+	return sorted({station for row in all_printers() for station in stations_of(row)})
 
 
 def dish_key(line):

@@ -1319,3 +1319,8 @@ msgstr "Utiliser MQTT"
 #: cloudprnt/pos_invoice_markup.py:225
 msgid "on"
 msgstr "sur"
+
+#: cloudprnt/kitchen_ticket.py:145
+#, python-brace-format
+msgid "COPY {0}"
+msgstr "COPIE {0}"

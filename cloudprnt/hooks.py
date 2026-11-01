@@ -38,3 +38,9 @@ override_whitelisted_methods = {"cloudprnt-setting.json": "cloudprnt.protocol.se
 
 # POS Next calls these when a table order's lines go to the kitchen: each station's printer gets its ticket.
 pos_next_kitchen_send = ["cloudprnt.kitchen_ticket.on_kitchen_send"]
+
+# POS Next calls these from the kitchen's and the runner's screens (their printer button): print a copy of a ticket, follow it,
+# and tell which stations have a printer at all. A copy is not a send: it never changes what the next send prints.
+pos_next_kitchen_reprint = ["cloudprnt.kitchen_ticket.on_kitchen_reprint"]
+pos_next_kitchen_reprint_status = ["cloudprnt.kitchen_ticket.kitchen_copy_status"]
+pos_next_kitchen_printers = ["cloudprnt.kitchen_ticket.stations_with_a_printer"]
