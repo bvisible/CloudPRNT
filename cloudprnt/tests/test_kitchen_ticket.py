@@ -1,8 +1,11 @@
 """The kitchen ticket of a table order: one station's lines, of one send, without prices."""
 
+import importlib.util
 import json
-from types import SimpleNamespace
-from unittest.mock import patch
+import sys
+import unittest
+from types import ModuleType, SimpleNamespace
+from unittest.mock import Mock, patch
 
 import frappe
 from frappe.tests.utils import FrappeTestCase
@@ -19,6 +22,32 @@ LABELS = {TABLE_NAME: "Table 5", STATION_NAME: "Kitchen"}
 
 def read_labels(doctype, label_field, name):
 	return LABELS.get(name, name)
+
+
+def pos_next_has_room_codes():
+	"""Whether POS Next, with its rule for the code of a room, is installed on this site
+	(cloudprnt's own CI has none)."""
+	try:
+		return importlib.util.find_spec("pos_next.restaurant.room_code") is not None
+	except (ImportError, ValueError):
+		return False
+
+
+def a_pos_next_that_codes_every_room_as(answer):
+	"""A POS Next of the shape cloudprnt reads (`pos_next.restaurant.room_code.room_code`), for a site that has none.
+
+	Returns the stand-in's module (its `room_code` is a Mock, so that a test sees what it was asked)
+	and the patch that installs it."""
+	module = ModuleType("pos_next.restaurant.room_code")
+	module.room_code = Mock(return_value=answer)
+	restaurant = ModuleType("pos_next.restaurant")
+	restaurant.room_code = module
+	package = ModuleType("pos_next")
+	package.restaurant = restaurant
+	return module, patch.dict(
+		sys.modules,
+		{"pos_next": package, "pos_next.restaurant": restaurant, "pos_next.restaurant.room_code": module},
+	)
 
 
 class Order(SimpleNamespace):
@@ -294,6 +323,11 @@ class TestWhereTheReferenceComesFrom(FrappeTestCase):
 
 		return get_value
 
+	@unittest.skipUnless(
+		pos_next_has_room_codes(),
+		"POS Next's rule for the code of a room is not installed here: "
+		"the test below proves the hand-over without it",
+	)
 	def test_the_room_is_that_of_the_table_and_the_digits_those_of_its_restaurant(self):
 		doc = order()
 		doc.restaurant_table = TABLE_NAME
@@ -308,6 +342,25 @@ class TestWhereTheReferenceComesFrom(FrappeTestCase):
 			patch.object(frappe.db, "get_value", self.lookups(found)),
 		):
 			self.assertEqual(room_and_digits_of(doc), ("S02", 3))
+
+	def test_the_room_of_the_table_is_handed_to_pos_next_to_be_coded_and_its_answer_is_kept(self):
+		doc = order()
+		doc.restaurant_table = TABLE_NAME
+		found = {
+			("Restaurant Table", TABLE_NAME): frappe._dict(area="AREA-1", restaurant="Bistro"),
+			("Restaurant Area", "AREA-1"): frappe._dict(area_name="Salle 2", short_code=None),
+			("Restaurant", "Bistro"): 3,
+		}
+		module, installed = a_pos_next_that_codes_every_room_as("ZZ9")
+		with (
+			installed,
+			patch.object(frappe.db, "exists", return_value=True),
+			patch.object(frappe.db, "has_column", return_value=True),
+			patch.object(frappe.db, "get_value", self.lookups(found)),
+		):
+			self.assertEqual(room_and_digits_of(doc), ("ZZ9", 3))
+		# what the room says it is called, and nothing typed on it, is what POS Next is asked to make a code of
+		module.room_code.assert_called_once_with("", "Salle 2")
 
 	def test_a_code_typed_on_the_room_wins(self):
 		doc = order()
