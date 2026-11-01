@@ -1324,3 +1324,11 @@ msgstr "sur"
 #, python-brace-format
 msgid "COPY {0}"
 msgstr "COPIE {0}"
+
+#: cloudprnt/table_qr_ticket.py:138
+msgid "The ordering link of this table is not a web address"
+msgstr "Le lien de commande de cette table n'est pas une adresse web"
+
+#: cloudprnt/table_qr_ticket.py:175
+msgid "Scan to order"
+msgstr "Scannez pour commander"

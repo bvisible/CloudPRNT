@@ -1093,3 +1093,11 @@ msgstr ""
 #, python-brace-format
 msgid "COPY {0}"
 msgstr ""
+
+#: cloudprnt/table_qr_ticket.py:138
+msgid "The ordering link of this table is not a web address"
+msgstr ""
+
+#: cloudprnt/table_qr_ticket.py:175
+msgid "Scan to order"
+msgstr ""

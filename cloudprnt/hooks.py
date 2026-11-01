@@ -44,3 +44,8 @@ pos_next_kitchen_send = ["cloudprnt.kitchen_ticket.on_kitchen_send"]
 pos_next_kitchen_reprint = ["cloudprnt.kitchen_ticket.on_kitchen_reprint"]
 pos_next_kitchen_reprint_status = ["cloudprnt.kitchen_ticket.kitchen_copy_status"]
 pos_next_kitchen_printers = ["cloudprnt.kitchen_ticket.stations_with_a_printer"]
+
+# POS Next calls this when a table's QR code is printed (the Print button of the QR dialog): the table's name, a line to scan
+# to order, the code and its link on the till's receipt printer. POS Next works the link out from the guest token itself;
+# this app prints what it is handed.
+pos_next_table_qr_print = ["cloudprnt.table_qr_ticket.on_table_qr_print"]
