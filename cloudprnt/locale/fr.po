@@ -1332,3 +1332,8 @@ msgstr "Le lien de commande de cette table n'est pas une adresse web"
 #: cloudprnt/table_qr_ticket.py:175
 msgid "Scan to order"
 msgstr "Scannez pour commander"
+
+#: cloudprnt/kitchen_ticket.py:130
+#, python-brace-format
+msgid "CANCELLED {0}"
+msgstr "ANNULÉ {0}"
