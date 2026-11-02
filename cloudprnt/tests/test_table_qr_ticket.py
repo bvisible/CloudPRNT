@@ -1,4 +1,4 @@
-"""The QR ticket of a table: a small paper to stick on the table or hand to the guests (NeoRestau lot 1, task 53).
+"""The QR ticket of a table: a small paper to stick on the table or hand to the guests (NeoResto lot 1, task 53).
 
 The till's QR button shows the code that opens the guest ordering page of a table; its Print button asks POS Next, which
 names the moment (the hook `pos_next_table_qr_print`) and hands this app the table and the link IT worked out from the

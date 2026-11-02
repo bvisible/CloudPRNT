@@ -53,7 +53,7 @@ LINE_FIELDS = (
 	"warehouse",
 	"posa_item_modifiers",
 	"posa_special_instructions",
-	# A row offered by the cashier (NeoRestau lot 1, task 24): it charges nothing and says « Offered »
+	# A row offered by the cashier (NeoResto lot 1, task 24): it charges nothing and says « Offered »
 	"posa_is_offered",
 )
 
@@ -288,7 +288,7 @@ def _require_till_access(pos_profile):
 
 
 def _restaurants_known():
-	"""Whether this site's POS Next knows restaurants (NeoRestau): a site with an older one, or none, has none."""
+	"""Whether this site's POS Next knows restaurants (NeoResto): a site with an older one, or none, has none."""
 	try:
 		from pos_next.restaurant import permissions, scope  # noqa: F401
 	except ImportError:
@@ -464,7 +464,7 @@ def _tax_inclusive(doc):
 
 def _takeaway_tax(doc):
 	"""A takeaway order takes its restaurant's takeaway tax category, as the paid invoice will in its before_validate
-	(POS Next, NeoRestau lot 1, task 10), when that POS Next is installed."""
+	(POS Next, NeoResto lot 1, task 10), when that POS Next is installed."""
 	try:
 		from pos_next.restaurant.takeaway_tax import apply_takeaway_tax_category
 	except ImportError:

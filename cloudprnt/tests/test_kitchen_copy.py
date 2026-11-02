@@ -1,4 +1,4 @@
-"""The copy of a kitchen ticket, printed from the kitchen's or the runner's screen (NeoRestau lot 1, task 44).
+"""The copy of a kitchen ticket, printed from the kitchen's or the runner's screen (NeoResto lot 1, task 44).
 
 A big order is carried to the pass on paper: the screen's printer button asks POS Next, which names the moment through the
 hook `pos_next_kitchen_reprint`; this app prints. The copy is the lines of ONE station that are at the kitchen (or the whole
