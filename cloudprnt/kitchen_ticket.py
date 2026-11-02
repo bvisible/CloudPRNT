@@ -75,16 +75,23 @@ def print_kitchen_ticket(invoice, station=None, batch=None, printer=None):
 
 def on_kitchen_send(invoice, batch=None):
 	"""Hook pos_next_kitchen_send: lines of table order `invoice` were just put at the kitchen (as send `batch`
-	when the till numbered it). Each station with a printer gets one ticket of what is at the kitchen and not
-	printed yet; a station without one keeps its screen only."""
+	when the till numbered it), or the order was saved after a send. Each station with a printer gets one ticket of
+	what is at the kitchen and not printed yet; a station without one keeps its screen only.
+
+	//// Neoffice — a dish taken off the order, or a quantity lowered, after its ticket came out is printed again as a
+	CANCELLATION (see `_cancel_what_was_taken_back`): a kitchen that reads paper only has no screen to see a line struck."""
 	doc = frappe.get_doc("Sales Invoice", invoice)
-	at_kitchen, first_line = {}, {}
+	at_kitchen, first_line, present = {}, {}, {}
 	for line in doc.items:
-		if line.get("preparation_station") and (line.get("kds_status") or "") not in NOT_SENT:
+		if line.get("preparation_station"):
 			key = dish_key(line)
-			at_kitchen[key] = at_kitchen.get(key, 0) + flt(line.qty)
-			first_line.setdefault(key, line)
+			# Whatever the line's state: a line that loses its state in a save is still on the order
+			present[key] = present.get(key, 0) + flt(line.qty)
+			if (line.get("kds_status") or "") not in NOT_SENT:
+				at_kitchen[key] = at_kitchen.get(key, 0) + flt(line.qty)
+				first_line.setdefault(key, line)
 	printed = printed_quantities(doc.name)
+	_cancel_what_was_taken_back(doc, printed, present)
 	new = {key: qty - printed.get(key, 0) for key, qty in at_kitchen.items() if qty - printed.get(key, 0) > 0}
 	for station in sorted({first_line[key].preparation_station for key in new}):
 		row = _printer_for_station(station)
@@ -100,6 +107,47 @@ def on_kitchen_send(invoice, batch=None):
 			reference_name=doc.name,
 			kitchen_rows={key: new[key] for key in keys},
 		)
+
+
+def on_kitchen_void(invoice):
+	"""Hook pos_next_kitchen_void: table order `invoice`, a draft that had lines at the kitchen, is being deleted. Every dish whose
+	ticket came out comes out cancelled, on the printer of its station; what never came out is left alone."""
+	doc = frappe.get_doc("Sales Invoice", invoice)
+	_cancel_what_was_taken_back(doc, printed_quantities(doc.name), {})
+
+
+def _cancel_what_was_taken_back(doc, printed, present):
+	"""A cancellation ticket per station for the dishes whose ticket came out and that are no longer on the order (or in a lower
+	quantity): `printed` is what the kitchen tickets of the order printed, `present` what the order holds now, per dish. It is written
+	down as a negative quantity, so that the next send counts what the kitchen really holds and a dish put back prints again."""
+	gone = {key: qty - present.get(key, 0) for key, qty in printed.items() if qty - present.get(key, 0) > 0}
+	for station in sorted({key.split("|", 1)[0] for key in gone} - {""}):
+		row = _printer_for_station(station)
+		if not row:
+			continue
+		keys = sorted(key for key in gone if key.split("|", 1)[0] == station)
+		lines = [_line_of_the_dish(key, gone[key]) for key in keys]
+		title = _("CANCELLED {0}").format(format_datetime(get_datetime(), "HH:mm"))
+		jobs.enqueue(
+			row,
+			get_kitchen_ticket_markup(doc, station, lines, paper_width=row.paper_width, title=title, cancelled=True),
+			reference_doctype="Sales Invoice",
+			reference_name=doc.name,
+			kitchen_rows={key: -gone[key] for key in keys},
+		)
+
+
+def _line_of_the_dish(key, qty):
+	"""A ticket line for a dish that is no longer on the order, read back from its key (station, item, unit, options, remarks)."""
+	_station, item_code, _uom, modifiers, remarks = (key.split("|", 4) + [""] * 5)[:5]
+	name = frappe.db.get_value("Item", item_code, "item_name") if item_code else None
+	return frappe._dict(
+		item_code=item_code,
+		item_name=name or item_code,
+		qty=qty,
+		posa_item_modifiers=modifiers,
+		posa_special_instructions=remarks,
+	)
 
 
 def on_kitchen_reprint(invoice, station=None, whole_order=False, mark_copy=True):
@@ -258,8 +306,9 @@ def _with_qty(line, qty):
 	return copy
 
 
-def get_kitchen_ticket_markup(doc, station, lines, batch=None, paper_width=80, title=None):
-	"""Star Document Markup of one station's ticket for `lines` of table order `doc`."""
+def get_kitchen_ticket_markup(doc, station, lines, batch=None, paper_width=80, title=None, cancelled=False):
+	"""Star Document Markup of one station's ticket for `lines` of table order `doc`. `cancelled`: the lines are dishes taken back,
+	their quantities read with a minus."""
 	chars = LINE_CHARS.get(_width(paper_width), 48)
 	where = _where(doc)
 	waiter = frappe.db.get_value("User", doc.owner, "first_name") or doc.owner
@@ -282,6 +331,8 @@ def get_kitchen_ticket_markup(doc, station, lines, batch=None, paper_width=80, t
 	for line in lines:
 		qty = flt(line.qty)
 		qty_text = str(int(qty)) if qty == int(qty) else f"{qty:g}"
+		if cancelled:
+			qty_text = f"-{qty_text}"
 		out.append(f"[magnify: width 2; height 2][bold: on]{qty_text} x {_text(line.item_name or line.item_code)}[bold: off][magnify]")
 		remarks = _modifiers(line.get("posa_item_modifiers")) + _plain(line.get("posa_special_instructions"))
 		for remark in remarks:
