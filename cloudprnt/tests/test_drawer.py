@@ -195,6 +195,7 @@ class TestTillStations(FrappeTestCase):
 
 		with (
 			patch.object(till, "_restaurant_filters", return_value=filters),
+			patch.object(till, "paper_only_stations", return_value=set()),
 			patch.object(frappe, "get_all", get_all),
 			patch.object(frappe.db, "exists", exists),
 		):
@@ -204,7 +205,15 @@ class TestTillStations(FrappeTestCase):
 		stations, _ = self.listed(None)
 		self.assertEqual(
 			stations,
-			[{"station": "h4sh0f4stn", "station_name": "Kitchen", "station_type": "Kitchen", "printer": None}],
+			[
+				{
+					"station": "h4sh0f4stn",
+					"station_name": "Kitchen",
+					"station_type": "Kitchen",
+					"printer": None,
+					"paper_only": 0,
+				}
+			],
 		)
 
 	def test_the_till_lists_the_stations_of_its_restaurant_only(self):
