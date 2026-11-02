@@ -11,6 +11,7 @@ import frappe
 from frappe.utils import cint
 
 from cloudprnt import guards
+from cloudprnt.kitchen_ticket import paper_only_stations
 from cloudprnt.printers import SETTINGS, all_printers, stations_of
 
 DRAWER_RULES = ("Cash payments", "Always", "Never")
@@ -38,6 +39,7 @@ def get_till_printing(pos_profile):
 	printers = all_printers()
 	receipt = next((row for row in printers if pos_profile and row.pos_profile == pos_profile), None)
 	stations = []
+	paper = paper_only_stations()
 	if frappe.db.exists("DocType", "Preparation Station"):
 		# `station` is the name the printer rows keep, `station_name` what a person reads: POS Next names a new station
 		# by a hash, and the same label can exist in two restaurants, so the till lists its own restaurant's only
@@ -55,6 +57,8 @@ def get_till_printing(pos_profile):
 					"station_name": station.station_name or station.name,
 					"station_type": station.station_type,
 					"printer": holder,
+					# A station that works on paper alone: no screen, the ticket is all the kitchen reads
+					"paper_only": 1 if station.name in paper else 0,
 				}
 			)
 	return {
@@ -78,13 +82,18 @@ def _restaurant_filters(pos_profile):
 
 
 @frappe.whitelist()
-def set_till_printing(pos_profile, receipt_printer=None, auto_print=None, open_drawer=None, stations=None):
+def set_till_printing(
+	pos_profile, receipt_printer=None, auto_print=None, open_drawer=None, stations=None, paper_only=None
+):
 	"""Set how till `pos_profile` prints: its receipt printer (None: none), whether receipts print by themselves
-	when a sale is validated, when the drawer opens with a receipt, and the printer of each preparation station
-	({station: printer row or None})."""
+	when a sale is validated, when the drawer opens with a receipt, the printer of each preparation station
+	({station: printer row or None}), and which stations work on paper alone ({station: 0 or 1}: no screen, the
+	ticket is all the kitchen reads; a station with no printer cannot be)."""
 	guards.require("CloudPRNT Settings", "write")
 	if isinstance(stations, str):
 		stations = json.loads(stations or "{}")
+	if isinstance(paper_only, str):
+		paper_only = json.loads(paper_only or "{}")
 	settings = frappe.get_doc(SETTINGS)
 	for row in settings.printers:
 		if row.pos_profile == pos_profile and row.name != receipt_printer:
@@ -102,4 +111,29 @@ def set_till_printing(pos_profile, receipt_printer=None, auto_print=None, open_d
 			given = [station for station, printer in stations.items() if printer and printer == row.name]
 			row.preparation_station = ", ".join(sorted(set(kept + given))) or None
 	settings.save()
+	if stations is not None or paper_only is not None:
+		_write_paper_only(paper_flags(settings.printers, paper_only or {}, paper_only_stations()))
 	return get_till_printing(pos_profile)
+
+
+def paper_flags(printers, requested, current):
+	"""The paper-only flag each station ends with, for the stations that change: the ones asked for (`requested`, {station: 0 or 1}), and
+	the ones that lost their printer (`current` is the set that is paper only now). A station no printer prints for cannot be paper only:
+	its screen is all it has."""
+	served = {station for row in printers for station in stations_of(row)}
+	flags = {station: 1 if cint(flag) and station in served else 0 for station, flag in requested.items()}
+	for station in current:
+		if station not in served:
+			flags[station] = 0
+	return flags
+
+
+def _write_paper_only(flags):
+	"""Write the flags on the Preparation Station rows, when POS Next has the field."""
+	if not flags or not frappe.db.exists("DocType", "Preparation Station"):
+		return
+	if not frappe.get_meta("Preparation Station").has_field("paper_only"):
+		return
+	for station, flag in flags.items():
+		if frappe.db.exists("Preparation Station", station):
+			frappe.db.set_value("Preparation Station", station, "paper_only", flag)

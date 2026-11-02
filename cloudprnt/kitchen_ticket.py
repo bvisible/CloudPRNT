@@ -13,6 +13,12 @@ whether or not the till numbered its send.
 
 Unlike a till receipt, a kitchen ticket never expires: an order waits for its printer for as long as it takes.
 
+A station set PAPER ONLY (POS Next field `paper_only` of the Preparation Station: no screen, nothing followed on the screens or at
+the tables) is a kitchen whose cooks read the paper and talk to the room. Its ticket holds the WHOLE meal from the first send: the
+courses the waiter holds back too, drawn in sections by family (Starters, Mains, Desserts), so that the cooks tick them off on the paper.
+What is fired later prints nothing: it is already on the paper (the next send counts per dish what the tickets printed). A guest's line
+that waits for the waiter's acceptance is not the waiter's held course and is not printed before it is accepted.
+
 A COPY is the same paper asked for again from the kitchen's or the runner's screen (POS Next names the moment, the hook
 `pos_next_kitchen_reprint`): a big order is carried to the pass on paper. It holds the lines of one station that are at the
 kitchen (or the whole order), marked COPY and the time so that nobody cooks twice. It is not a send: it never writes down
@@ -41,6 +47,8 @@ LINE_CHARS = {58: 32, 80: 48, 112: 69}
 NOT_SENT = ("", "Waiting")
 #: The state of a dish that is done with: nothing left to cook, so nothing on a copy.
 DELIVERED = "Delivered"
+#: The service families of a line (POS Next `service_family`) in the order a meal serves them: the sections of a ticket that holds several.
+FAMILY_ORDER = ("Drink", "Starter", "Main", "Dessert")
 #: A copy asked for again within this long is the same copy: a double tap, or the kitchen's tap and the runner's together,
 #: print once. The second asker is told which job to follow.
 COPY_WINDOW_SECONDS = 10
@@ -82,12 +90,13 @@ def on_kitchen_send(invoice, batch=None):
 	CANCELLATION (see `_cancel_what_was_taken_back`): a kitchen that reads paper only has no screen to see a line struck."""
 	doc = frappe.get_doc("Sales Invoice", invoice)
 	at_kitchen, first_line, present = {}, {}, {}
+	paper = paper_only_stations()
 	for line in doc.items:
 		if line.get("preparation_station"):
 			key = dish_key(line)
 			# Whatever the line's state: a line that loses its state in a save is still on the order
 			present[key] = present.get(key, 0) + flt(line.qty)
-			if (line.get("kds_status") or "") not in NOT_SENT:
+			if _is_on_the_paper(line, paper):
 				at_kitchen[key] = at_kitchen.get(key, 0) + flt(line.qty)
 				first_line.setdefault(key, line)
 	printed = printed_quantities(doc.name)
@@ -220,7 +229,10 @@ def _print_copy(doc, station, whole_order, mark_copy):
 
 def _copy_targets(doc, station, whole_order):
 	"""What a copy prints and where: [(station, printer row, lines)], and the stations at the kitchen that have no printer."""
-	at_kitchen = [line for line in doc.items if (line.get("kds_status") or "") not in (*NOT_SENT, DELIVERED)]
+	paper = paper_only_stations()
+	at_kitchen = [
+		line for line in doc.items if _is_on_the_paper(line, paper) and (line.get("kds_status") or "") != DELIVERED
+	]
 	stations = [station] if station else sorted({line.get("preparation_station") or "" for line in at_kitchen} - {""})
 	targets, no_printer, done = [], [], set()
 	for name in stations:
@@ -261,6 +273,24 @@ def kitchen_copy_status(job, invoice):
 		"printer_online": bool(cint(printer.online)),
 		"reason": row.result_code if row.status in ("Failed", "Expired") else "",
 	}
+
+
+def paper_only_stations():
+	"""The preparation stations that work on paper alone (POS Next field `paper_only`): none when POS Next does not know the field."""
+	if not frappe.db.exists("DocType", "Preparation Station"):
+		return set()
+	if not frappe.get_meta("Preparation Station").has_field("paper_only"):
+		return set()
+	return set(frappe.get_all("Preparation Station", filters={"paper_only": 1}, pluck="name"))
+
+
+def _is_on_the_paper(line, paper):
+	"""Whether a line is on its station's ticket: it left for the kitchen, or, at a paper-only station, it is a course the waiter holds back
+	(Waiting, in no batch: a held line that has a batch is a guest's, which the waiter has not accepted yet)."""
+	status = line.get("kds_status") or ""
+	if status not in NOT_SENT:
+		return True
+	return status == "Waiting" and (line.get("preparation_station") or "") in paper and not cint(line.get("kds_batch"))
 
 
 def stations_with_a_printer():
@@ -328,17 +358,39 @@ def get_kitchen_ticket_markup(doc, station, lines, batch=None, paper_width=80, t
 		_column(ticket_reference(doc), _("Send no. {0}").format(batch) if batch else ""),
 		"-" * chars,
 	]
-	for line in lines:
-		qty = flt(line.qty)
-		qty_text = str(int(qty)) if qty == int(qty) else f"{qty:g}"
-		if cancelled:
-			qty_text = f"-{qty_text}"
-		out.append(f"[magnify: width 2; height 2][bold: on]{qty_text} x {_text(line.item_name or line.item_code)}[bold: off][magnify]")
-		remarks = _modifiers(line.get("posa_item_modifiers")) + _plain(line.get("posa_special_instructions"))
-		for remark in remarks:
-			out.append(f"   [magnify: width 1; height 2]> {_text(remark)}[magnify]")
+	for heading, section in _sections(lines):
+		if heading:
+			out.append(f"[bold: on]{_text(f' {heading.upper()} '.center(chars, '='))}[bold: off]")
+		for line in section:
+			qty = flt(line.qty)
+			qty_text = str(int(qty)) if qty == int(qty) else f"{qty:g}"
+			if cancelled:
+				qty_text = f"-{qty_text}"
+			out.append(f"[magnify: width 2; height 2][bold: on]{qty_text} x {_text(line.item_name or line.item_code)}[bold: off][magnify]")
+			remarks = _modifiers(line.get("posa_item_modifiers")) + _plain(line.get("posa_special_instructions"))
+			for remark in remarks:
+				out.append(f"   [magnify: width 1; height 2]> {_text(remark)}[magnify]")
 	out += ["-" * chars, "[cut: feed; partial]"]
 	return "\n".join(out)
+
+
+def _sections(lines):
+	"""The lines of a ticket in sections by service family, as [(title, lines)], in the order of a meal. A ticket whose lines are all of one family
+	(or of none) is one section with no title: a title that says nothing is noise. A line whose family nobody knows is of none, listed last."""
+	by_family = {}
+	for line in lines:
+		family = (line.get("service_family") or "").strip()
+		by_family.setdefault(family if family in FAMILY_ORDER else "", []).append(line)
+	if len(by_family) < 2:
+		return [("", list(lines))]
+	titles = {
+		"Drink": _("Drinks"),
+		"Starter": _("Starters"),
+		"Main": _("Mains"),
+		"Dessert": _("Desserts"),
+		"": _("Other"),
+	}
+	return [(titles[family], by_family[family]) for family in (*FAMILY_ORDER, "") if family in by_family]
 
 
 def _modifiers(value):
