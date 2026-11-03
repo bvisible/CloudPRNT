@@ -11,7 +11,7 @@ import frappe
 from frappe.utils import cint
 
 from cloudprnt import guards
-from cloudprnt.kitchen_ticket import TEXT_SIZES, paper_only_stations, text_size_of
+from cloudprnt.kitchen_ticket import TEXT_SIZES, paper_only_stations, text_size_of, ticket_per_family_stations
 from cloudprnt.printers import SETTINGS, all_printers, stations_of
 
 DRAWER_RULES = ("Cash payments", "Always", "Never")
@@ -40,6 +40,7 @@ def get_till_printing(pos_profile):
 	receipt = next((row for row in printers if pos_profile and row.pos_profile == pos_profile), None)
 	stations = []
 	paper = paper_only_stations()
+	per_family = ticket_per_family_stations()
 	if frappe.db.exists("DocType", "Preparation Station"):
 		# `station` is the name the printer rows keep, `station_name` what a person reads: POS Next names a new station
 		# by a hash, and the same label can exist in two restaurants, so the till lists its own restaurant's only
@@ -61,6 +62,8 @@ def get_till_printing(pos_profile):
 					"paper_only": 1 if station.name in paper else 0,
 					# How big the writing of its kitchen tickets is: a key of TEXT_SIZES
 					"text_size": text_size_of(station.name),
+					# //// Neoffice — one ticket for each family of a send (« 1/3 STARTERS »), instead of one ticket with sections
+					"ticket_per_family": 1 if station.name in per_family else 0,
 				}
 			)
 	return {
@@ -85,13 +88,21 @@ def _restaurant_filters(pos_profile):
 
 @frappe.whitelist()
 def set_till_printing(
-	pos_profile, receipt_printer=None, auto_print=None, open_drawer=None, stations=None, paper_only=None, text_size=None
+	pos_profile,
+	receipt_printer=None,
+	auto_print=None,
+	open_drawer=None,
+	stations=None,
+	paper_only=None,
+	text_size=None,
+	ticket_per_family=None,
 ):
 	"""Set how till `pos_profile` prints: its receipt printer (None: none), whether receipts print by themselves
 	when a sale is validated, when the drawer opens with a receipt, the printer of each preparation station
 	({station: printer row or None}), which stations work on paper alone ({station: 0 or 1}: no screen, the
 	ticket is all the kitchen reads; a station with no printer cannot be), and the size of the writing of each
-	station's kitchen tickets ({station: Large, Medium or Small})."""
+	station's kitchen tickets ({station: Large, Medium or Small}), and which stations print a ticket for each
+	family of a send ({station: 0 or 1})."""
 	guards.require("CloudPRNT Settings", "write")
 	if isinstance(stations, str):
 		stations = json.loads(stations or "{}")
@@ -99,6 +110,8 @@ def set_till_printing(
 		paper_only = json.loads(paper_only or "{}")
 	if isinstance(text_size, str):
 		text_size = json.loads(text_size or "{}")
+	if isinstance(ticket_per_family, str):
+		ticket_per_family = json.loads(ticket_per_family or "{}")
 	settings = frappe.get_doc(SETTINGS)
 	for row in settings.printers:
 		if row.pos_profile == pos_profile and row.name != receipt_printer:
@@ -120,6 +133,8 @@ def set_till_printing(
 		_write_paper_only(paper_flags(settings.printers, paper_only or {}, paper_only_stations()))
 	if text_size:
 		_write_text_size(text_size)
+	if ticket_per_family:
+		_write_ticket_per_family(ticket_per_family)
 	return get_till_printing(pos_profile)
 
 
@@ -155,3 +170,14 @@ def _write_text_size(sizes):
 	for station, size in sizes.items():
 		if size in TEXT_SIZES and frappe.db.exists("Preparation Station", station):
 			frappe.db.set_value("Preparation Station", station, "ticket_text_size", size)
+
+
+def _write_ticket_per_family(flags):
+	"""Write the « a ticket per family » flag on the Preparation Station rows, when POS Next has the field."""
+	if not frappe.db.exists("DocType", "Preparation Station"):
+		return
+	if not frappe.db.has_column("Preparation Station", "ticket_per_family"):
+		return
+	for station, flag in flags.items():
+		if frappe.db.exists("Preparation Station", station):
+			frappe.db.set_value("Preparation Station", station, "ticket_per_family", 1 if cint(flag) else 0)

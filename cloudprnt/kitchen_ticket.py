@@ -111,20 +111,26 @@ def on_kitchen_send(invoice, batch=None):
 	printed = printed_quantities(doc.name)
 	_cancel_what_was_taken_back(doc, printed, present)
 	new = {key: qty - printed.get(key, 0) for key, qty in at_kitchen.items() if qty - printed.get(key, 0) > 0}
+	per_family = ticket_per_family_stations()
 	for station in sorted({first_line[key].preparation_station for key in new}):
 		row = _printer_for_station(station)
 		if not row:
 			continue
 		keys = [key for key in new if first_line[key].preparation_station == station]
 		lines = [_with_qty(first_line[key], new[key]) for key in keys]
+		key_of = {id(line): key for key, line in zip(keys, lines)}
 		send = max(int(line.get("kds_batch") or 0) for line in lines) or None
-		jobs.enqueue(
-			row,
-			get_kitchen_ticket_markup(doc, station, lines, send, paper_width=row.paper_width),
-			reference_doctype="Sales Invoice",
-			reference_name=doc.name,
-			kitchen_rows={key: new[key] for key in keys},
-		)
+		# //// Neoffice — a station set « a ticket per family » prints one ticket for each family of the send (see `_tickets`)
+		for title, status, ticket_lines in _tickets(station in per_family, lines):
+			jobs.enqueue(
+				row,
+				get_kitchen_ticket_markup(
+					doc, station, ticket_lines, send, paper_width=row.paper_width, title=title, status=status
+				),
+				reference_doctype="Sales Invoice",
+				reference_name=doc.name,
+				kitchen_rows={key_of[id(line)]: new[key_of[id(line)]] for line in ticket_lines},
+			)
 
 
 def on_kitchen_void(invoice):
@@ -345,9 +351,9 @@ def _with_qty(line, qty):
 	return copy
 
 
-def get_kitchen_ticket_markup(doc, station, lines, batch=None, paper_width=80, title=None, cancelled=False):
+def get_kitchen_ticket_markup(doc, station, lines, batch=None, paper_width=80, title=None, cancelled=False, status=None):
 	"""Star Document Markup of one station's ticket for `lines` of table order `doc`. `cancelled`: the lines are dishes taken back,
-	their quantities read with a minus."""
+	their quantities read with a minus. `status`: a line under the title that says what to do with the ticket (« Wait for the next course »)."""
 	chars = LINE_CHARS.get(_width(paper_width), 48)
 	where = _where(doc)
 	waiter = frappe.db.get_value("User", doc.owner, "first_name") or doc.owner
@@ -356,6 +362,8 @@ def get_kitchen_ticket_markup(doc, station, lines, batch=None, paper_width=80, t
 	out = ["[align: centre]"]
 	if title:
 		out.append(_sized(_text(title), size["title"], bold=True))
+	if status:
+		out.append(_sized(_text(status).upper(), size["title"], bold=True))
 	out.append(_sized(_text(where), size["table"], bold=True))
 	if station:
 		# The label of the station: a station POS Next created is named by a hash
@@ -382,6 +390,31 @@ def get_kitchen_ticket_markup(doc, station, lines, batch=None, paper_width=80, t
 				out.append("   " + _sized(f"> {_text(remark)}", size["option"]))
 	out += ["-" * chars, "[cut: feed; partial]"]
 	return "\n".join(out)
+
+
+def ticket_per_family_stations():
+	"""The preparation stations whose tickets come out one per family (POS Next field `ticket_per_family`): none when POS Next does not know the field."""
+	if not frappe.db.exists("DocType", "Preparation Station"):
+		return set()
+	if not frappe.db.has_column("Preparation Station", "ticket_per_family"):
+		return set()
+	return set(frappe.get_all("Preparation Station", filters={"ticket_per_family": 1}, pluck="name"))
+
+
+def _tickets(per_family, lines):
+	"""The tickets of one station's send, as [(title, status, lines)]: one with every family on it in sections, or, at a station set a ticket per
+	family and when the send holds several, one for each family in the order of the meal, titled « 1/3 STARTERS ». Where some family is held back by
+	the waiter (a paper-only station keeps the whole meal on paper), each ticket says what to do: « To do » for what leaves, « Wait for the next
+	course » for what is held, so that a ticket goes out with its plates, when they go out."""
+	sections = _sections(lines)
+	if not per_family or len(sections) < 2:
+		return [(None, None, lines)]
+	held = [all((line.get("kds_status") or "") == "Waiting" for line in section) for _heading, section in sections]
+	tickets = []
+	for index, ((heading, section), is_held) in enumerate(zip(sections, held), start=1):
+		status = (_("Wait for the next course") if is_held else _("To do")) if any(held) else None
+		tickets.append((f"{index}/{len(sections)} {heading.upper()}", status, section))
+	return tickets
 
 
 def text_size_of(station):
