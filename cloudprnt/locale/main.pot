@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: CloudPRNT VERSION\n"
 "Report-Msgid-Bugs-To: hello@neoservice.ai\n"
-"POT-Creation-Date: 2026-10-28 16:24+0000\n"
-"PO-Revision-Date: 2026-10-28 16:24+0000\n"
+"POT-Creation-Date: 2026-11-03 10:11+0000\n"
+"PO-Revision-Date: 2026-11-03 10:11+0000\n"
 "Last-Translator: hello@neoservice.ai\n"
 "Language-Team: hello@neoservice.ai\n"
 "MIME-Version: 1.0\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.18.0\n"
 
-#: cloudprnt/kitchen_ticket.py:49
+#: cloudprnt/kitchen_ticket.py:84
 msgid "(none)"
 msgstr ""
 
@@ -63,10 +63,23 @@ msgstr ""
 msgid "Admin"
 msgstr ""
 
+#: cloudprnt/provisional_ticket.py:534
+#: cloudprnt/tests/test_provisional_ticket.py:215
+#: cloudprnt/tests/test_provisional_ticket.py:217
+#: cloudprnt/tests/test_provisional_ticket.py:704
+#: cloudprnt/tests/test_provisional_ticket.py:922
+msgid "Already paid"
+msgstr ""
+
 #. Option for the 'Open the Cash Drawer' (Select) field in DocType 'CloudPRNT
 #. Printers'
 #: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json:87
 msgid "Always"
+msgstr ""
+
+#: cloudprnt/provisional_ticket.py:198
+#, python-brace-format
+msgid "An order of more than {0} lines cannot be printed"
 msgstr ""
 
 #. Description of the 'Open the Cash Drawer' (Select) field in DocType
@@ -75,7 +88,7 @@ msgstr ""
 msgid "At a sale of this till, once, with or without a receipt"
 msgstr ""
 
-#: cloudprnt/receipt_markup.py:63
+#: cloudprnt/receipt_markup.py:64
 msgid "Batch No"
 msgstr ""
 
@@ -101,6 +114,16 @@ msgstr ""
 #. Label of a Int field in DocType 'CloudPRNT Print Queue'
 #: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:112
 msgid "Buzzer Rings"
+msgstr ""
+
+#: cloudprnt/kitchen_ticket.py:148
+#, python-brace-format
+msgid "CANCELLED {0}"
+msgstr ""
+
+#: cloudprnt/kitchen_ticket.py:211
+#, python-brace-format
+msgid "COPY {0}"
 msgstr ""
 
 #. Label of a Check field in DocType 'CloudPRNT Printers'
@@ -139,11 +162,11 @@ msgstr ""
 msgid "Cash payments"
 msgstr ""
 
-#: cloudprnt/receipt_markup.py:50
+#: cloudprnt/receipt_markup.py:51
 msgid "Cashier"
 msgstr ""
 
-#: cloudprnt/receipt_markup.py:91
+#: cloudprnt/receipt_markup.py:92
 msgid "Change Amount"
 msgstr ""
 
@@ -163,6 +186,7 @@ msgstr ""
 
 #. Name of a DocType
 #: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:199
+#: cloudprnt/provisional_ticket.py:169 cloudprnt/provisional_ticket.py:173
 msgid "CloudPRNT Print Queue"
 msgstr ""
 
@@ -217,11 +241,11 @@ msgstr ""
 msgid "Create"
 msgstr ""
 
-#: cloudprnt/receipt_markup.py:51
+#: cloudprnt/receipt_markup.py:52
 msgid "Currency"
 msgstr ""
 
-#: cloudprnt/receipt_markup.py:47
+#: cloudprnt/receipt_markup.py:48 cloudprnt/tests/test_receipt_markup.py:138
 msgid "Customer"
 msgstr ""
 
@@ -233,7 +257,8 @@ msgstr ""
 #. Label of a Datetime field in DocType 'CloudPRNT Logs'
 #: cloudprnt/cloudprnt/doctype/cloudprnt_logs/cloudprnt_logs.json:16
 #: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.py:118
-#: cloudprnt/receipt_markup.py:45
+#: cloudprnt/provisional_ticket.py:507 cloudprnt/receipt_markup.py:46
+#: cloudprnt/tests/test_provisional_ticket.py:188
 msgid "Date"
 msgstr ""
 
@@ -263,13 +288,20 @@ msgstr ""
 msgid "Desk User"
 msgstr ""
 
+#: cloudprnt/kitchen_ticket.py:421
+msgid "Desserts"
+msgstr ""
+
 #: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:15
 #: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:137
 #: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:155
 msgid "Detected printers"
 msgstr ""
 
-#: cloudprnt/receipt_markup.py:71
+#: cloudprnt/provisional_ticket.py:523 cloudprnt/receipt_markup.py:72
+#: cloudprnt/tests/test_provisional_ticket.py:265
+#: cloudprnt/tests/test_provisional_ticket.py:621
+#: cloudprnt/tests/test_provisional_ticket.py:631
 msgid "Discount"
 msgstr ""
 
@@ -290,6 +322,10 @@ msgstr ""
 #. Label of a Check field in DocType 'CloudPRNT Print Queue'
 #: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:118
 msgid "Drawer Pulse Sent"
+msgstr ""
+
+#: cloudprnt/kitchen_ticket.py:418
+msgid "Drinks"
 msgstr ""
 
 #. Description of a DocType
@@ -356,7 +392,7 @@ msgstr ""
 msgid "From a computer on the same network as the printer, run this command. It finds the printer, asks for its administrator password and configures it:"
 msgstr ""
 
-#: cloudprnt/receipt_markup.py:67
+#: cloudprnt/receipt_markup.py:68
 msgid "Gift card with a value of"
 msgstr ""
 
@@ -369,7 +405,7 @@ msgstr ""
 msgid "Give the printer a label"
 msgstr ""
 
-#: cloudprnt/receipt_markup.py:78
+#: cloudprnt/receipt_markup.py:79
 msgid "Grand Total"
 msgstr ""
 
@@ -401,7 +437,7 @@ msgstr ""
 
 #. Label of a Data field in DocType 'CloudPRNT Print Queue'
 #: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:72
-#: cloudprnt/receipt_markup.py:43
+#: cloudprnt/receipt_markup.py:44
 msgid "Invoice"
 msgstr ""
 
@@ -440,7 +476,7 @@ msgstr ""
 msgid "Kitchen Lines"
 msgstr ""
 
-#: cloudprnt/kitchen_ticket.py:55
+#: cloudprnt/kitchen_ticket.py:90
 msgid "Kitchen ticket sent"
 msgstr ""
 
@@ -455,10 +491,20 @@ msgstr ""
 msgid "Last Seen"
 msgstr ""
 
+#: cloudprnt/provisional_ticket.py:535
+#: cloudprnt/tests/test_provisional_ticket.py:216
+#: cloudprnt/tests/test_provisional_ticket.py:705
+msgid "Left to pay"
+msgstr ""
+
 #. Label of a Data field in DocType 'CloudPRNT Printers'
 #: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json:62
 #: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:161
 msgid "MAC Address"
+msgstr ""
+
+#: cloudprnt/kitchen_ticket.py:420
+msgid "Mains"
 msgstr ""
 
 #. Option for the 'Job Format' (Select) field in DocType 'CloudPRNT Print
@@ -482,8 +528,12 @@ msgstr ""
 msgid "Model"
 msgstr ""
 
-#: cloudprnt/receipt_markup.py:74 cloudprnt/tests/test_receipt_markup.py:83
-#: cloudprnt/tests/test_receipt_markup.py:89
+#: cloudprnt/provisional_ticket.py:525 cloudprnt/receipt_markup.py:75
+#: cloudprnt/tests/test_provisional_ticket.py:199
+#: cloudprnt/tests/test_provisional_ticket.py:266
+#: cloudprnt/tests/test_provisional_ticket.py:664
+#: cloudprnt/tests/test_receipt_markup.py:87
+#: cloudprnt/tests/test_receipt_markup.py:93
 msgid "Net Total"
 msgstr ""
 
@@ -501,9 +551,14 @@ msgstr ""
 msgid "No CloudPRNT printer is set for this till"
 msgstr ""
 
-#: cloudprnt/kitchen_ticket.py:49
+#: cloudprnt/kitchen_ticket.py:84
 #, python-brace-format
 msgid "No CloudPRNT printer prints for the station {0}"
+msgstr ""
+
+#: cloudprnt/provisional_ticket.py:123
+#, python-brace-format
+msgid "No CloudPRNT printer prints the receipts of the till {0}"
 msgstr ""
 
 #: cloudprnt/print_queue_manager.py:303
@@ -527,7 +582,8 @@ msgstr ""
 msgid "Not opened"
 msgstr ""
 
-#: cloudprnt/guards.py:15
+#: cloudprnt/guards.py:15 cloudprnt/guards.py:25
+#: cloudprnt/provisional_ticket.py:322
 msgid "Not permitted"
 msgstr ""
 
@@ -546,12 +602,19 @@ msgstr ""
 msgid "Note"
 msgstr ""
 
-#: cloudprnt/kitchen_ticket.py:54
+#: cloudprnt/kitchen_ticket.py:89
 msgid "Nothing to send to the kitchen for this order"
 msgstr ""
 
-#: cloudprnt/receipt_markup.py:88
+#: cloudprnt/receipt_markup.py:89
 msgid "N°"
+msgstr ""
+
+#: cloudprnt/provisional_ticket.py:518
+#: cloudprnt/tests/test_provisional_ticket.py:211
+#: cloudprnt/tests/test_provisional_ticket.py:698
+msgctxt "Given for free"
+msgid "Offered"
 msgstr ""
 
 #: cloudprnt/printers.py:131 cloudprnt/protocol.py:333
@@ -561,6 +624,10 @@ msgstr ""
 #. Label of a Check field in DocType 'CloudPRNT Printers'
 #: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json:104
 msgid "Online"
+msgstr ""
+
+#: cloudprnt/provisional_ticket.py:200
+msgid "Only a table or takeaway order has a provisional ticket"
 msgstr ""
 
 #: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:186
@@ -607,6 +674,7 @@ msgstr ""
 
 #. Option for the 'Reason' (Select) field in DocType 'Cash Drawer Opening'
 #: cloudprnt/cloudprnt/doctype/cash_drawer_opening/cash_drawer_opening.json:67
+#: cloudprnt/kitchen_ticket.py:422
 msgid "Other"
 msgstr ""
 
@@ -620,6 +688,11 @@ msgstr ""
 #: cloudprnt/cloudprnt/doctype/cash_drawer_opening/cash_drawer_opening.json:38
 #: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json:70
 msgid "POS Profile"
+msgstr ""
+
+#: cloudprnt/provisional_ticket.py:502
+#: cloudprnt/tests/test_provisional_ticket.py:185
+msgid "PROVISIONAL TICKET"
 msgstr ""
 
 #. Label of a Check field in DocType 'CloudPRNT Printers'
@@ -790,6 +863,11 @@ msgstr ""
 msgid "Problem"
 msgstr ""
 
+#: cloudprnt/provisional_ticket.py:140
+#, python-brace-format
+msgid "Provisional ticket sent to {0}"
+msgstr ""
+
 #: cloudprnt/protocol.py:304 cloudprnt/protocol.py:337
 #: cloudprnt/tests/test_protocol.py:200
 msgid "Ready"
@@ -842,6 +920,10 @@ msgstr ""
 msgid "Reported by the Printer"
 msgstr ""
 
+#: cloudprnt/provisional_ticket.py:341
+msgid "Restaurant Table"
+msgstr ""
+
 #. Label of a Select field in DocType 'Cash Drawer Opening'
 #: cloudprnt/cloudprnt/doctype/cash_drawer_opening/cash_drawer_opening.json:100
 msgid "Result"
@@ -852,8 +934,14 @@ msgstr ""
 msgid "Result Detail"
 msgstr ""
 
-#: cloudprnt/receipt_markup.py:80
+#: cloudprnt/receipt_markup.py:81
 msgid "Rounded Total"
+msgstr ""
+
+#: cloudprnt/provisional_ticket.py:531
+#: cloudprnt/tests/test_provisional_ticket.py:201
+#: cloudprnt/tests/test_provisional_ticket.py:607
+msgid "Rounding Adjustment"
 msgstr ""
 
 #: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.py:51
@@ -878,7 +966,8 @@ msgstr ""
 msgid "Sale"
 msgstr ""
 
-#: cloudprnt/kitchen_ticket.py:38
+#: cloudprnt/kitchen_ticket.py:73 cloudprnt/provisional_ticket.py:366
+#: cloudprnt/provisional_ticket.py:374
 msgid "Sales Invoice"
 msgstr ""
 
@@ -891,7 +980,11 @@ msgstr ""
 msgid "Say why the drawer is opened"
 msgstr ""
 
-#: cloudprnt/kitchen_ticket.py:140
+#: cloudprnt/table_qr_ticket.py:175
+msgid "Scan to order"
+msgstr ""
+
+#: cloudprnt/kitchen_ticket.py:368
 #, python-brace-format
 msgid "Send no. {0}"
 msgstr ""
@@ -901,12 +994,16 @@ msgstr ""
 msgid "Sent"
 msgstr ""
 
-#: cloudprnt/receipt_markup.py:61
+#: cloudprnt/receipt_markup.py:62
 msgid "Serial number"
 msgstr ""
 
 #: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:111
 msgid "Server URL"
+msgstr ""
+
+#: cloudprnt/kitchen_ticket.py:419
+msgid "Starters"
 msgstr ""
 
 #. Label of a Select field in DocType 'CloudPRNT Print Queue'
@@ -934,7 +1031,16 @@ msgstr ""
 msgid "System Manager"
 msgstr ""
 
-#: cloudprnt/kitchen_ticket.py:202
+#: cloudprnt/provisional_ticket.py:539
+#: cloudprnt/tests/test_provisional_ticket.py:203
+msgid "THIS IS NOT A RECEIPT"
+msgstr ""
+
+#: cloudprnt/kitchen_ticket.py:476
+#: cloudprnt/tests/test_provisional_ticket.py:248
+#: cloudprnt/tests/test_provisional_ticket.py:259
+#: cloudprnt/tests/test_provisional_ticket.py:1070
+#: cloudprnt/tests/test_provisional_ticket.py:1111
 msgid "Takeaway"
 msgstr ""
 
@@ -966,6 +1072,19 @@ msgstr ""
 msgid "The job was queued again"
 msgstr ""
 
+#: cloudprnt/provisional_ticket.py:260
+#, python-brace-format
+msgid "The order to print holds a value that is not valid ({0})"
+msgstr ""
+
+#: cloudprnt/provisional_ticket.py:193
+msgid "The order to print is not readable"
+msgstr ""
+
+#: cloudprnt/table_qr_ticket.py:138
+msgid "The ordering link of this table is not a web address"
+msgstr ""
+
 #: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:116
 msgid "The password is shown only now. Once the printer signs in, it prints a ticket saying it is connected, and its model and paper width appear here by themselves."
 msgstr ""
@@ -986,6 +1105,10 @@ msgstr ""
 msgid "The stations whose kitchen tickets this printer prints, separated by commas (in the POS restaurant: Kitchen, Bar…)"
 msgstr ""
 
+#: cloudprnt/provisional_ticket.py:274
+msgid "The till of this order is not known"
+msgstr ""
+
 #. Description of the 'POS Profile' (Link) field in DocType 'CloudPRNT
 #. Printers'
 #: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json:74
@@ -1000,6 +1123,10 @@ msgstr ""
 msgid "These printers poll this site without valid credentials. Add a printer, or issue its credentials again, then configure it with them."
 msgstr ""
 
+#: cloudprnt/provisional_ticket.py:196
+msgid "This order has no lines: there is nothing to print"
+msgstr ""
+
 #: cloudprnt/printer_discovery.py:79
 msgid "This printer is already configured"
 msgstr ""
@@ -1009,12 +1136,25 @@ msgstr ""
 msgid "This printer is connected to {0}"
 msgstr ""
 
+#: cloudprnt/provisional_ticket.py:351
+msgid "This till does not serve this table"
+msgstr ""
+
 #. Label of a Data field in DocType 'Cash Drawer Opening'
 #: cloudprnt/cloudprnt/doctype/cash_drawer_opening/cash_drawer_opening.json:56
 msgid "Till Session"
 msgstr ""
 
-#: cloudprnt/receipt_markup.py:93
+#: cloudprnt/provisional_ticket.py:158
+msgid "Too many tickets in a minute: wait a moment before printing another"
+msgstr ""
+
+#: cloudprnt/provisional_ticket.py:532
+#: cloudprnt/tests/test_provisional_ticket.py:202
+msgid "Total"
+msgstr ""
+
+#: cloudprnt/receipt_markup.py:94
 msgid "Total product"
 msgstr ""
 
@@ -1043,8 +1183,16 @@ msgstr ""
 msgid "User Name"
 msgstr ""
 
-#: cloudprnt/receipt_markup.py:97
+#: cloudprnt/receipt_markup.py:98
 msgid "VAT number"
+msgstr ""
+
+#: cloudprnt/receipt_markup.py:328
+#: cloudprnt/tests/test_provisional_ticket.py:49
+#: cloudprnt/tests/test_provisional_ticket.py:681
+#: cloudprnt/tests/test_receipt_markup.py:82
+#, python-brace-format
+msgid "VAT {0} %"
 msgstr ""
 
 #. Label of a Check field in DocType 'CloudPRNT Printers'
@@ -1052,7 +1200,7 @@ msgstr ""
 msgid "Voltage Error"
 msgstr ""
 
-#: cloudprnt/kitchen_ticket.py:138
+#: cloudprnt/kitchen_ticket.py:365
 msgid "Waiter"
 msgstr ""
 
@@ -1078,26 +1226,30 @@ msgstr ""
 msgid "start"
 msgstr ""
 
+#: cloudprnt/tests/test_provisional_ticket.py:820
+msgid "there is nothing to print"
+msgstr ""
+
+#: cloudprnt/provisional_ticket.py:378
+#, python-brace-format
+msgid "{0} is no longer an open order"
+msgstr ""
+
+#: cloudprnt/provisional_ticket.py:388
+#, python-brace-format
+msgid "{0} is not the order of this table"
+msgstr ""
+
 #: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.py:21
 #, python-brace-format
 msgid "{0} must start with http:// or https://"
 msgstr ""
 
-#: cloudprnt/api.py:27 cloudprnt/drawer.py:57 cloudprnt/kitchen_ticket.py:38
+#: cloudprnt/api.py:27 cloudprnt/drawer.py:57 cloudprnt/kitchen_ticket.py:73
+#: cloudprnt/provisional_ticket.py:169 cloudprnt/provisional_ticket.py:173
+#: cloudprnt/provisional_ticket.py:341 cloudprnt/provisional_ticket.py:366
+#: cloudprnt/provisional_ticket.py:374
 #, python-brace-format
 msgid "{0} {1} not found"
 msgstr ""
 
-
-#: cloudprnt/kitchen_ticket.py:145
-#, python-brace-format
-msgid "COPY {0}"
-msgstr ""
-
-#: cloudprnt/table_qr_ticket.py:138
-msgid "The ordering link of this table is not a web address"
-msgstr ""
-
-#: cloudprnt/table_qr_ticket.py:175
-msgid "Scan to order"
-msgstr ""

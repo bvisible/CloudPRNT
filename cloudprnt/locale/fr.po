@@ -1337,3 +1337,15 @@ msgstr "Scannez pour commander"
 #, python-brace-format
 msgid "CANCELLED {0}"
 msgstr "ANNULÉ {0}"
+
+#: cloudprnt/kitchen_ticket.py:418
+msgid "Drinks"
+msgstr "Boissons"
+
+#: cloudprnt/kitchen_ticket.py:420
+msgid "Mains"
+msgstr "Plats"
+
+#: cloudprnt/kitchen_ticket.py:419
+msgid "Starters"
+msgstr "Entrées"
