@@ -196,6 +196,7 @@ class TestTillStations(FrappeTestCase):
 		with (
 			patch.object(till, "_restaurant_filters", return_value=filters),
 			patch.object(till, "paper_only_stations", return_value=set()),
+			patch.object(till, "text_size_of", return_value="Medium"),
 			patch.object(frappe, "get_all", get_all),
 			patch.object(frappe.db, "exists", exists),
 		):
@@ -212,6 +213,7 @@ class TestTillStations(FrappeTestCase):
 					"station_type": "Kitchen",
 					"printer": None,
 					"paper_only": 0,
+					"text_size": "Medium",
 				}
 			],
 		)

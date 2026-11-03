@@ -192,6 +192,7 @@ class TestKitchenTicket(FrappeTestCase):
 			patch("cloudprnt.kitchen_ticket._printer_for_station", return_value=printer),
 			patch("cloudprnt.kitchen_ticket.jobs.enqueue", return_value={"job": "JOB-1"}),
 			patch("cloudprnt.labels.label_of", read_labels),
+			patch("cloudprnt.kitchen_ticket.text_size_of", return_value="Medium"),
 		):
 			answer = print_kitchen_ticket(doc.name, station=STATION_NAME)
 		self.assertEqual(
