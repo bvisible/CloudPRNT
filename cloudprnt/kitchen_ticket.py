@@ -49,6 +49,15 @@ NOT_SENT = ("", "Waiting")
 DELIVERED = "Delivered"
 #: The service families of a line (POS Next `service_family`) in the order a meal serves them: the sections of a ticket that holds several.
 FAMILY_ORDER = ("Drink", "Starter", "Main", "Dessert")
+#: The text sizes of a kitchen ticket (POS Next field `ticket_text_size` of the preparation station), as the Star magnification (width, height) of
+#: each part: the title (a cancellation, a copy), the table, the station, a dish and the options under it. Large is what the tickets were before the
+#: setting existed; Medium, the default, keeps the height a cook reads from afar and halves the width, so that a long dish name stays on one line.
+TEXT_SIZES = {
+	"Large": {"title": (2, 2), "table": (3, 3), "station": (2, 1), "dish": (2, 2), "option": (1, 2)},
+	"Medium": {"title": (2, 1), "table": (2, 2), "station": (2, 1), "dish": (1, 2), "option": (1, 1)},
+	"Small": {"title": (2, 1), "table": (2, 1), "station": (1, 1), "dish": (1, 1), "option": (1, 1)},
+}
+DEFAULT_TEXT_SIZE = "Medium"
 #: A copy asked for again within this long is the same copy: a double tap, or the kitchen's tap and the runner's together,
 #: print once. The second asker is told which job to follow.
 COPY_WINDOW_SECONDS = 10
@@ -343,13 +352,14 @@ def get_kitchen_ticket_markup(doc, station, lines, batch=None, paper_width=80, t
 	where = _where(doc)
 	waiter = frappe.db.get_value("User", doc.owner, "first_name") or doc.owner
 	sent = format_datetime(get_datetime(), "HH:mm")
+	size = station_text_size(station)
 	out = ["[align: centre]"]
 	if title:
-		out.append(f"[magnify: width 2; height 2][bold: on]{_text(title)}[bold: off][magnify]")
-	out.append(f"[magnify: width 3; height 3][bold: on]{_text(where)}[bold: off][magnify]")
+		out.append(_sized(_text(title), size["title"], bold=True))
+	out.append(_sized(_text(where), size["table"], bold=True))
 	if station:
 		# The label of the station: a station POS Next created is named by a hash
-		out.append(f"[magnify: width 2; height 1]{_text(station_label(station)).upper()}[magnify]")
+		out.append(_sized(_text(station_label(station)).upper(), size["station"]))
 	out += [
 		"[align: left]",
 		_column(f"{_('Waiter')}: {waiter}", sent),
@@ -366,12 +376,33 @@ def get_kitchen_ticket_markup(doc, station, lines, batch=None, paper_width=80, t
 			qty_text = str(int(qty)) if qty == int(qty) else f"{qty:g}"
 			if cancelled:
 				qty_text = f"-{qty_text}"
-			out.append(f"[magnify: width 2; height 2][bold: on]{qty_text} x {_text(line.item_name or line.item_code)}[bold: off][magnify]")
+			out.append(_sized(f"{qty_text} x {_text(line.item_name or line.item_code)}", size["dish"], bold=True))
 			remarks = _modifiers(line.get("posa_item_modifiers")) + _plain(line.get("posa_special_instructions"))
 			for remark in remarks:
-				out.append(f"   [magnify: width 1; height 2]> {_text(remark)}[magnify]")
+				out.append("   " + _sized(f"> {_text(remark)}", size["option"]))
 	out += ["-" * chars, "[cut: feed; partial]"]
 	return "\n".join(out)
+
+
+def text_size_of(station):
+	"""The name of the text size (a key of TEXT_SIZES) of the kitchen tickets of `station`: what the station sets (POS Next field
+	`ticket_text_size`), else the default size, also when POS Next does not know the field yet."""
+	size = None
+	if station and frappe.db.exists("DocType", "Preparation Station") and frappe.db.has_column("Preparation Station", "ticket_text_size"):
+		size = frappe.db.get_value("Preparation Station", station, "ticket_text_size")
+	return size if size in TEXT_SIZES else DEFAULT_TEXT_SIZE
+
+
+def station_text_size(station):
+	"""The magnification of each part (TEXT_SIZES) of the kitchen tickets of `station`."""
+	return TEXT_SIZES[text_size_of(station)]
+
+
+def _sized(text, size, bold=False):
+	"""`text` magnified to `size` (width, height), in bold when asked; the printer's normal size (1, 1) is no magnification at all."""
+	body = f"[bold: on]{text}[bold: off]" if bold else text
+	width, height = size
+	return body if (width, height) == (1, 1) else f"[magnify: width {width}; height {height}]{body}[magnify]"
 
 
 def _sections(lines):

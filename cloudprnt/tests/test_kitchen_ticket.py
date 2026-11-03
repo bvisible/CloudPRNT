@@ -145,8 +145,8 @@ class TestKitchenTicket(FrappeTestCase):
 		self.assertIn(f"> {CLEAN}: {CLEAN}", markup, "an option group and its option")
 		# a remark is read line by line first (a form feed or a C1 line break starts a new row), then made safe
 		for row in ("ABC@DE", "F GHIJK", "LM"):
-			self.assertIn(f"\n   [magnify: width 1; height 2]> {row}[magnify]", markup, "a remark")
-		self.assertIn(f"[magnify: width 3; height 3][bold: on]{CLEAN}[bold: off][magnify]", markup, "the table")
+			self.assertIn(f"\n   > {row}\n", markup, "a remark, at the normal size of the medium text")
+		self.assertIn(f"[magnify: width 2; height 2][bold: on]{CLEAN}[bold: off][magnify]", markup, "the table")
 		self.assertIn(CLEAN.upper(), markup, "the station")
 
 	def test_a_name_with_a_backslash_or_a_semicolon_keeps_the_kitchens_columns(self):

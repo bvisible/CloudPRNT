@@ -11,7 +11,7 @@ import frappe
 from frappe.utils import cint
 
 from cloudprnt import guards
-from cloudprnt.kitchen_ticket import paper_only_stations
+from cloudprnt.kitchen_ticket import TEXT_SIZES, paper_only_stations, text_size_of
 from cloudprnt.printers import SETTINGS, all_printers, stations_of
 
 DRAWER_RULES = ("Cash payments", "Always", "Never")
@@ -59,6 +59,8 @@ def get_till_printing(pos_profile):
 					"printer": holder,
 					# A station that works on paper alone: no screen, the ticket is all the kitchen reads
 					"paper_only": 1 if station.name in paper else 0,
+					# How big the writing of its kitchen tickets is: a key of TEXT_SIZES
+					"text_size": text_size_of(station.name),
 				}
 			)
 	return {
@@ -83,17 +85,20 @@ def _restaurant_filters(pos_profile):
 
 @frappe.whitelist()
 def set_till_printing(
-	pos_profile, receipt_printer=None, auto_print=None, open_drawer=None, stations=None, paper_only=None
+	pos_profile, receipt_printer=None, auto_print=None, open_drawer=None, stations=None, paper_only=None, text_size=None
 ):
 	"""Set how till `pos_profile` prints: its receipt printer (None: none), whether receipts print by themselves
 	when a sale is validated, when the drawer opens with a receipt, the printer of each preparation station
-	({station: printer row or None}), and which stations work on paper alone ({station: 0 or 1}: no screen, the
-	ticket is all the kitchen reads; a station with no printer cannot be)."""
+	({station: printer row or None}), which stations work on paper alone ({station: 0 or 1}: no screen, the
+	ticket is all the kitchen reads; a station with no printer cannot be), and the size of the writing of each
+	station's kitchen tickets ({station: Large, Medium or Small})."""
 	guards.require("CloudPRNT Settings", "write")
 	if isinstance(stations, str):
 		stations = json.loads(stations or "{}")
 	if isinstance(paper_only, str):
 		paper_only = json.loads(paper_only or "{}")
+	if isinstance(text_size, str):
+		text_size = json.loads(text_size or "{}")
 	settings = frappe.get_doc(SETTINGS)
 	for row in settings.printers:
 		if row.pos_profile == pos_profile and row.name != receipt_printer:
@@ -113,6 +118,8 @@ def set_till_printing(
 	settings.save()
 	if stations is not None or paper_only is not None:
 		_write_paper_only(paper_flags(settings.printers, paper_only or {}, paper_only_stations()))
+	if text_size:
+		_write_text_size(text_size)
 	return get_till_printing(pos_profile)
 
 
@@ -137,3 +144,14 @@ def _write_paper_only(flags):
 	for station, flag in flags.items():
 		if frappe.db.exists("Preparation Station", station):
 			frappe.db.set_value("Preparation Station", station, "paper_only", flag)
+
+
+def _write_text_size(sizes):
+	"""Write the text size on the Preparation Station rows, when POS Next has the field; a size nobody knows is left out."""
+	if not frappe.db.exists("DocType", "Preparation Station"):
+		return
+	if not frappe.db.has_column("Preparation Station", "ticket_text_size"):
+		return
+	for station, size in sizes.items():
+		if size in TEXT_SIZES and frappe.db.exists("Preparation Station", station):
+			frappe.db.set_value("Preparation Station", station, "ticket_text_size", size)
