@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: CloudPRNT VERSION\n"
 "Report-Msgid-Bugs-To: hello@neoservice.ai\n"
-"POT-Creation-Date: 2026-11-03 10:11+0000\n"
-"PO-Revision-Date: 2026-11-03 10:11+0000\n"
+"POT-Creation-Date: 2026-11-03 12:54+0000\n"
+"PO-Revision-Date: 2026-11-03 12:54+0000\n"
 "Last-Translator: hello@neoservice.ai\n"
 "Language-Team: hello@neoservice.ai\n"
 "MIME-Version: 1.0\n"
@@ -116,12 +116,12 @@ msgstr ""
 msgid "Buzzer Rings"
 msgstr ""
 
-#: cloudprnt/kitchen_ticket.py:148
+#: cloudprnt/kitchen_ticket.py:154
 #, python-brace-format
 msgid "CANCELLED {0}"
 msgstr ""
 
-#: cloudprnt/kitchen_ticket.py:211
+#: cloudprnt/kitchen_ticket.py:217
 #, python-brace-format
 msgid "COPY {0}"
 msgstr ""
@@ -288,7 +288,7 @@ msgstr ""
 msgid "Desk User"
 msgstr ""
 
-#: cloudprnt/kitchen_ticket.py:421
+#: cloudprnt/kitchen_ticket.py:454
 msgid "Desserts"
 msgstr ""
 
@@ -324,7 +324,7 @@ msgstr ""
 msgid "Drawer Pulse Sent"
 msgstr ""
 
-#: cloudprnt/kitchen_ticket.py:418
+#: cloudprnt/kitchen_ticket.py:451
 msgid "Drinks"
 msgstr ""
 
@@ -503,7 +503,7 @@ msgstr ""
 msgid "MAC Address"
 msgstr ""
 
-#: cloudprnt/kitchen_ticket.py:420
+#: cloudprnt/kitchen_ticket.py:453
 msgid "Mains"
 msgstr ""
 
@@ -674,7 +674,7 @@ msgstr ""
 
 #. Option for the 'Reason' (Select) field in DocType 'Cash Drawer Opening'
 #: cloudprnt/cloudprnt/doctype/cash_drawer_opening/cash_drawer_opening.json:67
-#: cloudprnt/kitchen_ticket.py:422
+#: cloudprnt/kitchen_ticket.py:455
 msgid "Other"
 msgstr ""
 
@@ -984,7 +984,7 @@ msgstr ""
 msgid "Scan to order"
 msgstr ""
 
-#: cloudprnt/kitchen_ticket.py:368
+#: cloudprnt/kitchen_ticket.py:376
 #, python-brace-format
 msgid "Send no. {0}"
 msgstr ""
@@ -1002,7 +1002,7 @@ msgstr ""
 msgid "Server URL"
 msgstr ""
 
-#: cloudprnt/kitchen_ticket.py:419
+#: cloudprnt/kitchen_ticket.py:452
 msgid "Starters"
 msgstr ""
 
@@ -1036,7 +1036,7 @@ msgstr ""
 msgid "THIS IS NOT A RECEIPT"
 msgstr ""
 
-#: cloudprnt/kitchen_ticket.py:476
+#: cloudprnt/kitchen_ticket.py:509
 #: cloudprnt/tests/test_provisional_ticket.py:248
 #: cloudprnt/tests/test_provisional_ticket.py:259
 #: cloudprnt/tests/test_provisional_ticket.py:1070
@@ -1145,6 +1145,10 @@ msgstr ""
 msgid "Till Session"
 msgstr ""
 
+#: cloudprnt/kitchen_ticket.py:415
+msgid "To do"
+msgstr ""
+
 #: cloudprnt/provisional_ticket.py:158
 msgid "Too many tickets in a minute: wait a moment before printing another"
 msgstr ""
@@ -1200,7 +1204,11 @@ msgstr ""
 msgid "Voltage Error"
 msgstr ""
 
-#: cloudprnt/kitchen_ticket.py:365
+#: cloudprnt/kitchen_ticket.py:415
+msgid "Wait for the next course"
+msgstr ""
+
+#: cloudprnt/kitchen_ticket.py:373
 msgid "Waiter"
 msgstr ""
 
@@ -1252,4 +1260,3 @@ msgstr ""
 #, python-brace-format
 msgid "{0} {1} not found"
 msgstr ""
-

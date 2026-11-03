@@ -1349,3 +1349,7 @@ msgstr "Plats"
 #: cloudprnt/kitchen_ticket.py:419
 msgid "Starters"
 msgstr "Entrées"
+
+#: cloudprnt/kitchen_ticket.py:415
+msgid "Wait for the next course"
+msgstr "ATTENDRE LA SUITE"
