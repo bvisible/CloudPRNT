@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: CloudPRNT\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-01 03:00+0000\n"
+"POT-Creation-Date: 2026-11-04 03:01+0000\n"
 "PO-Revision-Date: 2024-12-20 12:00+0000\n"
 "Last-Translator: \n"
 "Language-Team: French\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 "Generated-By: Babel 2.18.0\n"
 
-#: cloudprnt/kitchen_ticket.py:55
+#: cloudprnt/kitchen_ticket.py:84
 msgid "(none)"
 msgstr ""
 
@@ -116,6 +116,16 @@ msgstr "Connexion au broker"
 #: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:112
 msgid "Buzzer Rings"
 msgstr "Nombre de bips du buzzer"
+
+#: cloudprnt/kitchen_ticket.py:154
+#, python-brace-format
+msgid "CANCELLED {0}"
+msgstr "ANNULÉ {0}"
+
+#: cloudprnt/kitchen_ticket.py:217
+#, python-brace-format
+msgid "COPY {0}"
+msgstr "COPIE {0}"
 
 #. Label of a Check field in DocType 'CloudPRNT Printers'
 #: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json:134
@@ -279,6 +289,10 @@ msgstr ""
 msgid "Desk User"
 msgstr "Utilisateur Desk"
 
+#: cloudprnt/kitchen_ticket.py:454
+msgid "Desserts"
+msgstr ""
+
 #: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:15
 #: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:137
 #: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:155
@@ -310,6 +324,10 @@ msgstr ""
 #: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:118
 msgid "Drawer Pulse Sent"
 msgstr "Impulsion d'ouverture envoyée"
+
+#: cloudprnt/kitchen_ticket.py:451
+msgid "Drinks"
+msgstr "Boissons"
 
 #. Description of a DocType
 #: cloudprnt/cloudprnt/doctype/cash_drawer_opening/cash_drawer_opening.json:8
@@ -468,7 +486,7 @@ msgstr "Jeton de tâche"
 msgid "Kitchen Lines"
 msgstr "Lignes de cuisine"
 
-#: cloudprnt/kitchen_ticket.py:61
+#: cloudprnt/kitchen_ticket.py:90
 msgid "Kitchen ticket sent"
 msgstr "Ticket cuisine envoyé"
 
@@ -494,6 +512,10 @@ msgstr "Reste à payer"
 #: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:161
 msgid "MAC Address"
 msgstr "Adresse MAC"
+
+#: cloudprnt/kitchen_ticket.py:453
+msgid "Mains"
+msgstr "Plats"
 
 #. Option for the 'Job Format' (Select) field in DocType 'CloudPRNT Print
 #. Queue'
@@ -541,7 +563,7 @@ msgstr ""
 msgid "No CloudPRNT printer is set for this till"
 msgstr "Aucune imprimante CloudPRNT n'est définie pour cette caisse"
 
-#: cloudprnt/kitchen_ticket.py:55
+#: cloudprnt/kitchen_ticket.py:84
 #, python-brace-format
 msgid "No CloudPRNT printer prints for the station {0}"
 msgstr "Aucune imprimante CloudPRNT n'imprime pour le poste {0}"
@@ -599,7 +621,7 @@ msgstr "Pas imprimée à temps"
 msgid "Note"
 msgstr ""
 
-#: cloudprnt/kitchen_ticket.py:60
+#: cloudprnt/kitchen_ticket.py:89
 msgid "Nothing to send to the kitchen for this order"
 msgstr "Rien à envoyer en cuisine pour cette commande"
 
@@ -676,6 +698,7 @@ msgstr ""
 
 #. Option for the 'Reason' (Select) field in DocType 'Cash Drawer Opening'
 #: cloudprnt/cloudprnt/doctype/cash_drawer_opening/cash_drawer_opening.json:67
+#: cloudprnt/kitchen_ticket.py:455
 msgid "Other"
 msgstr ""
 
@@ -980,7 +1003,7 @@ msgstr "Les lignes {0} et {1} ont la même adresse MAC"
 msgid "Sale"
 msgstr "Vente"
 
-#: cloudprnt/kitchen_ticket.py:44 cloudprnt/provisional_ticket.py:366
+#: cloudprnt/kitchen_ticket.py:73 cloudprnt/provisional_ticket.py:366
 #: cloudprnt/provisional_ticket.py:374
 msgid "Sales Invoice"
 msgstr ""
@@ -994,7 +1017,11 @@ msgstr ""
 msgid "Say why the drawer is opened"
 msgstr "Indiquez la raison de l'ouverture du tiroir-caisse"
 
-#: cloudprnt/kitchen_ticket.py:148
+#: cloudprnt/table_qr_ticket.py:175
+msgid "Scan to order"
+msgstr "Scannez pour commander"
+
+#: cloudprnt/kitchen_ticket.py:376
 #, python-brace-format
 msgid "Send no. {0}"
 msgstr "Envoi n° {0}"
@@ -1011,6 +1038,10 @@ msgstr "Numéro de série"
 #: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:111
 msgid "Server URL"
 msgstr "URL du serveur"
+
+#: cloudprnt/kitchen_ticket.py:452
+msgid "Starters"
+msgstr "Entrées"
 
 #. Label of a Select field in DocType 'CloudPRNT Print Queue'
 #. Label of a Data field in DocType 'CloudPRNT Printers'
@@ -1045,7 +1076,7 @@ msgstr "System Manager"
 msgid "THIS IS NOT A RECEIPT"
 msgstr "CECI N'EST PAS UN TICKET DE CAISSE"
 
-#: cloudprnt/kitchen_ticket.py:211
+#: cloudprnt/kitchen_ticket.py:509
 #: cloudprnt/tests/test_provisional_ticket.py:248
 #: cloudprnt/tests/test_provisional_ticket.py:259
 #: cloudprnt/tests/test_provisional_ticket.py:1070
@@ -1092,6 +1123,10 @@ msgstr "La commande à imprimer contient une valeur non valide ({0})"
 #: cloudprnt/provisional_ticket.py:193
 msgid "The order to print is not readable"
 msgstr "La commande à imprimer est illisible"
+
+#: cloudprnt/table_qr_ticket.py:138
+msgid "The ordering link of this table is not a web address"
+msgstr "Le lien de commande de cette table n'est pas une adresse web"
 
 #: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:116
 msgid ""
@@ -1177,6 +1212,10 @@ msgstr "Cette caisse ne dessert pas cette table"
 msgid "Till Session"
 msgstr "Session de caisse"
 
+#: cloudprnt/kitchen_ticket.py:415
+msgid "To do"
+msgstr ""
+
 #: cloudprnt/provisional_ticket.py:158
 msgid "Too many tickets in a minute: wait a moment before printing another"
 msgstr ""
@@ -1236,7 +1275,11 @@ msgstr ""
 msgid "Voltage Error"
 msgstr "Erreur de tension"
 
-#: cloudprnt/kitchen_ticket.py:145
+#: cloudprnt/kitchen_ticket.py:415
+msgid "Wait for the next course"
+msgstr "ATTENDRE LA SUITE"
+
+#: cloudprnt/kitchen_ticket.py:373
 msgid "Waiter"
 msgstr "Serveur"
 
@@ -1285,7 +1328,7 @@ msgstr "{0} n'est pas la commande de cette table"
 msgid "{0} must start with http:// or https://"
 msgstr "{0} doit commencer par http:// ou https://"
 
-#: cloudprnt/api.py:27 cloudprnt/drawer.py:57 cloudprnt/kitchen_ticket.py:44
+#: cloudprnt/api.py:27 cloudprnt/drawer.py:57 cloudprnt/kitchen_ticket.py:73
 #: cloudprnt/provisional_ticket.py:169 cloudprnt/provisional_ticket.py:173
 #: cloudprnt/provisional_ticket.py:341 cloudprnt/provisional_ticket.py:366
 #: cloudprnt/provisional_ticket.py:374
@@ -1319,37 +1362,3 @@ msgstr "Utiliser MQTT"
 #: cloudprnt/pos_invoice_markup.py:225
 msgid "on"
 msgstr "sur"
-
-#: cloudprnt/kitchen_ticket.py:145
-#, python-brace-format
-msgid "COPY {0}"
-msgstr "COPIE {0}"
-
-#: cloudprnt/table_qr_ticket.py:138
-msgid "The ordering link of this table is not a web address"
-msgstr "Le lien de commande de cette table n'est pas une adresse web"
-
-#: cloudprnt/table_qr_ticket.py:175
-msgid "Scan to order"
-msgstr "Scannez pour commander"
-
-#: cloudprnt/kitchen_ticket.py:130
-#, python-brace-format
-msgid "CANCELLED {0}"
-msgstr "ANNULÉ {0}"
-
-#: cloudprnt/kitchen_ticket.py:418
-msgid "Drinks"
-msgstr "Boissons"
-
-#: cloudprnt/kitchen_ticket.py:420
-msgid "Mains"
-msgstr "Plats"
-
-#: cloudprnt/kitchen_ticket.py:419
-msgid "Starters"
-msgstr "Entrées"
-
-#: cloudprnt/kitchen_ticket.py:415
-msgid "Wait for the next course"
-msgstr "ATTENDRE LA SUITE"
