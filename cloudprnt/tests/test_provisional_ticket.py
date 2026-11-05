@@ -986,14 +986,14 @@ class TestTheNotesOfATable(RealTill):
 	def test_the_title_names_the_rank_and_the_party_when_the_table_holds_several_notes(self):
 		self.notes()
 		_answer, job = self.printed(self.order(self.lines(), restaurant_note=2))
-		self.assertIn(f"{T} T5.2 \u00b7 Dupont[magnify]", job.job_data)
+		self.assertIn(f"{T} T5.1 \u00b7 Dupont[magnify]", job.job_data)
 		_answer, job = self.printed(self.order(self.lines(), restaurant_note=1))
-		self.assertIn(f"{T} T5.1[magnify]", job.job_data)
+		self.assertIn(f"{T} T5.0[magnify]", job.job_data)
 
 	def test_a_note_the_till_has_not_saved_yet_is_one_more_note_in_the_title(self):
 		self.note_draft(1)
 		_answer, job = self.printed(self.order(self.lines(), restaurant_note=2, restaurant_note_name="Martin"))
-		self.assertIn(f"{T} T5.2 \u00b7 Martin[magnify]", job.job_data)
+		self.assertIn(f"{T} T5.1 \u00b7 Martin[magnify]", job.job_data)
 
 	def test_the_title_of_a_table_with_one_order_is_its_label_alone(self):
 		draft = self.note_draft(1)
@@ -1006,14 +1006,14 @@ class TestTheNotesOfATable(RealTill):
 	def test_the_party_of_the_saved_order_is_told_when_the_till_names_only_the_draft(self):
 		_first, second = self.notes()
 		_answer, job = self.printed(self.order(self.lines(), draft=second))
-		self.assertIn(f"{T} T5.2 \u00b7 Dupont[magnify]", job.job_data)
+		self.assertIn(f"{T} T5.1 \u00b7 Dupont[magnify]", job.job_data)
 
 	def test_a_kitchen_ticket_names_the_note_of_its_order_too(self):
 		from cloudprnt.kitchen_ticket import _where
 		from cloudprnt.labels import table_label_of_order
 
 		first, second = self.notes()
-		for draft, label in ((first, f"{T} T5.1"), (second, f"{T} T5.2 \u00b7 Dupont")):
+		for draft, label in ((first, f"{T} T5.0"), (second, f"{T} T5.1 \u00b7 Dupont")):
 			with self.subTest(draft=draft):
 				doc = frappe.get_doc("Sales Invoice", draft)
 				self.assertEqual(table_label_of_order(doc), label)

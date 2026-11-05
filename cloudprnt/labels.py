@@ -34,7 +34,7 @@ def station_label(name):
 # //// Neoffice — the notes of a table (NeoResto lot 1, notes): a table may hold several open orders, one per party, told ".1", ".2" with the party's name beside the rank. The rule that
 # //// composes the label lives in POS Next (pos_next.restaurant.notes.table_label); a site without it, or not migrated yet, reads the table's label alone, as it always did.
 def table_label_of_order(doc):
-	"""The label of the table of order `doc` as its ticket names it: « T5 » while the table holds one open order, « T5.2 » or « T5.2 · Dupont » when it holds several.
+	"""The label of the table of order `doc` as its ticket names it: « T5 » while the table holds one open order, « T5.1 » or « T5.1 · Dupont » when it holds several (the first is « T5.0 »).
 
 	The order may be saved (a kitchen ticket) or not (the provisional ticket, built from the till's payload, which carries the rank and the name of its note); the open orders
 	of the table other than `doc` itself are counted, and `doc` is the one more. `doc.flags.note_draft` names the saved draft an unsaved order stands for, so that it does not count twice."""

@@ -544,7 +544,7 @@ def _printer_for_station(station):
 def _where(doc):
 	if doc.get("restaurant_table"):
 		# The label of the table: a table POS Next created is named by a hash
-		# //// Neoffice — and, when the table holds several open orders, the rank of this one and its party's name: « T5.2 · Dupont » (NeoResto lot 1, notes)
+		# //// Neoffice — and, when the table holds several open orders, the rank of this one and its party's name: « T5.1 · Dupont » (NeoResto lot 1, notes)
 		return table_label_of_order(doc)
 	if doc.get("is_takeaway"):
 		return f"{_('Takeaway')} {doc.get('takeaway_number') or ''}".strip()
