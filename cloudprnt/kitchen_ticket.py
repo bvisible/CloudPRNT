@@ -74,7 +74,7 @@ def _send_number(stored):
 
 
 @frappe.whitelist()
-def print_kitchen_ticket(invoice, station=None, batch=None, printer=None):
+def print_kitchen_ticket(invoice: str, station=None, batch=None, printer=None):
 	"""Print the kitchen ticket of table order `invoice`: the lines of `station` (each station on its own printer
 	when none is given), of send `batch` when given. The printer is `printer`, else the one set for the station."""
 	guards.require("Sales Invoice", "read")
