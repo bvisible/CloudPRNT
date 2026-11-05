@@ -34,7 +34,7 @@ from frappe.utils import cint, flt, format_datetime, get_datetime
 
 from cloudprnt import guards
 from cloudprnt import print_queue_manager as jobs
-from cloudprnt.labels import station_label, table_label, ticket_reference
+from cloudprnt.labels import station_label, table_label_of_order, ticket_reference
 from cloudprnt.printers import all_printers, find_printer, get_printer, stations_of
 
 # The kitchen's text goes through the same helpers as the receipt's: one function makes it safe for a printer (a guest's
@@ -544,7 +544,8 @@ def _printer_for_station(station):
 def _where(doc):
 	if doc.get("restaurant_table"):
 		# The label of the table: a table POS Next created is named by a hash
-		return table_label(doc.restaurant_table)
+		# //// Neoffice — and, when the table holds several open orders, the rank of this one and its party's name: « T5.2 · Dupont » (NeoResto lot 1, notes)
+		return table_label_of_order(doc)
 	if doc.get("is_takeaway"):
 		return f"{_('Takeaway')} {doc.get('takeaway_number') or ''}".strip()
 	return doc.customer_name or doc.name

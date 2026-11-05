@@ -122,6 +122,13 @@ def _print(order):
 	if not row:
 		frappe.throw(_("No CloudPRNT printer prints the receipts of the till {0}").format(profile.name), NoTicketPrinter)
 	doc = build_unsaved_invoice(order, profile)
+	# //// Neoffice — the open order the ticket stands for is this note: its rank and its party's name are told on the paper when the till sent none, and it is not counted
+	# //// a second time among the table's open orders (NeoResto lot 1, notes)
+	if draft:
+		doc.flags.note_draft = draft.name
+		for field in ("restaurant_note", "restaurant_note_name"):
+			if not doc.get(field) and draft.get(field):
+				doc.set(field, draft.get(field))
 	if flt(doc.grand_total) < 0 or flt(doc.get("rounded_total")) < 0:
 		# a discount beyond the order's total
 		_invalid("total")
@@ -204,7 +211,20 @@ def _parse(order):
 		order["discount_amount"] = _number(order["discount_amount"], "discount_amount")
 	number = order.get("takeaway_number")
 	order["takeaway_number"] = _text_value(number, "takeaway_number") if isinstance(number, (str, int, float)) else ""
+	# //// Neoffice — the note of the table the order is of (POS Next, NeoResto lot 1, notes): a whole number from 1 to 99, else none (a till that knows no
+	# //// notes sends none, and its order is looked up as it always was). The party's name is a text of at most 60 characters.
+	order["restaurant_note"] = _note_rank(order.get("restaurant_note"))
+	party = order.get("restaurant_note_name")
+	order["restaurant_note_name"] = _text_value(party, "restaurant_note_name")[:60].strip() if isinstance(party, str) else ""
 	return order
+
+
+def _note_rank(value):
+	"""The rank of a note: a whole number from 1 to 99 (a number, or a number written as text), None for anything else."""
+	if isinstance(value, bool) or not isinstance(value, (int, str)):
+		return None
+	text = str(value).strip()
+	return int(text) if text.isascii() and text.isdigit() and 1 <= int(text) <= 99 else None
 
 
 def _clean_line(line):
@@ -355,6 +375,25 @@ def _restaurant_of(order, pos_profile):
 	return restaurant
 
 
+# //// Neoffice — added function (no upstream equivalent). The open order of a table's NOTE (POS Next, NeoResto lot 1, notes): a table may hold several open orders, one per party,
+# //// and the one the ticket is of is the rank the till names. A till that names none (it knows no notes) gets the table's most recently changed order, as it always did; so does a site
+# //// not migrated to the notes. A rank no open order of the table has is no order yet (the note is new on the till): nothing is read, no guest has paid anything on it.
+def _draft_of_note(table, rank):
+	if rank is None or not frappe.db.has_column("Sales Invoice", "restaurant_note"):
+		return frappe.db.get_value(
+			"Sales Invoice", {"docstatus": 0, "restaurant_table": table}, "name", order_by="modified desc"
+		)
+	for row in frappe.get_all(
+		"Sales Invoice",
+		filters={"docstatus": 0, "restaurant_table": table},
+		fields=["name", "restaurant_note"],
+		order_by="modified desc",
+	):
+		if (cint(row.restaurant_note) or 1) == rank:
+			return row.name
+	return None
+
+
 def _open_order(order, pos_profile):
 	"""The open order the server holds for the table (or the one the till names), read only; None when there is none
 	yet. An order already paid or cancelled is refused: its table has nothing left to pay on it. A table's order is the
@@ -365,9 +404,7 @@ def _open_order(order, pos_profile):
 	if name is not None and not isinstance(name, str):
 		frappe.throw(_("{0} {1} not found").format(_("Sales Invoice"), name), frappe.DoesNotExistError)
 	if not name and table:
-		name = frappe.db.get_value(
-			"Sales Invoice", {"docstatus": 0, "restaurant_table": table}, "name", order_by="modified desc"
-		)
+		name = _draft_of_note(table, order.get("restaurant_note"))
 	if not name:
 		return None
 	if not frappe.db.exists("Sales Invoice", name):
@@ -425,6 +462,9 @@ def build_unsaved_invoice(order, profile):
 			"update_stock": 1,
 			"discount_amount": max(flt(order.get("discount_amount")), 0),
 			"restaurant_table": order.get("restaurant_table") or None,
+			# //// Neoffice — the note of the table the order is of, which the ticket's title tells when the table holds several (NeoResto lot 1, notes)
+			"restaurant_note": order.get("restaurant_note") or 0,
+			"restaurant_note_name": order.get("restaurant_note_name") or "",
 			"is_takeaway": 1 if cint(order.get("is_takeaway")) else 0,
 			"takeaway_number": str(order.get("takeaway_number") or ""),
 		}

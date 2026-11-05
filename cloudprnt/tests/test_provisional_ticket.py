@@ -923,6 +923,109 @@ class TestTheOrderANamedDraftMayBe(RealTill):
 		self.assertEqual(job.reference_name, draft)
 
 
+# //// Neoffice — the notes of a table (POS Next, NeoResto lot 1, notes): a table may hold several open orders, one per party, told ".1", ".2"
+class TestTheNotesOfATable(RealTill):
+	"""The ticket is of the note the till names: it reads the order of THAT note, not any order of the table, and its title tells the
+	rank (and the party's name) once the table holds a second open order."""
+
+	def note_draft(self, rank, party=None, table=None):
+		"""An open order of the table at this rank, made the plain way (no POS payment rows): the rank and the party are what these tests look at."""
+		doc = frappe.get_doc(
+			{
+				"doctype": "Sales Invoice",
+				"company": self.company,
+				"customer": self.customer,
+				"items": [{"item_code": self.steak, "qty": 1, "rate": 38.5}],
+			}
+		)
+		doc.insert(ignore_permissions=True)
+		frappe.db.set_value(
+			"Sales Invoice",
+			doc.name,
+			{"restaurant_table": table or self.table, "restaurant_note": rank, "restaurant_note_name": party or ""},
+			update_modified=False,
+		)
+		return doc.name
+
+	def notes(self):
+		"""The table's two open orders: its first note, and its second, named."""
+		return self.note_draft(1), self.note_draft(2, "Dupont")
+
+	def lines(self):
+		return [self.line(self.steak, 2, 38.5)]
+
+	def test_the_ticket_of_a_note_reads_the_order_of_that_note(self):
+		first, second = self.notes()
+		for note, draft in ((1, first), (2, second)):
+			with self.subTest(note=note):
+				_answer, job = self.printed(self.order(self.lines(), restaurant_note=note))
+				self.assertEqual(job.reference_name, draft)
+
+	def test_the_rank_may_be_written_as_text(self):
+		_first, second = self.notes()
+		_answer, job = self.printed(self.order(self.lines(), restaurant_note="2"))
+		self.assertEqual(job.reference_name, second)
+
+	def test_a_note_that_has_no_order_yet_reads_no_order(self):
+		self.notes()
+		_answer, job = self.printed(self.order(self.lines(), restaurant_note=3))
+		self.assertFalse(job.reference_name)
+
+	def test_a_till_that_knows_no_notes_reads_the_most_recently_changed_order_as_it_always_did(self):
+		_first, second = self.notes()
+		_answer, job = self.printed(self.order(self.lines()))
+		self.assertEqual(job.reference_name, second)
+
+	def test_a_rank_nobody_can_open_reads_as_none_sent(self):
+		_first, second = self.notes()
+		for sent in (0, -1, 100, "abc", 2.5, True, [1], {"note": 1}):
+			with self.subTest(sent=sent):
+				_answer, job = self.printed(self.order(self.lines(), restaurant_note=sent))
+				self.assertEqual(job.reference_name, second)
+
+	def test_the_title_names_the_rank_and_the_party_when_the_table_holds_several_notes(self):
+		self.notes()
+		_answer, job = self.printed(self.order(self.lines(), restaurant_note=2))
+		self.assertIn(f"{T} T5.2 \u00b7 Dupont[magnify]", job.job_data)
+		_answer, job = self.printed(self.order(self.lines(), restaurant_note=1))
+		self.assertIn(f"{T} T5.1[magnify]", job.job_data)
+
+	def test_a_note_the_till_has_not_saved_yet_is_one_more_note_in_the_title(self):
+		self.note_draft(1)
+		_answer, job = self.printed(self.order(self.lines(), restaurant_note=2, restaurant_note_name="Martin"))
+		self.assertIn(f"{T} T5.2 \u00b7 Martin[magnify]", job.job_data)
+
+	def test_the_title_of_a_table_with_one_order_is_its_label_alone(self):
+		draft = self.note_draft(1)
+		for order in (self.order(self.lines()), self.order(self.lines(), restaurant_note=1, draft=draft)):
+			with self.subTest(order=order):
+				_answer, job = self.printed(order)
+				self.assertIn(f"{T} T5[magnify]", job.job_data)
+				self.assertNotIn(f"{T} T5.", job.job_data)
+
+	def test_the_party_of_the_saved_order_is_told_when_the_till_names_only_the_draft(self):
+		_first, second = self.notes()
+		_answer, job = self.printed(self.order(self.lines(), draft=second))
+		self.assertIn(f"{T} T5.2 \u00b7 Dupont[magnify]", job.job_data)
+
+	def test_a_kitchen_ticket_names_the_note_of_its_order_too(self):
+		from cloudprnt.kitchen_ticket import _where
+		from cloudprnt.labels import table_label_of_order
+
+		first, second = self.notes()
+		for draft, label in ((first, f"{T} T5.1"), (second, f"{T} T5.2 \u00b7 Dupont")):
+			with self.subTest(draft=draft):
+				doc = frappe.get_doc("Sales Invoice", draft)
+				self.assertEqual(table_label_of_order(doc), label)
+				self.assertEqual(_where(doc), label)
+
+	def test_an_order_of_no_table_has_no_note_to_name(self):
+		from cloudprnt.labels import table_label_of_order
+
+		self.notes()
+		self.assertEqual(table_label_of_order(Order(restaurant_table=None, name=None)), "")
+
+
 class TestLimits(RealTill):
 	def refused(self, order, kind=frappe.ValidationError):
 		before = frappe.db.count(jobs.DOCTYPE)
