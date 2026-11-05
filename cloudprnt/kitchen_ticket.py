@@ -49,6 +49,8 @@ NOT_SENT = ("", "Waiting")
 DELIVERED = "Delivered"
 #: The service families of a line (POS Next `service_family`) in the order a meal serves them: the sections of a ticket that holds several.
 FAMILY_ORDER = ("Drink", "Starter", "Main", "Dessert")
+# The families a plate per person is counted for (the covers of a table against what is ordered); a drink is not
+COURSES = ("Starter", "Main", "Dessert")
 #: The text sizes of a kitchen ticket (POS Next field `ticket_text_size` of the preparation station), as the Star magnification (width, height) of
 #: each part: the title (a cancellation, a copy), the table, the station, a dish and the options under it. Large is what the tickets were before the
 #: setting existed; Medium, the default, keeps the height a cook reads from afar and halves the width, so that a long dish name stays on one line.
@@ -359,12 +361,19 @@ def get_kitchen_ticket_markup(doc, station, lines, batch=None, paper_width=80, t
 	waiter = frappe.db.get_value("User", doc.owner, "first_name") or doc.owner
 	sent = format_datetime(get_datetime(), "HH:mm")
 	size = station_text_size(station)
+	# //// Neoffice — the number of people seated at the table (NeoResto lot 1, product owner, 05.11.2026): the cook reads « 3 people » under
+	# //// the table and, in each course's heading, how many plates the table has ordered against them: « MAINS 2/3 ». A ticket of a table
+	# //// without a number is as it was.
+	covers = 0 if cancelled else cint(doc.get("restaurant_covers"))
+	counts = _course_counts(doc) if covers else {}
 	out = ["[align: centre]"]
 	if title:
 		out.append(_sized(_text(title), size["title"], bold=True))
 	if status:
 		out.append(_sized(_text(status).upper(), size["title"], bold=True))
 	out.append(_sized(_text(where), size["table"], bold=True))
+	if covers:
+		out.append(_sized(_text(_("{0} people").format(covers)), size["station"], bold=True))
 	if station:
 		# The label of the station: a station POS Next created is named by a hash
 		out.append(_sized(_text(station_label(station)).upper(), size["station"]))
@@ -377,6 +386,10 @@ def get_kitchen_ticket_markup(doc, station, lines, batch=None, paper_width=80, t
 		"-" * chars,
 	]
 	for heading, section in _sections(lines):
+		course = _course_of(section) if covers else None
+		# The count stands in the heading of a course; a ticket of one course has no heading but for it, unless its title already names the course
+		if course and (heading or not title):
+			heading = f"{heading or _family_titles()[course]} {_number(counts.get(course, 0))}/{covers}"
 		if heading:
 			out.append(f"[bold: on]{_text(f' {heading.upper()} '.center(chars, '='))}[bold: off]")
 		for line in section:
@@ -447,14 +460,41 @@ def _sections(lines):
 		by_family.setdefault(family if family in FAMILY_ORDER else "", []).append(line)
 	if len(by_family) < 2:
 		return [("", list(lines))]
-	titles = {
+	titles = _family_titles()
+	return [(titles[family], by_family[family]) for family in (*FAMILY_ORDER, "") if family in by_family]
+
+
+def _family_titles():
+	"""The heading of each family, in the language of the moment (never at import: the language is not known yet)."""
+	return {
 		"Drink": _("Drinks"),
 		"Starter": _("Starters"),
 		"Main": _("Mains"),
 		"Dessert": _("Desserts"),
 		"": _("Other"),
 	}
-	return [(titles[family], by_family[family]) for family in (*FAMILY_ORDER, "") if family in by_family]
+
+
+def _course_counts(doc):
+	"""How many plates the whole order holds per course, as {family: quantity}: the lines of every station and of every send, a drink
+	or a line of no family counted for nothing - the covers of the table are the number each course is read against."""
+	counts = {}
+	for line in doc.items or []:
+		family = (line.get("service_family") or "").strip()
+		if family in COURSES:
+			counts[family] = counts.get(family, 0) + flt(line.get("qty"))
+	return counts
+
+
+def _course_of(section):
+	"""The course a section of a ticket holds, when all its lines are of the same one (None for a drink, a mix or lines of no family)."""
+	families = {(line.get("service_family") or "").strip() for line in section}
+	family = next(iter(families)) if len(families) == 1 else None
+	return family if family in COURSES else None
+
+
+def _number(value):
+	return str(int(value)) if value == int(value) else f"{value:g}"
 
 
 def _modifiers(value):
