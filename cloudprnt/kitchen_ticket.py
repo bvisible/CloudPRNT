@@ -112,6 +112,8 @@ def on_kitchen_send(invoice, batch=None):
 				first_line.setdefault(key, line)
 	printed = printed_quantities(doc.name)
 	_cancel_what_was_taken_back(doc, printed, present)
+	# The dishes this save ADDED to an order the kitchen already had (POS Next puts them in the request's flags; nothing when it does not know them)
+	added = frappe.flags.get("kitchen_additions") or {}
 	new = {key: qty - printed.get(key, 0) for key, qty in at_kitchen.items() if qty - printed.get(key, 0) > 0}
 	per_family = ticket_per_family_stations()
 	for station in sorted({first_line[key].preparation_station for key in new}):
@@ -127,7 +129,15 @@ def on_kitchen_send(invoice, batch=None):
 			jobs.enqueue(
 				row,
 				get_kitchen_ticket_markup(
-					doc, station, ticket_lines, send, paper_width=row.paper_width, title=title, status=status
+					doc,
+					station,
+					ticket_lines,
+					send,
+					paper_width=row.paper_width,
+					title=title,
+					status=status,
+					# //// Neoffice — the dishes this save ADDED to an order the kitchen already had, told by POS Next in the request's flags (Daniel, 05.11)
+					addition=any(line.get("item_code") in added for line in ticket_lines),
 				),
 				reference_doctype="Sales Invoice",
 				reference_name=doc.name,
@@ -353,9 +363,13 @@ def _with_qty(line, qty):
 	return copy
 
 
-def get_kitchen_ticket_markup(doc, station, lines, batch=None, paper_width=80, title=None, cancelled=False, status=None):
+def get_kitchen_ticket_markup(
+	doc, station, lines, batch=None, paper_width=80, title=None, cancelled=False, status=None, addition=False
+):
 	"""Star Document Markup of one station's ticket for `lines` of table order `doc`. `cancelled`: the lines are dishes taken back,
-	their quantities read with a minus. `status`: a line under the title that says what to do with the ticket (« Wait for the next course »)."""
+	their quantities read with a minus. `status`: a line under the title that says what to do with the ticket (« Wait for the next course »).
+	`addition`: the lines were ADDED to an order the kitchen already had (NeoResto lot 1, Daniel, 05.11: « il faut imprimer le ticket avec l'ajout »):
+	the ticket is headed « Addition », so that a cook does not take it for a second copy of the table's ticket."""
 	chars = LINE_CHARS.get(_width(paper_width), 48)
 	where = _where(doc)
 	waiter = frappe.db.get_value("User", doc.owner, "first_name") or doc.owner
@@ -371,6 +385,9 @@ def get_kitchen_ticket_markup(doc, station, lines, batch=None, paper_width=80, t
 		out.append(_sized(_text(title), size["title"], bold=True))
 	if status:
 		out.append(_sized(_text(status).upper(), size["title"], bold=True))
+	# //// Neoffice — an ADDITION to a table the kitchen already has, headed in the largest type of the ticket (Daniel, 05.11)
+	if addition and not cancelled:
+		out.append(_sized(_text(f"*** {_('Addition').upper()} ***"), size["title"], bold=True))
 	out.append(_sized(_text(where), size["table"], bold=True))
 	if covers:
 		out.append(_sized(_text(_("{0} people").format(covers)), size["station"], bold=True))

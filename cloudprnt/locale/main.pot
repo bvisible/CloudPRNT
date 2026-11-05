@@ -1260,3 +1260,7 @@ msgstr ""
 #, python-brace-format
 msgid "{0} {1} not found"
 msgstr ""
+
+#: cloudprnt/kitchen_ticket.py:386
+msgid "Addition"
+msgstr ""

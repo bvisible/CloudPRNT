@@ -1362,3 +1362,7 @@ msgstr "Utiliser MQTT"
 #: cloudprnt/pos_invoice_markup.py:225
 msgid "on"
 msgstr "sur"
+
+#: cloudprnt/kitchen_ticket.py:386
+msgid "Addition"
+msgstr "Ajout"
