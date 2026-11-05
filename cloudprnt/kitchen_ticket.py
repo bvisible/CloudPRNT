@@ -66,6 +66,13 @@ COPY_WINDOW_SECONDS = 10
 COPY_CLAIM = "cloudprnt_kitchen_copy:"
 
 
+# //// Neoffice — the number a send is told by (product owner, 05.11: the ticket of an addition said « Send no. 1 » while the kitchen's screen said « Send 2 »). POS Next stores the number of a send counting from
+# //// zero: the first send has none, the second is 1, the third 2 (`kds_batch`), and the screen says « Send 2 » for the second. The ticket now says what the screen says; the first send, unnumbered, says nothing.
+def _send_number(stored):
+	stored = int(stored or 0)
+	return stored + 1 if stored else None
+
+
 @frappe.whitelist()
 def print_kitchen_ticket(invoice, station=None, batch=None, printer=None):
 	"""Print the kitchen ticket of table order `invoice`: the lines of `station` (each station on its own printer
@@ -84,7 +91,7 @@ def print_kitchen_ticket(invoice, station=None, batch=None, printer=None):
 		row = find_printer(printer) if printer else _printer_for_station(name)
 		if not row:
 			frappe.throw(_("No CloudPRNT printer prints for the station {0}").format(station_label(name) or _("(none)")))
-		markup = get_kitchen_ticket_markup(doc, name, lines, batch, paper_width=row.paper_width)
+		markup = get_kitchen_ticket_markup(doc, name, lines, _send_number(batch), paper_width=row.paper_width)
 		result = jobs.enqueue(row, markup, reference_doctype="Sales Invoice", reference_name=doc.name)
 		queued.append({"station": name, "station_name": station_label(name), "printer": row.label, **result})
 	if not queued:
@@ -123,7 +130,7 @@ def on_kitchen_send(invoice, batch=None):
 		keys = [key for key in new if first_line[key].preparation_station == station]
 		lines = [_with_qty(first_line[key], new[key]) for key in keys]
 		key_of = {id(line): key for key, line in zip(keys, lines)}
-		send = max(int(line.get("kds_batch") or 0) for line in lines) or None
+		send = _send_number(max(int(line.get("kds_batch") or 0) for line in lines))
 		# //// Neoffice — a station set « a ticket per family » prints one ticket for each family of the send (see `_tickets`)
 		for title, status, ticket_lines in _tickets(station in per_family, lines):
 			jobs.enqueue(
@@ -229,7 +236,7 @@ def _print_copy(doc, station, whole_order, mark_copy):
 	title = _("COPY {0}").format(format_datetime(get_datetime(), "HH:mm")) if mark_copy else None
 	tickets = []
 	for name, row, lines in targets:
-		send = max(int(line.get("kds_batch") or 0) for line in lines) or None
+		send = _send_number(max(int(line.get("kds_batch") or 0) for line in lines))
 		# The header names the station whose lines these are; a whole order belongs to no station
 		markup = get_kitchen_ticket_markup(
 			doc, "" if whole_order else name, lines, send, paper_width=row.paper_width, title=title

@@ -22,14 +22,15 @@ class TestAnAdditionIsHeaded(KitchenCopyCase):
 		# The tests name a dish by its code only: no Item to read its name from
 		self.patch("cloudprnt.kitchen_ticket.frappe.db.get_value", lambda *args, **kwargs: None)
 		self.addCleanup(setattr, frappe.flags, "kitchen_additions", None)
+		# POS Next stores the number of a send counting from zero: the first send carries none (0), the second 1, the third 2
 		self.doc = an_order(
 			[
-				line(item_name="Steak", qty=2),
-				line(item_name="Salad", qty=1),
-				line(item_name="Wine", qty=1, preparation_station="Bar"),
+				line(item_name="Steak", qty=2, kds_batch=0),
+				line(item_name="Salad", qty=1, kds_batch=0),
+				line(item_name="Wine", qty=1, preparation_station="Bar", kds_batch=0),
 			]
 		)
-		self.send(1)
+		self.send(0)
 
 	def printed(self, invoice):
 		printed = {}
@@ -45,10 +46,10 @@ class TestAnAdditionIsHeaded(KitchenCopyCase):
 		return self.queue.jobs[before:]
 
 	def test_a_dish_added_after_the_first_send_comes_out_headed_addition_above_the_table(self):
-		self.doc.items.append(line(item_name="Tartare", qty=1, kds_batch=2))
+		self.doc.items.append(line(item_name="Tartare", qty=1, kds_batch=1))
 		frappe.flags.kitchen_additions = {"Tartare": 1}
 
-		jobs = self.send(2)
+		jobs = self.send(1)
 
 		self.assertEqual(len(jobs), 1)
 		markup = jobs[0].markup
@@ -56,12 +57,25 @@ class TestAnAdditionIsHeaded(KitchenCopyCase):
 		self.assertLess(markup.index("ADDITION"), markup.index("Table 5"), "the word is at the head of the paper")
 		self.assertIn("1 x Tartare", markup)
 		self.assertNotIn("Steak", markup, "what the kitchen already had is not printed again")
-		self.assertIn("Send no. 2", markup)
+		self.assertIn("Send no. 2", markup, "the second send of the table: what the kitchen's screen says too (« Send 2 »)")
+
+	def test_the_send_is_numbered_as_the_kitchens_screen_numbers_it(self):
+		# The first send says no number, the second « Send no. 2 », the third « Send no. 3 »: POS Next stores them 0, 1, 2
+		first = self.queue.jobs[0].markup
+		self.assertNotIn("Send no.", first)
+		self.doc.items.append(line(item_name="Tartare", qty=1, kds_batch=1))
+		second = self.send(1)[0].markup
+		self.doc.items.append(line(item_name="Cheese", qty=1, kds_batch=2))
+		third = self.send(2)[0].markup
+
+		self.assertIn("Send no. 2", second)
+		self.assertNotIn("Send no. 1", second, "the second send was told « Send no. 1 » on paper while the screen said 2")
+		self.assertIn("Send no. 3", third)
 
 	def test_a_send_that_added_nothing_prints_as_it_always_did(self):
-		self.doc.items.append(line(item_name="Tartare", qty=1, kds_batch=2))
+		self.doc.items.append(line(item_name="Tartare", qty=1, kds_batch=1))
 
-		jobs = self.send(2)
+		jobs = self.send(1)
 
 		self.assertEqual(len(jobs), 1)
 		self.assertNotIn("ADDITION", jobs[0].markup)
@@ -69,19 +83,19 @@ class TestAnAdditionIsHeaded(KitchenCopyCase):
 
 	def test_the_next_course_the_waiter_orders_is_not_an_addition(self):
 		# A dessert held back at the first send is released: more for the kitchen, nothing added to the order, and POS Next says so
-		self.doc.items.append(line(item_name="Tiramisu", qty=1, preparation_station="Kitchen", kds_status="Pending", kds_batch=2))
+		self.doc.items.append(line(item_name="Tiramisu", qty=1, preparation_station="Kitchen", kds_status="Pending", kds_batch=1))
 		frappe.flags.kitchen_additions = {}
 
-		jobs = self.send(2)
+		jobs = self.send(1)
 
 		self.assertEqual(len(jobs), 1)
 		self.assertNotIn("ADDITION", jobs[0].markup)
 
 	def test_only_the_station_that_got_the_added_dish_heads_its_ticket(self):
-		self.doc.items.append(line(item_name="Beer", qty=1, preparation_station="Bar", kds_batch=2))
+		self.doc.items.append(line(item_name="Beer", qty=1, preparation_station="Bar", kds_batch=1))
 		frappe.flags.kitchen_additions = {"Beer": 1}
 
-		jobs = self.send(2)
+		jobs = self.send(1)
 
 		self.assertEqual(len(jobs), 1)
 		self.assertEqual(jobs[0].printer, "Bar printer")
