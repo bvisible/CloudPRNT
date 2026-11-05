@@ -299,12 +299,18 @@ class RealTill(RolledBack):
 		super().setUp()
 		if not provisional_ticket._restaurants_known():
 			raise unittest.SkipTest("POS Next with restaurants is not installed on this site")
-		company = frappe.db.get_value("Company", {}, "name", order_by="creation")
-		group = frappe.db.get_value(
-			"Account", {"company": company, "is_group": 1, "root_type": "Liability"}, "name", order_by="lft desc"
-		)
-		warehouse = frappe.db.get_value("Warehouse", {"company": company, "is_group": 0, "disabled": 0}, "name")
-		mode = frappe.db.get_value("Mode of Payment Account", {"company": company}, "parent")
+		# The first company that has what a till needs. (`order_by="creation"` alone sorts newest first in Frappe: the last company made,
+		# often a bare one with no payment mode, was taken, and every test of this class was skipped on a site that has a good one.)
+		company = group = warehouse = mode = None
+		for name in frappe.get_all("Company", pluck="name", order_by="creation asc"):
+			group = frappe.db.get_value(
+				"Account", {"company": name, "is_group": 1, "root_type": "Liability"}, "name", order_by="lft desc"
+			)
+			warehouse = frappe.db.get_value("Warehouse", {"company": name, "is_group": 0, "disabled": 0}, "name")
+			mode = frappe.db.get_value("Mode of Payment Account", {"company": name}, "parent")
+			if group and warehouse and mode:
+				company = name
+				break
 		price_list = frappe.db.get_value("Price List", {"selling": 1, "enabled": 1}, "name")
 		if not (company and group and warehouse and mode and price_list):
 			raise unittest.SkipTest("The site has no company with books, warehouse, payment mode and price list")
