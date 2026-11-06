@@ -120,7 +120,7 @@ class TestPrinterPairing(FrappeTestCase):
 		return row.name
 
 	def test_a_save_never_gives_a_new_row_an_account(self):
-		"""A cashier (a desk account, which the settings let write) sends a new row naming Administrator."""
+		"""A desk account of the shop (the settings let every desk account write) sends a new row naming Administrator."""
 		settings = frappe.get_doc(SETTINGS)
 		settings.append(
 			"printers",
@@ -132,7 +132,7 @@ class TestPrinterPairing(FrappeTestCase):
 		self.assertFalse(forged.broker_account)
 		self.assertFalse(forged.online)
 
-		with as_role("cashier"):
+		with as_role("sales_user"):
 			settings = frappe.get_doc(SETTINGS)
 			row = settings.append("printers", {"label": "_Test CloudPRNT forged", "device_user": VICTIM})
 			settings.save()
@@ -142,7 +142,7 @@ class TestPrinterPairing(FrappeTestCase):
 	def test_pairing_a_row_that_names_a_colleague_leaves_the_colleague_alone(self):
 		before = self.colleague()
 		row = self.stored_row("_Test CloudPRNT forged", device_user=VICTIM)
-		with as_role("cashier"):
+		with as_role("sales_user"):
 			credentials = cloudprnt_settings.pair_printer(printer=row)
 		self.assertEqual(self.colleague(), before, "the colleague keeps their roles, key and access")
 		account = devices.account_of(row)

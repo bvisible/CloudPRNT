@@ -19,6 +19,8 @@ from cloudprnt.printers import SETTINGS, get_printer
 SHIFT = "_Test CloudPRNT shift of the cashier"
 OTHER_SHIFT = "_Test CloudPRNT shift of another cashier"
 HAS_POS_NEXT = bool(frappe.db.exists("DocType", "POS Opening Shift"))
+#: Who sells at the till: POS Next's cashier where POS Next is installed, a sales account otherwise (the CI site).
+SELLER = "cashier" if frappe.db.exists("Role", "POSNext Cashier") else "sales_user"
 
 
 @unittest.skipUnless(HAS_POS_NEXT, "POS Next is not installed")
@@ -69,7 +71,7 @@ class TestNamesNotFilters(FrappeTestCase):
 	"""Refused by Frappe before the method runs: no till session needs to exist."""
 
 	def test_a_list_in_place_of_the_session_is_refused(self):
-		with as_role("cashier"):
+		with as_role(SELLER):
 			for value in (["!=", SHIFT], ["like", "%another%", SHIFT]):
 				with self.subTest(value=value), self.assertRaises(frappe.FrappeTypeError):
 					drawer.shift_summary(value)
