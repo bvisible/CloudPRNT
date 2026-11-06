@@ -9,21 +9,30 @@ import json
 
 import frappe
 from frappe import _
-from frappe.utils import add_to_date, get_datetime, now_datetime
+from frappe.utils import add_to_date, cint, get_datetime, now_datetime
 
 from cloudprnt import guards
-from cloudprnt.printers import SETTINGS, normalize_mac, printer_for_mac
+from cloudprnt.printers import SETTINGS, normalize_mac, plain_text, printer_for_mac
 
 CACHE_KEY = "cloudprnt_unpaired_printers"
 KEEP_HOURS = 24
 MAX_NOTED = 50
+#: What one note keeps of what the poll said: a Star printer's model and address fit; anything longer is cut.
+MAX_TEXT = 140
+MAX_ADDRESS = 45
 
 
 def note_unpaired_printer(mac, ip_address=None, client_type=None, signed_in_as=None):
-	"""Remember printer `mac` polled without valid credentials."""
+	"""Remember printer `mac` polled without valid credentials.
+
+	Fifty notes of a few hundred characters at most: a guest's poll used to store its clientType whole, so a few
+	large posts filled the one cache value that every later unpaired poll reads and writes back (audit of 06.11)."""
 	mac = normalize_mac(mac)
 	if not mac:
 		return
+	ip_address = plain_text(ip_address, MAX_ADDRESS)
+	client_type = plain_text(client_type, MAX_TEXT)
+	signed_in_as = plain_text(signed_in_as, MAX_TEXT)
 	noted = _read()
 	entry = noted.get(mac) or {"mac_address": mac, "first_seen": now_datetime().isoformat(), "poll_count": 0}
 	entry.update(
@@ -47,12 +56,29 @@ def _read():
 		noted = json.loads(frappe.cache().get_value(CACHE_KEY) or "{}")
 	except (TypeError, ValueError):
 		return {}
+	if not isinstance(noted, dict):
+		return {}
 	cutoff = add_to_date(now_datetime(), hours=-KEEP_HOURS)
-	return {
-		mac: entry
-		for mac, entry in noted.items()
-		if isinstance(entry, dict) and get_datetime(entry.get("last_seen") or "2000-01-01") > cutoff
-	}
+	kept = {}
+	for mac, entry in noted.items():
+		if not isinstance(entry, dict) or not normalize_mac(mac):
+			continue
+		try:
+			if get_datetime(entry.get("last_seen") or "2000-01-01") <= cutoff:
+				continue
+		except Exception:
+			continue
+		# Notes written before their texts were bounded are bounded as they are read, and so when written back.
+		kept[normalize_mac(mac)] = {
+			"mac_address": normalize_mac(mac),
+			"first_seen": plain_text(entry.get("first_seen"), 32),
+			"last_seen": plain_text(entry.get("last_seen"), 32),
+			"ip_address": plain_text(entry.get("ip_address"), MAX_ADDRESS),
+			"client_type": plain_text(entry.get("client_type"), MAX_TEXT),
+			"poll_count": cint(entry.get("poll_count")),
+			"signed_in_as": plain_text(entry.get("signed_in_as"), MAX_TEXT),
+		}
+	return kept
 
 
 @frappe.whitelist()
@@ -68,7 +94,7 @@ def get_discovered_printers():
 
 
 @frappe.whitelist()
-def add_discovered_printer(mac_address, label=None):
+def add_discovered_printer(mac_address: str, label: str | None = None):
 	"""Add a printer row for a discovered MAC address (its credentials are issued from the settings form)."""
 	guards.require("CloudPRNT Settings", "write")
 	mac = normalize_mac(mac_address)

@@ -7,7 +7,8 @@ barcodes, QR codes, images, the cut, the cash drawer and the buzzer.
 
 cputil runs with a fixed argument list and no shell. The markup goes through a temporary file, never on the
 command line; the media type is one of MARKUP_OUTPUTS, never the request's text as given; the ASB status is
-checked to be hex before it is passed on. On 2026-10-08 a whitelisted method that ran cputil through a shell
+checked to be hex before it is passed on; the images of the job are files by then (images.py), so cputil makes
+no request of its own. On 2026-10-08 a whitelisted method that ran cputil through a shell
 with the caller's arguments let any signed-in account run commands on the server: it was removed, and
 tests/test_exposed_endpoints.py keeps any shell out of the app.
 """
@@ -17,6 +18,8 @@ import os
 import re
 import subprocess
 import tempfile
+
+from cloudprnt import images
 
 CPUTIL = os.path.join(os.path.dirname(os.path.abspath(__file__)), "bin", "cputil")
 
@@ -101,6 +104,8 @@ def render(markup, media_type, paper_width=None, print_dots=None, drawer=None, b
 
 	with tempfile.TemporaryDirectory(prefix="cloudprnt-") as folder:
 		source = os.path.join(folder, "job.stm")
+		# cputil downloads a web image itself, from the server, following redirects: it gets files only.
+		markup = images.localise(markup, folder)
 		with open(source, "w", encoding="utf-8") as handle:
 			handle.write(markup)
 		args += ["decode", media_type, source, "-"]

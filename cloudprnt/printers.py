@@ -4,6 +4,7 @@ A row is found by its name, its label or its MAC address, whichever a caller hol
 app pass a label or a MAC, the settings form passes the row name).
 """
 
+import json
 import re
 
 import frappe
@@ -49,6 +50,23 @@ SERVER_FIELDS = (
 )
 
 _MAC = re.compile(r"^[0-9A-F]{12}$")
+#: What is taken out of a text shown in the desk: the angle brackets that open an HTML tag, and the controls.
+_NOT_SHOWN = re.compile("[<>\x00-\x1f\x7f-\x9f]")
+#: The length of a Data field: what a printer reports is kept to it.
+TEXT_LIMIT = 140
+
+
+def plain_text(value, limit=TEXT_LIMIT):
+	"""`value` as text the desk may show as it is: no `<` or `>` (the desk's printer grid and its alerts insert
+	these texts as HTML, so a tag in a printer's label or in what a printer reports ran as script in the session of
+	whoever opened the screen), no control character, at most `limit` characters. Letters, digits, `&` and quotes
+	stay: a label such as "Joe's Bar & Grill" reads as it was typed."""
+	if value is None:
+		return ""
+	if not isinstance(value, str):
+		value = json.dumps(value) if isinstance(value, (dict, list)) else str(value)
+	text = _NOT_SHOWN.sub("", value).strip()
+	return text[:limit] if limit else text
 
 
 def normalize_mac(mac):

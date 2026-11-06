@@ -12,7 +12,9 @@ for (const doctype of ["POS Invoice", "Sales Invoice"]) {
 						args: { doctype: frm.doctype, name: frm.doc.name },
 						callback(r) {
 							if (r.message && r.message.success) {
-								frappe.show_alert({ message: r.message.message, indicator: "green" }, 5);
+								// The message names the printer by its label, the user's text: an alert inserts it as HTML.
+								const message = frappe.utils.escape_html(r.message.message || "");
+								frappe.show_alert({ message, indicator: "green" }, 5);
 							}
 						},
 					});

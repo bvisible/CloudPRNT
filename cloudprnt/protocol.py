@@ -30,7 +30,7 @@ from werkzeug.wrappers import Response
 from cloudprnt import broker, render
 from cloudprnt import print_queue_manager as jobs
 from cloudprnt.printer_discovery import forget, note_unpaired_printer
-from cloudprnt.printers import normalize_mac, printer_for_mac, printer_for_user, update_printer
+from cloudprnt.printers import normalize_mac, plain_text, printer_for_mac, printer_for_user, update_printer
 
 #: What the site asks a printer about itself (CloudPRNT client actions), and when it asks again.
 CAPABILITIES = ("ClientType", "ClientVersion", "Encodings", "PageInfo", "GetPollInterval")
@@ -187,7 +187,8 @@ def _signed_in_printer(mac):
 
 def _unpaired(mac, body):
 	signed_in_as = "" if frappe.session.user == "Guest" else frappe.session.user
-	note_unpaired_printer(mac, frappe.local.request_ip, body.get("clientType"), signed_in_as)
+	# Anyone may post a poll: what it says of itself is kept as short plain text (printer_discovery bounds it too).
+	note_unpaired_printer(mac, _request_ip(), plain_text(body.get("clientType")), signed_in_as)
 	row = printer_for_mac(mac)
 	if row and row.device_user and frappe.session.user == "Guest":
 		# A paired printer that sent no credentials: challenge it, as a printer may wait for one to send them.
@@ -203,7 +204,8 @@ def _refused(mac):
 
 
 def _record_answers(printer, answers):
-	"""Store what the printer answered to the site's questions (CloudPRNT client action results)."""
+	"""Store what the printer answered to the site's questions (CloudPRNT client action results), as plain text:
+	the desk shows these fields as HTML (printers.plain_text)."""
 	values = {}
 	for answer in answers if isinstance(answers, list) else []:
 		if not isinstance(answer, dict):
@@ -212,9 +214,9 @@ def _record_answers(printer, answers):
 		if result in (None, ""):
 			continue
 		if request == "ClientType":
-			values["client_type"] = str(result)[:140]
+			values["client_type"] = plain_text(result)
 		elif request == "ClientVersion":
-			values["client_version"] = str(result)[:140]
+			values["client_version"] = plain_text(result)
 		elif request == "Encodings":
 			values["media_types"] = json.dumps(_encodings(result))
 		elif request == "PageInfo":
@@ -237,7 +239,7 @@ def _encodings(result):
 		parts = result
 	else:
 		parts = []
-	return [str(part).strip() for part in parts if str(part).strip()]
+	return [plain_text(part) for part in parts if plain_text(part)]
 
 
 def _page_info(result):
@@ -277,11 +279,12 @@ def _questions_for(printer):
 
 
 def _record_status(printer, body):
-	"""Store the printer's status: what changed, and its last-seen time once a minute otherwise."""
+	"""Store the printer's status: what changed, and its last-seen time once a minute otherwise. The status code is
+	the printer's own text and shows in the printers grid, which inserts it as HTML: it is kept as plain text."""
 	asb = str(body.get("status") or "").strip()
-	code = unquote(str(body.get("statusCode") or "")).strip()
+	code = plain_text(unquote(str(body.get("statusCode") or "")))
 	busy = 1 if body.get("printingInProgress") else 0
-	ip = frappe.local.request_ip
+	ip = _request_ip()
 	key = f"cloudprnt_seen_{printer.name}"
 	last = frappe.cache().get_value(key) or {}
 	now = now_datetime()
@@ -353,6 +356,11 @@ def _queue_connection_ticket(printer):
 		]
 	)
 	jobs.enqueue(printer, markup, token=f"connected-{frappe.generate_hash(length=12)}")
+
+
+def _request_ip():
+	"""The caller's address as Frappe read it (the first X-Forwarded-For entry, which a caller may write), as text."""
+	return plain_text(getattr(frappe.local, "request_ip", None), 45)
 
 
 def _body():

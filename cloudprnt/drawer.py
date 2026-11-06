@@ -24,7 +24,9 @@ SENT = "Sent"
 
 
 @frappe.whitelist()
-def open_from_till(pos_profile, reason, note=None, pos_opening_shift=None):
+def open_from_till(
+	pos_profile: str | None, reason: str | None, note: str | None = None, pos_opening_shift: str | None = None
+):
 	"""Open the cash drawer of till `pos_profile` without a sale, for `reason` (one of REASONS; Other needs a
 	note). Any cashier whose till session on that profile is open may; the opening is journaled to them."""
 	guards.require("Sales Invoice", "create")
@@ -49,7 +51,7 @@ def open_from_till(pos_profile, reason, note=None, pos_opening_shift=None):
 
 
 @frappe.whitelist()
-def opening_status(opening):
+def opening_status(opening: str):
 	"""Where the opening `opening` stands: Sent (waiting for the printer), Opened or Not opened."""
 	guards.require("Sales Invoice", "create")
 	row = frappe.db.get_value(DOCTYPE, opening, ["user", "result", "result_detail", "printer"], as_dict=True)
@@ -61,8 +63,11 @@ def opening_status(opening):
 
 
 @frappe.whitelist()
-def shift_summary(pos_opening_shift):
-	"""The drawer openings of till session `pos_opening_shift`, for its closing: all, without a sale, not opened."""
+def shift_summary(pos_opening_shift: str):
+	"""The drawer openings of till session `pos_opening_shift`, for its closing: all, without a sale, not opened.
+
+	The session is a name, typed as text: Frappe refuses a list or a dict before the method runs, so the owner
+	check and the count read the same session (audit of 06.11)."""
 	guards.require("Sales Invoice", "create")
 	if frappe.db.exists("DocType", "POS Opening Shift"):
 		owner = frappe.db.get_value("POS Opening Shift", pos_opening_shift, "user")

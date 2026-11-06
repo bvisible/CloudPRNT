@@ -18,8 +18,17 @@ frappe.ui.form.on("CloudPRNT Settings", {
 	},
 });
 
+// A label is the user's text and a Select option's label is inserted as HTML: it is escaped.
 function printer_options(frm) {
-	return (frm.doc.printers || []).map((row) => ({ label: row.label || row.mac_address, value: row.name }));
+	return (frm.doc.printers || []).map((row) => ({
+		label: frappe.utils.escape_html(row.label || row.mac_address || ""),
+		value: row.name,
+	}));
+}
+
+// An alert inserts its message as HTML, and the server's message names the printer by its label: it is escaped.
+function show_message(message, indicator) {
+	frappe.show_alert({ message: frappe.utils.escape_html(message || ""), indicator }, 5);
 }
 
 function pick_printer(frm, title, action_label, extra_fields, action) {
@@ -176,7 +185,7 @@ function test_print(frm) {
 			args: values,
 			callback(r) {
 				const ok = r.message && r.message.success;
-				frappe.show_alert({ message: r.message && r.message.message, indicator: ok ? "green" : "red" }, 5);
+				show_message(r.message && r.message.message, ok ? "green" : "red");
 			},
 		});
 	});
@@ -188,7 +197,7 @@ function open_drawer(frm) {
 			method: "cloudprnt.api.open_cash_drawer",
 			args: { printer: values.printer },
 			callback(r) {
-				if (r.message) frappe.show_alert({ message: r.message.message, indicator: "green" }, 5);
+				if (r.message) show_message(r.message.message, "green");
 			},
 		});
 	});

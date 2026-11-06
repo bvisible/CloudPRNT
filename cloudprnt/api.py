@@ -16,7 +16,7 @@ DRAWER_ALWAYS = "Always"
 
 
 @frappe.whitelist()
-def print_receipt(doctype, name, printer=None):
+def print_receipt(doctype: str, name: str, printer: str | None = None):
 	"""Print the till receipt of `doctype` `name` on `printer`, else on the printer of its till (POS Profile),
 	else on the default printer. The cash drawer opens as that printer is set to."""
 	if doctype not in RECEIPT_DOCTYPES:
@@ -32,14 +32,14 @@ def print_receipt(doctype, name, printer=None):
 
 
 @frappe.whitelist()
-def print_pos_invoice(invoice_name, printer=None, use_mqtt=False):
+def print_pos_invoice(invoice_name: str, printer: str | None = None, use_mqtt=False):
 	"""Print the receipt of POS Invoice `invoice_name` (the POS Invoice form's button)."""
 	guards.require("POS Invoice", "create")
 	return print_receipt("POS Invoice", invoice_name, printer)
 
 
 @frappe.whitelist()
-def open_cash_drawer(printer=None):
+def open_cash_drawer(printer: str | None = None):
 	"""Open the cash drawer wired to `printer` (the default printer when none), without printing."""
 	guards.require("Sales Invoice", "create")
 	row = find_printer(printer)

@@ -6,6 +6,11 @@ User with the "CloudPRNT Device" role and nothing else), and the printer sends t
 secret as the user name and password of its CloudPRNT settings, which a Star printer sends as HTTP Basic
 authentication. Frappe signs the request in as that account, and the protocol only answers a printer signed in
 as the account of its own row. The account counts for no user quota (Website User) and opens no desk.
+
+The account of a printer row is always the one its row's name gives, printer-<row>@cloudprnt.invalid, and this
+module never touches another: credentials are issued, renewed and withdrawn on that account only, whatever the
+row's device_user says, and only on a portal account. A row's device_user is written by the server alone
+(CloudPRNTSettings.validate drops what a save sends for it on a new row). Audit of 06.11.
 """
 
 import frappe
@@ -28,6 +33,16 @@ def server_url():
 	return frappe.utils.get_url(PROTOCOL_PATH)
 
 
+def account_of(printer_name):
+	"""The account printer row `printer_name` signs in with: the only account this module creates or changes."""
+	return f"printer-{printer_name}@{DOMAIN}".lower()
+
+
+def is_account_of(user, printer_name):
+	"""Whether `user` is the account of printer row `printer_name`."""
+	return bool(user) and bool(printer_name) and str(user).lower() == account_of(printer_name)
+
+
 def issue_credentials(printer_name):
 	"""Create or renew the account of printer row `printer_name` and return what the printer is configured
 	with: {"url", "user", "password"}. Renewing replaces the secret: the printer stops printing until it is
@@ -37,9 +52,13 @@ def issue_credentials(printer_name):
 		frappe.throw(_("CloudPRNT printer {0} not found").format(printer_name))
 	ensure_role()
 
-	email = row.device_user or f"printer-{row.name}@{DOMAIN}".lower()
+	# The row's own account, never the one its device_user names: that field is not the caller's to choose.
+	email = account_of(row.name)
 	if frappe.db.exists("User", email):
 		user = frappe.get_doc("User", email)
+		if user.user_type != "Website User":
+			# Only a portal account is turned into a printer: a desk account is never stripped of its roles here.
+			frappe.throw(_("{0} is not a printer account").format(email), frappe.PermissionError)
 	else:
 		user = frappe.get_doc(
 			{
@@ -74,7 +93,7 @@ def revoke_credentials(printer_name):
 	"""The printer of row `printer_name` can no longer sign in (its account is disabled, its key cleared)."""
 	row = get_printer(printer_name)
 	if row and row.device_user:
-		_disable(row.device_user)
+		_disable(row.device_user, row.name)
 
 
 def disable_accounts_of_removed_printers(previous_rows, current_names):
@@ -83,17 +102,21 @@ def disable_accounts_of_removed_printers(previous_rows, current_names):
 	removed = [row for row in previous_rows if row.name not in current_names]
 	for row in removed:
 		if row.device_user:
-			_disable(row.device_user)
+			_disable(row.device_user, row.name)
 	if removed:
 		from cloudprnt import broker
 
 		broker.forget(removed)
 
 
-def _disable(user):
+def _disable(user, printer_name):
+	"""Disable `user`, when it is the account of printer row `printer_name` and nobody else's: a row that names
+	another account (a person's, Administrator) never disables it."""
 	from frappe.utils.password import remove_encrypted_password
 
-	if frappe.db.exists("User", user):
+	if not is_account_of(user, printer_name):
+		return
+	if frappe.db.exists("User", user) and frappe.db.get_value("User", user, "user_type") == "Website User":
 		frappe.db.set_value("User", user, {"enabled": 0, "api_key": None})
 		remove_encrypted_password("User", user, "api_secret")
 

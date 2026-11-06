@@ -6,9 +6,9 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import now_datetime
 
-from cloudprnt import devices, guards
+from cloudprnt import devices, guards, images
 from cloudprnt import print_queue_manager as jobs
-from cloudprnt.printers import SERVER_FIELDS, all_printers, find_printer, normalize_mac
+from cloudprnt.printers import SERVER_FIELDS, all_printers, find_printer, normalize_mac, plain_text
 
 SETUP_SCRIPT = "/assets/cloudprnt/star_printer_setup.py"
 
@@ -17,7 +17,7 @@ class CloudPRNTSettings(Document):
 	def validate(self):
 		for field in ("header_logo_url", "footer_logo_url"):
 			value = (self.get(field) or "").strip()
-			if value and not value.startswith(("http://", "https://")):
+			if value and not images.is_web_address(value):
 				frappe.throw(_("{0} must start with http:// or https://").format(_(self.meta.get_label(field))))
 		self._keep_what_printers_reported()
 		self._check_printers()
@@ -30,12 +30,20 @@ class CloudPRNTSettings(Document):
 
 	def _keep_what_printers_reported(self):
 		"""The form carries the fields printers write (status, identity, capabilities) as it loaded them:
-		the stored values win, so saving a form opened a while ago does not wipe what a printer reported."""
+		the stored values win, so saving a form opened a while ago does not wipe what a printer reported.
+
+		A new row has none of them yet: whatever a save sends for them is dropped (a MAC address typed by hand
+		excepted), so a row's account (device_user), its broker account and its reported state are only ever
+		the server's, and a duplicated row does not carry the account of the row it copies."""
 		self._rows_before_save = all_printers()
 		stored = {row.name: row for row in self._rows_before_save}
 		for row in self.printers:
+			row.label = plain_text(row.label)
 			saved = stored.get(row.name)
 			if not saved:
+				for field in SERVER_FIELDS:
+					if field != "mac_address":
+						row.set(field, None)
 				continue
 			for field in SERVER_FIELDS:
 				if field == "mac_address" and not saved.get(field):
@@ -64,13 +72,17 @@ class CloudPRNTSettings(Document):
 
 
 @frappe.whitelist()
-def pair_printer(printer=None, label=None):
+def pair_printer(printer: str | None = None, label: str | None = None):
 	"""Issue the credentials a printer signs in with: for printer row `printer` (renewing them: the old ones
 	stop working), or for a new printer row named `label`. Returns what the printer is configured with, and
-	the command that configures it from a computer on its network."""
+	the command that configures it from a computer on its network.
+
+	Whoever may change the printers may pair one, from a desk account; the account issued is the printer's own
+	(devices.account_of), never one the caller names."""
 	guards.require("CloudPRNT Settings", "write")
+	guards.require_desk_account()
 	if not printer:
-		label = (label or "").strip()
+		label = plain_text(label)
 		if not label:
 			frappe.throw(_("Give the printer a label"))
 		settings = frappe.get_doc("CloudPRNT Settings")
@@ -98,11 +110,12 @@ def setup_command(credentials):
 
 
 @frappe.whitelist()
-def test_print(printer, test_text=None, image_link=None):
-	"""Print a test ticket on `printer`: text in every style the receipts use, a QR code, an image if given."""
+def test_print(printer: str | None = None, test_text: str | None = None, image_link: str | None = None):
+	"""Print a test ticket on `printer`: text in every style the receipts use, a QR code, an image if given (an
+	image of the public web: images.py downloads it, cputil never does)."""
 	guards.require("CloudPRNT Settings", "write")
 	image_link = (image_link or "").strip()
-	if image_link and not image_link.lower().startswith(("http://", "https://")):
+	if image_link and not images.is_web_address(image_link):
 		return {"success": False, "message": _("The image link must start with http:// or https://")}
 	row = find_printer(printer)
 	text = (test_text or "").strip() or _("CloudPRNT print test")
