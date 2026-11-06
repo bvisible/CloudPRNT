@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: CloudPRNT\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-04 03:01+0000\n"
+"POT-Creation-Date: 2026-11-06 03:01+0000\n"
 "PO-Revision-Date: 2024-12-20 12:00+0000\n"
 "Last-Translator: \n"
 "Language-Team: French\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 "Generated-By: Babel 2.18.0\n"
 
-#: cloudprnt/kitchen_ticket.py:84
+#: cloudprnt/kitchen_ticket.py:93
 msgid "(none)"
 msgstr ""
 
@@ -59,16 +59,20 @@ msgstr "Ajouter une imprimante"
 msgid "Add a printer first."
 msgstr "Ajoutez d'abord une imprimante."
 
+#: cloudprnt/kitchen_ticket.py:397
+msgid "Addition"
+msgstr "Ajout"
+
 #. Name of a role
 #: cloudprnt/cloudprnt/doctype/cash_drawer_opening/cash_drawer_opening.json:148
 msgid "Admin"
 msgstr "Administrateur"
 
-#: cloudprnt/provisional_ticket.py:534
+#: cloudprnt/provisional_ticket.py:574
 #: cloudprnt/tests/test_provisional_ticket.py:215
 #: cloudprnt/tests/test_provisional_ticket.py:217
-#: cloudprnt/tests/test_provisional_ticket.py:704
-#: cloudprnt/tests/test_provisional_ticket.py:922
+#: cloudprnt/tests/test_provisional_ticket.py:710
+#: cloudprnt/tests/test_provisional_ticket.py:928
 msgid "Already paid"
 msgstr "Déjà payé"
 
@@ -78,7 +82,7 @@ msgstr "Déjà payé"
 msgid "Always"
 msgstr "Toujours"
 
-#: cloudprnt/provisional_ticket.py:198
+#: cloudprnt/provisional_ticket.py:205
 #, python-brace-format
 msgid "An order of more than {0} lines cannot be printed"
 msgstr "Une commande de plus de {0} lignes ne peut pas être imprimée"
@@ -117,12 +121,12 @@ msgstr "Connexion au broker"
 msgid "Buzzer Rings"
 msgstr "Nombre de bips du buzzer"
 
-#: cloudprnt/kitchen_ticket.py:154
+#: cloudprnt/kitchen_ticket.py:173
 #, python-brace-format
 msgid "CANCELLED {0}"
 msgstr "ANNULÉ {0}"
 
-#: cloudprnt/kitchen_ticket.py:217
+#: cloudprnt/kitchen_ticket.py:236
 #, python-brace-format
 msgid "COPY {0}"
 msgstr "COPIE {0}"
@@ -187,7 +191,7 @@ msgstr "Journaux CloudPRNT"
 
 #. Name of a DocType
 #: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:199
-#: cloudprnt/provisional_ticket.py:169 cloudprnt/provisional_ticket.py:173
+#: cloudprnt/provisional_ticket.py:176 cloudprnt/provisional_ticket.py:180
 msgid "CloudPRNT Print Queue"
 msgstr "File d'impression CloudPRNT"
 
@@ -258,7 +262,7 @@ msgstr "Erreur du massicot"
 #. Label of a Datetime field in DocType 'CloudPRNT Logs'
 #: cloudprnt/cloudprnt/doctype/cloudprnt_logs/cloudprnt_logs.json:16
 #: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.py:118
-#: cloudprnt/provisional_ticket.py:507 cloudprnt/receipt_markup.py:46
+#: cloudprnt/provisional_ticket.py:547 cloudprnt/receipt_markup.py:46
 #: cloudprnt/tests/test_provisional_ticket.py:188
 msgid "Date"
 msgstr "Date"
@@ -289,7 +293,7 @@ msgstr ""
 msgid "Desk User"
 msgstr "Utilisateur Desk"
 
-#: cloudprnt/kitchen_ticket.py:454
+#: cloudprnt/kitchen_ticket.py:497
 msgid "Desserts"
 msgstr ""
 
@@ -299,10 +303,10 @@ msgstr ""
 msgid "Detected printers"
 msgstr "Imprimantes détectées"
 
-#: cloudprnt/provisional_ticket.py:523 cloudprnt/receipt_markup.py:72
+#: cloudprnt/provisional_ticket.py:563 cloudprnt/receipt_markup.py:72
 #: cloudprnt/tests/test_provisional_ticket.py:265
-#: cloudprnt/tests/test_provisional_ticket.py:621
-#: cloudprnt/tests/test_provisional_ticket.py:631
+#: cloudprnt/tests/test_provisional_ticket.py:627
+#: cloudprnt/tests/test_provisional_ticket.py:637
 msgid "Discount"
 msgstr "Remise"
 
@@ -325,7 +329,7 @@ msgstr ""
 msgid "Drawer Pulse Sent"
 msgstr "Impulsion d'ouverture envoyée"
 
-#: cloudprnt/kitchen_ticket.py:451
+#: cloudprnt/kitchen_ticket.py:494
 msgid "Drinks"
 msgstr "Boissons"
 
@@ -486,7 +490,7 @@ msgstr "Jeton de tâche"
 msgid "Kitchen Lines"
 msgstr "Lignes de cuisine"
 
-#: cloudprnt/kitchen_ticket.py:90
+#: cloudprnt/kitchen_ticket.py:99
 msgid "Kitchen ticket sent"
 msgstr "Ticket cuisine envoyé"
 
@@ -501,9 +505,9 @@ msgstr "Libellé"
 msgid "Last Seen"
 msgstr "Dernière activité"
 
-#: cloudprnt/provisional_ticket.py:535
+#: cloudprnt/provisional_ticket.py:575
 #: cloudprnt/tests/test_provisional_ticket.py:216
-#: cloudprnt/tests/test_provisional_ticket.py:705
+#: cloudprnt/tests/test_provisional_ticket.py:711
 msgid "Left to pay"
 msgstr "Reste à payer"
 
@@ -513,7 +517,7 @@ msgstr "Reste à payer"
 msgid "MAC Address"
 msgstr "Adresse MAC"
 
-#: cloudprnt/kitchen_ticket.py:453
+#: cloudprnt/kitchen_ticket.py:496
 msgid "Mains"
 msgstr "Plats"
 
@@ -538,10 +542,10 @@ msgstr "Types de support"
 msgid "Model"
 msgstr ""
 
-#: cloudprnt/provisional_ticket.py:525 cloudprnt/receipt_markup.py:75
+#: cloudprnt/provisional_ticket.py:565 cloudprnt/receipt_markup.py:75
 #: cloudprnt/tests/test_provisional_ticket.py:199
 #: cloudprnt/tests/test_provisional_ticket.py:266
-#: cloudprnt/tests/test_provisional_ticket.py:664
+#: cloudprnt/tests/test_provisional_ticket.py:670
 #: cloudprnt/tests/test_receipt_markup.py:87
 #: cloudprnt/tests/test_receipt_markup.py:93
 msgid "Net Total"
@@ -563,7 +567,7 @@ msgstr ""
 msgid "No CloudPRNT printer is set for this till"
 msgstr "Aucune imprimante CloudPRNT n'est définie pour cette caisse"
 
-#: cloudprnt/kitchen_ticket.py:84
+#: cloudprnt/kitchen_ticket.py:93
 #, python-brace-format
 msgid "No CloudPRNT printer prints for the station {0}"
 msgstr "Aucune imprimante CloudPRNT n'imprime pour le poste {0}"
@@ -597,7 +601,7 @@ msgid "Not opened"
 msgstr "Non ouvert"
 
 #: cloudprnt/guards.py:15 cloudprnt/guards.py:25
-#: cloudprnt/provisional_ticket.py:322
+#: cloudprnt/provisional_ticket.py:342
 msgid "Not permitted"
 msgstr ""
 
@@ -619,9 +623,9 @@ msgstr "Pas imprimée à temps"
 #. Label of a Small Text field in DocType 'Cash Drawer Opening'
 #: cloudprnt/cloudprnt/doctype/cash_drawer_opening/cash_drawer_opening.json:75
 msgid "Note"
-msgstr ""
+msgstr "Remarque"
 
-#: cloudprnt/kitchen_ticket.py:89
+#: cloudprnt/kitchen_ticket.py:98
 msgid "Nothing to send to the kitchen for this order"
 msgstr "Rien à envoyer en cuisine pour cette commande"
 
@@ -629,9 +633,9 @@ msgstr "Rien à envoyer en cuisine pour cette commande"
 msgid "N°"
 msgstr "N°"
 
-#: cloudprnt/provisional_ticket.py:518
+#: cloudprnt/provisional_ticket.py:558
 #: cloudprnt/tests/test_provisional_ticket.py:211
-#: cloudprnt/tests/test_provisional_ticket.py:698
+#: cloudprnt/tests/test_provisional_ticket.py:704
 msgctxt "Given for free"
 msgid "Offered"
 msgstr "Offert"
@@ -645,7 +649,7 @@ msgstr ""
 msgid "Online"
 msgstr "En ligne"
 
-#: cloudprnt/provisional_ticket.py:200
+#: cloudprnt/provisional_ticket.py:207
 msgid "Only a table or takeaway order has a provisional ticket"
 msgstr "Seule une commande de table ou à emporter a un ticket provisoire"
 
@@ -698,7 +702,7 @@ msgstr ""
 
 #. Option for the 'Reason' (Select) field in DocType 'Cash Drawer Opening'
 #: cloudprnt/cloudprnt/doctype/cash_drawer_opening/cash_drawer_opening.json:67
-#: cloudprnt/kitchen_ticket.py:455
+#: cloudprnt/kitchen_ticket.py:498
 msgid "Other"
 msgstr ""
 
@@ -714,7 +718,7 @@ msgstr "Surchauffe"
 msgid "POS Profile"
 msgstr ""
 
-#: cloudprnt/provisional_ticket.py:502
+#: cloudprnt/provisional_ticket.py:542
 #: cloudprnt/tests/test_provisional_ticket.py:185
 msgid "PROVISIONAL TICKET"
 msgstr "TICKET PROVISOIRE"
@@ -900,7 +904,7 @@ msgstr "Impression en cours"
 msgid "Problem"
 msgstr ""
 
-#: cloudprnt/provisional_ticket.py:140
+#: cloudprnt/provisional_ticket.py:147
 #, python-brace-format
 msgid "Provisional ticket sent to {0}"
 msgstr "Ticket provisoire envoyé à {0}"
@@ -957,7 +961,7 @@ msgstr ""
 msgid "Reported by the Printer"
 msgstr "Signalé par l'imprimante"
 
-#: cloudprnt/provisional_ticket.py:341
+#: cloudprnt/provisional_ticket.py:361
 msgid "Restaurant Table"
 msgstr ""
 
@@ -975,9 +979,9 @@ msgstr "Détail du résultat"
 msgid "Rounded Total"
 msgstr "Total arrondi"
 
-#: cloudprnt/provisional_ticket.py:531
+#: cloudprnt/provisional_ticket.py:571
 #: cloudprnt/tests/test_provisional_ticket.py:201
-#: cloudprnt/tests/test_provisional_ticket.py:607
+#: cloudprnt/tests/test_provisional_ticket.py:613
 msgid "Rounding Adjustment"
 msgstr ""
 
@@ -1003,8 +1007,8 @@ msgstr "Les lignes {0} et {1} ont la même adresse MAC"
 msgid "Sale"
 msgstr "Vente"
 
-#: cloudprnt/kitchen_ticket.py:73 cloudprnt/provisional_ticket.py:366
-#: cloudprnt/provisional_ticket.py:374
+#: cloudprnt/kitchen_ticket.py:82 cloudprnt/provisional_ticket.py:405
+#: cloudprnt/provisional_ticket.py:411
 msgid "Sales Invoice"
 msgstr ""
 
@@ -1021,7 +1025,7 @@ msgstr "Indiquez la raison de l'ouverture du tiroir-caisse"
 msgid "Scan to order"
 msgstr "Scannez pour commander"
 
-#: cloudprnt/kitchen_ticket.py:376
+#: cloudprnt/kitchen_ticket.py:409
 #, python-brace-format
 msgid "Send no. {0}"
 msgstr "Envoi n° {0}"
@@ -1039,7 +1043,7 @@ msgstr "Numéro de série"
 msgid "Server URL"
 msgstr "URL du serveur"
 
-#: cloudprnt/kitchen_ticket.py:452
+#: cloudprnt/kitchen_ticket.py:495
 msgid "Starters"
 msgstr "Entrées"
 
@@ -1071,16 +1075,16 @@ msgstr "Détail de l'état"
 msgid "System Manager"
 msgstr "System Manager"
 
-#: cloudprnt/provisional_ticket.py:539
+#: cloudprnt/provisional_ticket.py:579
 #: cloudprnt/tests/test_provisional_ticket.py:203
 msgid "THIS IS NOT A RECEIPT"
 msgstr "CECI N'EST PAS UN TICKET DE CAISSE"
 
-#: cloudprnt/kitchen_ticket.py:509
+#: cloudprnt/kitchen_ticket.py:574
 #: cloudprnt/tests/test_provisional_ticket.py:248
 #: cloudprnt/tests/test_provisional_ticket.py:259
-#: cloudprnt/tests/test_provisional_ticket.py:1070
-#: cloudprnt/tests/test_provisional_ticket.py:1111
+#: cloudprnt/tests/test_provisional_ticket.py:1179
+#: cloudprnt/tests/test_provisional_ticket.py:1220
 msgid "Takeaway"
 msgstr "À emporter"
 
@@ -1115,12 +1119,12 @@ msgstr "Le lien de l'image doit commencer par http:// ou https://"
 msgid "The job was queued again"
 msgstr "La tâche a été remise en file d'attente"
 
-#: cloudprnt/provisional_ticket.py:260
+#: cloudprnt/provisional_ticket.py:280
 #, python-brace-format
 msgid "The order to print holds a value that is not valid ({0})"
 msgstr "La commande à imprimer contient une valeur non valide ({0})"
 
-#: cloudprnt/provisional_ticket.py:193
+#: cloudprnt/provisional_ticket.py:200
 msgid "The order to print is not readable"
 msgstr "La commande à imprimer est illisible"
 
@@ -1167,7 +1171,7 @@ msgstr ""
 "Les stations dont cette imprimante imprime les tickets de cuisine, séparées "
 "par des virgules (dans le restaurant du POS : Cuisine, Bar…)"
 
-#: cloudprnt/provisional_ticket.py:274
+#: cloudprnt/provisional_ticket.py:294
 msgid "The till of this order is not known"
 msgstr "La caisse de cette commande est inconnue"
 
@@ -1190,7 +1194,7 @@ msgstr ""
 "imprimante ou générez à nouveau ses identifiants, puis configurez-la avec "
 "ceux-ci."
 
-#: cloudprnt/provisional_ticket.py:196
+#: cloudprnt/provisional_ticket.py:203
 msgid "This order has no lines: there is nothing to print"
 msgstr "Cette commande ne contient aucune ligne : rien à imprimer"
 
@@ -1203,7 +1207,7 @@ msgstr "Cette imprimante est déjà configurée"
 msgid "This printer is connected to {0}"
 msgstr "Cette imprimante est connectée à {0}"
 
-#: cloudprnt/provisional_ticket.py:351
+#: cloudprnt/provisional_ticket.py:371
 msgid "This till does not serve this table"
 msgstr "Cette caisse ne dessert pas cette table"
 
@@ -1212,17 +1216,17 @@ msgstr "Cette caisse ne dessert pas cette table"
 msgid "Till Session"
 msgstr "Session de caisse"
 
-#: cloudprnt/kitchen_ticket.py:415
+#: cloudprnt/kitchen_ticket.py:452
 msgid "To do"
 msgstr ""
 
-#: cloudprnt/provisional_ticket.py:158
+#: cloudprnt/provisional_ticket.py:165
 msgid "Too many tickets in a minute: wait a moment before printing another"
 msgstr ""
 "Trop de tickets en une minute : patientez un instant avant d'en imprimer un "
 "autre"
 
-#: cloudprnt/provisional_ticket.py:532
+#: cloudprnt/provisional_ticket.py:572
 #: cloudprnt/tests/test_provisional_ticket.py:202
 msgid "Total"
 msgstr "Total"
@@ -1264,7 +1268,7 @@ msgstr "Numéro de TVA"
 
 #: cloudprnt/receipt_markup.py:328
 #: cloudprnt/tests/test_provisional_ticket.py:49
-#: cloudprnt/tests/test_provisional_ticket.py:681
+#: cloudprnt/tests/test_provisional_ticket.py:687
 #: cloudprnt/tests/test_receipt_markup.py:82
 #, python-brace-format
 msgid "VAT {0} %"
@@ -1275,11 +1279,11 @@ msgstr ""
 msgid "Voltage Error"
 msgstr "Erreur de tension"
 
-#: cloudprnt/kitchen_ticket.py:415
+#: cloudprnt/kitchen_ticket.py:452
 msgid "Wait for the next course"
 msgstr "ATTENDRE LA SUITE"
 
-#: cloudprnt/kitchen_ticket.py:373
+#: cloudprnt/kitchen_ticket.py:406
 msgid "Waiter"
 msgstr "Serveur"
 
@@ -1309,16 +1313,16 @@ msgstr "fin"
 msgid "start"
 msgstr "début"
 
-#: cloudprnt/tests/test_provisional_ticket.py:820
+#: cloudprnt/tests/test_provisional_ticket.py:826
 msgid "there is nothing to print"
 msgstr "il n'y a rien à imprimer"
 
-#: cloudprnt/provisional_ticket.py:378
+#: cloudprnt/provisional_ticket.py:415
 #, python-brace-format
 msgid "{0} is no longer an open order"
 msgstr "{0} n'est plus une commande ouverte"
 
-#: cloudprnt/provisional_ticket.py:388
+#: cloudprnt/provisional_ticket.py:425
 #, python-brace-format
 msgid "{0} is not the order of this table"
 msgstr "{0} n'est pas la commande de cette table"
@@ -1328,10 +1332,15 @@ msgstr "{0} n'est pas la commande de cette table"
 msgid "{0} must start with http:// or https://"
 msgstr "{0} doit commencer par http:// ou https://"
 
-#: cloudprnt/api.py:27 cloudprnt/drawer.py:57 cloudprnt/kitchen_ticket.py:73
-#: cloudprnt/provisional_ticket.py:169 cloudprnt/provisional_ticket.py:173
-#: cloudprnt/provisional_ticket.py:341 cloudprnt/provisional_ticket.py:366
-#: cloudprnt/provisional_ticket.py:374
+#: cloudprnt/kitchen_ticket.py:400
+#, python-brace-format
+msgid "{0} people"
+msgstr ""
+
+#: cloudprnt/api.py:27 cloudprnt/drawer.py:57 cloudprnt/kitchen_ticket.py:82
+#: cloudprnt/provisional_ticket.py:176 cloudprnt/provisional_ticket.py:180
+#: cloudprnt/provisional_ticket.py:361 cloudprnt/provisional_ticket.py:405
+#: cloudprnt/provisional_ticket.py:411
 #, python-brace-format
 msgid "{0} {1} not found"
 msgstr ""
@@ -1362,7 +1371,3 @@ msgstr "Utiliser MQTT"
 #: cloudprnt/pos_invoice_markup.py:225
 msgid "on"
 msgstr "sur"
-
-#: cloudprnt/kitchen_ticket.py:386
-msgid "Addition"
-msgstr "Ajout"
