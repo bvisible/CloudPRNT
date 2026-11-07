@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: CloudPRNT\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-06 03:01+0000\n"
+"POT-Creation-Date: 2026-11-07 03:00+0000\n"
 "PO-Revision-Date: 2024-12-20 12:00+0000\n"
 "Last-Translator: \n"
 "Language-Team: French\n"
@@ -51,11 +51,11 @@ msgid "Accounts Manager"
 msgstr ""
 
 #: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:13
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:67
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:76
 msgid "Add a printer"
 msgstr "Ajouter une imprimante"
 
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:28
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:37
 msgid "Add a printer first."
 msgstr "Ajoutez d'abord une imprimante."
 
@@ -102,7 +102,7 @@ msgstr "N° de lot"
 msgid "Black Mark Error"
 msgstr "Erreur de marque noire"
 
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.py:119
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.py:132
 msgid "Bold"
 msgstr ""
 
@@ -180,7 +180,7 @@ msgstr "Monnaie rendue"
 msgid "Change error"
 msgstr "Erreur de rendu de monnaie"
 
-#: cloudprnt/drawer.py:32
+#: cloudprnt/drawer.py:34
 msgid "Choose why the drawer is opened"
 msgstr "Choisissez la raison de l'ouverture du tiroir-caisse"
 
@@ -210,17 +210,17 @@ msgstr "Paramètres CloudPRNT"
 msgid "CloudPRNT Version"
 msgstr "Version CloudPRNT"
 
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:171
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.py:108
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:180
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.py:121
 msgid "CloudPRNT print test"
 msgstr "Test d'impression CloudPRNT"
 
-#: cloudprnt/devices.py:37 cloudprnt/printers.py:88
+#: cloudprnt/devices.py:52 cloudprnt/printers.py:106
 #, python-brace-format
 msgid "CloudPRNT printer {0} not found"
 msgstr "Imprimante CloudPRNT {0} introuvable"
 
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:104
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:113
 msgid "Command"
 msgstr "Commande"
 
@@ -229,7 +229,7 @@ msgstr "Commande"
 msgid "Compulsion Switch"
 msgstr "Commutateur de compulsion"
 
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:95
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:104
 msgid "Configure the printer"
 msgstr "Configurer l'imprimante"
 
@@ -238,11 +238,11 @@ msgstr "Configurer l'imprimante"
 msgid "Cover Open"
 msgstr "Couvercle ouvert"
 
-#: cloudprnt/protocol.py:327 cloudprnt/tests/test_protocol.py:194
+#: cloudprnt/protocol.py:330 cloudprnt/tests/test_protocol.py:194
 msgid "Cover open"
 msgstr "Capot ouvert"
 
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:68
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:77
 msgid "Create"
 msgstr ""
 
@@ -261,7 +261,7 @@ msgstr "Erreur du massicot"
 
 #. Label of a Datetime field in DocType 'CloudPRNT Logs'
 #: cloudprnt/cloudprnt/doctype/cloudprnt_logs/cloudprnt_logs.json:16
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.py:118
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.py:131
 #: cloudprnt/provisional_ticket.py:547 cloudprnt/receipt_markup.py:46
 #: cloudprnt/tests/test_provisional_ticket.py:188
 msgid "Date"
@@ -298,8 +298,8 @@ msgid "Desserts"
 msgstr ""
 
 #: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:15
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:137
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:155
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:146
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:164
 msgid "Detected printers"
 msgstr "Imprimantes détectées"
 
@@ -320,7 +320,7 @@ msgstr "Doctype"
 msgid "Document"
 msgstr "Document"
 
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:121
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:130
 msgid "Done"
 msgstr ""
 
@@ -383,7 +383,7 @@ msgstr "Renseignée par l'imprimante lors de sa première connexion"
 msgid "Footer Logo URL"
 msgstr "URL du logo de pied de page"
 
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:55
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:64
 msgid "For example: Till 1"
 msgstr "Par exemple : Caisse 1"
 
@@ -397,7 +397,7 @@ msgstr "Format récupéré"
 msgid "Formats It Prints"
 msgstr "Formats imprimés"
 
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:100
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:109
 msgid ""
 "From a computer on the same network as the printer, run this command. It "
 "finds the printer, asks for its administrator password and configures it:"
@@ -415,7 +415,7 @@ msgstr "Carte cadeau d'une valeur de"
 msgid "Give change"
 msgstr "Rendre la monnaie"
 
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.py:75
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.py:87
 msgid "Give the printer a label"
 msgstr "Donnez un nom à l'imprimante"
 
@@ -430,11 +430,11 @@ msgstr "URL du logo d'en-tête"
 
 #. Label of a Data field in DocType 'CloudPRNT Printers'
 #: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json:195
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:161
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:170
 msgid "IP Address"
 msgstr "Adresse IP"
 
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:172
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:181
 msgid "Image link"
 msgstr "Lien de l'image"
 
@@ -444,7 +444,7 @@ msgstr "Lien de l'image"
 msgid "Instant Printing"
 msgstr "Impression instantanée"
 
-#: cloudprnt/printer_discovery.py:76
+#: cloudprnt/printer_discovery.py:102
 #, python-brace-format
 msgid "Invalid MAC address: {0}"
 msgstr "Adresse MAC invalide : {0}"
@@ -455,7 +455,7 @@ msgstr "Adresse MAC invalide : {0}"
 msgid "Invoice"
 msgstr "Facture"
 
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:73
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:82
 msgid "Issue new credentials"
 msgstr "Générer de nouveaux identifiants"
 
@@ -501,7 +501,7 @@ msgstr "Libellé"
 
 #. Label of a Datetime field in DocType 'CloudPRNT Printers'
 #: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json:120
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:162
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:171
 msgid "Last Seen"
 msgstr "Dernière activité"
 
@@ -513,7 +513,7 @@ msgstr "Reste à payer"
 
 #. Label of a Data field in DocType 'CloudPRNT Printers'
 #: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json:62
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:161
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:170
 msgid "MAC Address"
 msgstr "Adresse MAC"
 
@@ -557,13 +557,13 @@ msgstr "Total net"
 msgid "Never"
 msgstr ""
 
-#: cloudprnt/printers.py:79
+#: cloudprnt/printers.py:97
 msgid "No CloudPRNT printer given and no default printer configured"
 msgstr ""
 "Aucune imprimante CloudPRNT indiquée et aucune imprimante par défaut "
 "configurée"
 
-#: cloudprnt/drawer.py:39
+#: cloudprnt/drawer.py:41
 msgid "No CloudPRNT printer is set for this till"
 msgstr "Aucune imprimante CloudPRNT n'est définie pour cette caisse"
 
@@ -581,17 +581,17 @@ msgstr "Aucune imprimante CloudPRNT n'imprime les tickets de la caisse {0}"
 msgid "No confirmation from the printer"
 msgstr "Pas de confirmation de l'imprimante"
 
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:149
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:158
 msgid "No credentials"
 msgstr "Aucun identifiant"
 
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:139
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:148
 msgid "No printer reached this site without credentials in the last day."
 msgstr ""
 "Aucune imprimante n'a atteint ce site sans identifiants au cours des "
 "dernières 24 heures."
 
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:148
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:157
 msgid "Not configured"
 msgstr ""
 
@@ -640,7 +640,7 @@ msgctxt "Given for free"
 msgid "Offered"
 msgstr "Offert"
 
-#: cloudprnt/printers.py:131 cloudprnt/protocol.py:333
+#: cloudprnt/printers.py:149 cloudprnt/protocol.py:336
 msgid "Offline"
 msgstr ""
 
@@ -653,11 +653,11 @@ msgstr "En ligne"
 msgid "Only a table or takeaway order has a provisional ticket"
 msgstr "Seule une commande de table ou à emporter a un ticket provisoire"
 
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:186
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:195
 msgid "Open"
 msgstr ""
 
-#: cloudprnt/drawer.py:143
+#: cloudprnt/drawer.py:148
 msgid "Open a till session first"
 msgstr "Ouvrez d'abord une session de caisse"
 
@@ -669,7 +669,7 @@ msgid "Open the Cash Drawer"
 msgstr "Ouvrir le tiroir-caisse"
 
 #: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:17
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:186
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:195
 msgid "Open the cash drawer"
 msgstr "Ouvrir le tiroir-caisse"
 
@@ -687,11 +687,11 @@ msgstr "Ouvert à"
 msgid "Opened from the CloudPRNT settings"
 msgstr "Ouvert depuis les réglages CloudPRNT"
 
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:172
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:181
 msgid "Optional: the URL of an image to print"
 msgstr "Facultatif : l'adresse (URL) d'une image à imprimer"
 
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:107
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:116
 msgid ""
 "Or open the printer's web page (its IP address in a browser), sign in, open "
 "CloudPRNT and enter these three values, then Save and restart the printer:"
@@ -738,15 +738,15 @@ msgstr "Niveau de papier bas"
 msgid "Paper Width (mm)"
 msgstr "Largeur du papier (mm)"
 
-#: cloudprnt/protocol.py:329 cloudprnt/tests/test_protocol.py:197
+#: cloudprnt/protocol.py:332 cloudprnt/tests/test_protocol.py:197
 msgid "Paper empty"
 msgstr "Plus de papier"
 
-#: cloudprnt/protocol.py:335
+#: cloudprnt/protocol.py:338
 msgid "Paper low"
 msgstr "Papier bientôt épuisé"
 
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:113
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:122
 msgid "Password"
 msgstr ""
 
@@ -770,8 +770,8 @@ msgstr "Stations de préparation"
 msgid "Presenter Paper Jam"
 msgstr "Bourrage papier (présentateur)"
 
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:170
-#: cloudprnt/public/js/receipt.js:20
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:179
+#: cloudprnt/public/js/receipt.js:22
 msgid "Print"
 msgstr ""
 
@@ -789,7 +789,7 @@ msgstr "Imprimer les tickets automatiquement"
 msgid "Print again"
 msgstr "Imprimer à nouveau"
 
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.py:109
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.py:122
 msgid "Print test"
 msgstr "Test d'impression"
 
@@ -821,9 +821,9 @@ msgstr "Imprimé trop tard : le tiroir est resté fermé"
 #. Label of a Section Break field in DocType 'Cash Drawer Opening'
 #. Label of a Data field in DocType 'Cash Drawer Opening'
 #: cloudprnt/cloudprnt/doctype/cash_drawer_opening/cash_drawer_opening.json:95
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:37
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:161
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.py:116
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:46
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:170
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.py:129
 msgid "Printer"
 msgstr ""
 
@@ -854,15 +854,15 @@ msgid "Printer Row"
 msgstr "Ligne de l'imprimante"
 
 #: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:14
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:73
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:82
 msgid "Printer credentials"
 msgstr "Identifiants de l'imprimante"
 
-#: cloudprnt/protocol.py:331
+#: cloudprnt/protocol.py:334
 msgid "Printer error"
 msgstr "Erreur de l'imprimante"
 
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:55
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:64
 msgid "Printer label"
 msgstr "Nom de l'imprimante"
 
@@ -900,7 +900,7 @@ msgstr ""
 msgid "Printing In Progress"
 msgstr "Impression en cours"
 
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:162
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:171
 msgid "Problem"
 msgstr ""
 
@@ -909,7 +909,7 @@ msgstr ""
 msgid "Provisional ticket sent to {0}"
 msgstr "Ticket provisoire envoyé à {0}"
 
-#: cloudprnt/protocol.py:304 cloudprnt/protocol.py:337
+#: cloudprnt/protocol.py:307 cloudprnt/protocol.py:340
 #: cloudprnt/tests/test_protocol.py:200
 msgid "Ready"
 msgstr ""
@@ -985,17 +985,17 @@ msgstr "Total arrondi"
 msgid "Rounding Adjustment"
 msgstr ""
 
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.py:51
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.py:59
 #, python-brace-format
 msgid "Row {0}: {1} is not a MAC address"
 msgstr "Ligne {0} : {1} n'est pas une adresse MAC"
 
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.py:59
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.py:67
 #, python-brace-format
 msgid "Rows {0} and {1} both print the receipts of {2}"
 msgstr "Les lignes {0} et {1} impriment toutes deux les tickets de {2}"
 
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.py:53
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.py:61
 #, python-brace-format
 msgid "Rows {0} and {1} have the same MAC address"
 msgstr "Les lignes {0} et {1} ont la même adresse MAC"
@@ -1017,7 +1017,7 @@ msgstr ""
 msgid "Sales Manager"
 msgstr ""
 
-#: cloudprnt/drawer.py:35
+#: cloudprnt/drawer.py:37
 msgid "Say why the drawer is opened"
 msgstr "Indiquez la raison de l'ouverture du tiroir-caisse"
 
@@ -1039,7 +1039,7 @@ msgstr ""
 msgid "Serial number"
 msgstr "Numéro de série"
 
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:111
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:120
 msgid "Server URL"
 msgstr "URL du serveur"
 
@@ -1089,16 +1089,16 @@ msgid "Takeaway"
 msgstr "À emporter"
 
 #: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:16
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:170
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:179
 msgid "Test print"
 msgstr "Test d'impression"
 
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.py:125
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.py:138
 #, python-brace-format
 msgid "Test print sent to {0}"
 msgstr "Test d'impression envoyé à {0}"
 
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:171
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:180
 msgid "Text"
 msgstr ""
 
@@ -1111,7 +1111,7 @@ msgstr ""
 "Le compte avec lequel l'imprimante se connecte (Ajouter une imprimante ou "
 "Identifiants de l'imprimante)"
 
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.py:106
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.py:119
 msgid "The image link must start with http:// or https://"
 msgstr "Le lien de l'image doit commencer par http:// ou https://"
 
@@ -1132,7 +1132,7 @@ msgstr "La commande à imprimer est illisible"
 msgid "The ordering link of this table is not a web address"
 msgstr "Le lien de commande de cette table n'est pas une adresse web"
 
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:116
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:125
 msgid ""
 "The password is shown only now. Once the printer signs in, it prints a "
 "ticket saying it is connected, and its model and paper width appear here by "
@@ -1153,7 +1153,7 @@ msgstr ""
 "L'imprimante a demandé cloudprnt-setting.json : elle peut être avertie d'un "
 "travail immédiatement (CloudPRNT Version MQTT)"
 
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:76
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:85
 msgid ""
 "The printer stops printing until it is configured with the new credentials."
 msgstr ""
@@ -1185,7 +1185,7 @@ msgstr "La caisse dont cette imprimante imprime les tickets"
 msgid "Thermal receipt"
 msgstr "Ticket thermique"
 
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:157
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:166
 msgid ""
 "These printers poll this site without valid credentials. Add a printer, or "
 "issue its credentials again, then configure it with them."
@@ -1198,11 +1198,11 @@ msgstr ""
 msgid "This order has no lines: there is nothing to print"
 msgstr "Cette commande ne contient aucune ligne : rien à imprimer"
 
-#: cloudprnt/printer_discovery.py:79
+#: cloudprnt/printer_discovery.py:105
 msgid "This printer is already configured"
 msgstr "Cette imprimante est déjà configurée"
 
-#: cloudprnt/protocol.py:349
+#: cloudprnt/protocol.py:352
 #, python-brace-format
 msgid "This printer is connected to {0}"
 msgstr "Cette imprimante est connectée à {0}"
@@ -1235,7 +1235,7 @@ msgstr "Total"
 msgid "Total product"
 msgstr "Total produits"
 
-#: cloudprnt/protocol.py:304
+#: cloudprnt/protocol.py:307
 msgid "Unknown"
 msgstr ""
 
@@ -1258,7 +1258,7 @@ msgstr ""
 msgid "User"
 msgstr ""
 
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:112
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:121
 msgid "User Name"
 msgstr ""
 
@@ -1297,7 +1297,7 @@ msgstr ""
 "Quantité par plat imprimée sur ce ticket de cuisine : un plat en cuisine "
 "n'est imprimé qu'une fois"
 
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:149
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:158
 msgid "Wrong credentials"
 msgstr "Identifiants incorrects"
 
@@ -1322,6 +1322,11 @@ msgstr "il n'y a rien à imprimer"
 msgid "{0} is no longer an open order"
 msgstr "{0} n'est plus une commande ouverte"
 
+#: cloudprnt/devices.py:61
+#, python-brace-format
+msgid "{0} is not a printer account"
+msgstr "{0} n'est pas un compte d'imprimante"
+
 #: cloudprnt/provisional_ticket.py:425
 #, python-brace-format
 msgid "{0} is not the order of this table"
@@ -1337,7 +1342,7 @@ msgstr "{0} doit commencer par http:// ou https://"
 msgid "{0} people"
 msgstr ""
 
-#: cloudprnt/api.py:27 cloudprnt/drawer.py:57 cloudprnt/kitchen_ticket.py:82
+#: cloudprnt/api.py:27 cloudprnt/drawer.py:59 cloudprnt/kitchen_ticket.py:82
 #: cloudprnt/provisional_ticket.py:176 cloudprnt/provisional_ticket.py:180
 #: cloudprnt/provisional_ticket.py:361 cloudprnt/provisional_ticket.py:405
 #: cloudprnt/provisional_ticket.py:411
