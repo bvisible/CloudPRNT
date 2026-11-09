@@ -76,7 +76,8 @@ def _send_number(stored):
 @frappe.whitelist()
 def print_kitchen_ticket(invoice: str, station=None, batch=None, printer=None):
 	"""Print the kitchen ticket of table order `invoice`: the lines of `station` (each station on its own printer
-	when none is given), of send `batch` when given. The printer is `printer`, else the one set for the station."""
+	when none is given), of send `batch` when given. The printer is `printer`, else the one set for the station.
+	A `printer` the caller names must be one the order may use (see `_may_print_on`)."""
 	guards.require("Sales Invoice", "read")
 	if not frappe.db.exists("Sales Invoice", invoice):
 		frappe.throw(_("{0} {1} not found").format(_("Sales Invoice"), invoice), frappe.DoesNotExistError)
@@ -91,6 +92,8 @@ def print_kitchen_ticket(invoice: str, station=None, batch=None, printer=None):
 		row = find_printer(printer) if printer else _printer_for_station(name)
 		if not row:
 			frappe.throw(_("No CloudPRNT printer prints for the station {0}").format(station_label(name) or _("(none)")))
+		if printer and not _may_print_on(row, doc, name):
+			frappe.throw(_("Not permitted"), frappe.PermissionError)
 		markup = get_kitchen_ticket_markup(doc, name, lines, _send_number(batch), paper_width=row.paper_width)
 		result = jobs.enqueue(row, markup, reference_doctype="Sales Invoice", reference_name=doc.name)
 		queued.append({"station": name, "station_name": station_label(name), "printer": row.label, **result})
@@ -563,6 +566,16 @@ def _printer_for_station(station):
 		if station and station in stations_of(row):
 			return row
 	return None
+
+
+def _may_print_on(row, doc, station):
+	"""Whether the ticket of `station` of order `doc` may go to printer `row` when the caller names the printer:
+	a printer set for that station, or the printer of the till (POS Profile) the order was made at, and no other
+	(maintenance#2079)."""
+	if station and station in stations_of(row):
+		return True
+	profile = doc.get("pos_profile")
+	return bool(profile) and row.get("pos_profile") == profile
 
 
 def _where(doc):

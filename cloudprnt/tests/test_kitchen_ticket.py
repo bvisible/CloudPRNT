@@ -201,6 +201,61 @@ class TestKitchenTicket(FrappeTestCase):
 		)
 
 
+class TestThePrinterTheCallerNames(FrappeTestCase):
+	"""maintenance#2079 - a printer named in the call must be one the order may use: the station's own, or the printer
+	of the till the order was made at. Any other printer of the site gets no ticket."""
+
+	KITCHEN = frappe._dict(name="P1", label="Pass", paper_width=80, preparation_station="Kitchen", pos_profile="Till A")
+	OTHER = frappe._dict(name="P2", label="Elsewhere", paper_width=80, preparation_station="Bar", pos_profile="Till B")
+	TILL = frappe._dict(name="P3", label="Till printer", paper_width=80, preparation_station="", pos_profile="Till A")
+	BARE = frappe._dict(name="P4", label="Bare", paper_width=80, preparation_station="", pos_profile="")
+
+	def print_on(self, printer, pos_profile="Till A", station="Kitchen"):
+		doc = order()
+		doc.pos_profile = pos_profile
+		rows = {row.label: row for row in (self.KITCHEN, self.OTHER, self.TILL, self.BARE)}
+		with (
+			patch("cloudprnt.kitchen_ticket.guards.require"),
+			patch.object(frappe.db, "exists", return_value=True),
+			patch.object(frappe, "get_doc", return_value=doc),
+			patch("cloudprnt.kitchen_ticket.find_printer", side_effect=lambda label: rows[label]),
+			patch("cloudprnt.kitchen_ticket.get_kitchen_ticket_markup", return_value="markup"),
+			patch("cloudprnt.kitchen_ticket.jobs.enqueue", return_value={"job": "JOB-1"}) as enqueue,
+			patch("cloudprnt.labels.label_of", read_labels),
+		):
+			try:
+				answer = print_kitchen_ticket(doc.name, station=station, printer=printer)
+			except frappe.PermissionError:
+				answer = None
+		return answer, enqueue
+
+	def test_a_printer_of_another_station_and_another_till_gets_no_ticket(self):
+		answer, enqueue = self.print_on("Elsewhere")
+		self.assertIsNone(answer, "the call is refused")
+		enqueue.assert_not_called()
+
+	def test_the_printer_set_for_the_station_prints_the_ticket(self):
+		answer, enqueue = self.print_on("Pass")
+		self.assertEqual(enqueue.call_count, 1)
+		self.assertEqual(enqueue.call_args.args[0].label, "Pass")
+		self.assertEqual([t["printer"] for t in answer["tickets"]], ["Pass"])
+
+	def test_the_printer_of_the_till_the_order_was_made_at_prints_the_ticket(self):
+		answer, enqueue = self.print_on("Till printer")
+		self.assertEqual(enqueue.call_count, 1)
+		self.assertEqual([t["printer"] for t in answer["tickets"]], ["Till printer"])
+
+	def test_the_printer_of_another_till_is_refused_even_when_it_is_set_for_no_station(self):
+		answer, enqueue = self.print_on("Till printer", pos_profile="Till B")
+		self.assertIsNone(answer)
+		enqueue.assert_not_called()
+
+	def test_an_order_and_a_printer_that_name_no_till_do_not_match_each_other(self):
+		answer, enqueue = self.print_on("Bare", pos_profile="")
+		self.assertIsNone(answer, "no till on either side is not the same till")
+		enqueue.assert_not_called()
+
+
 class TestLabels(FrappeTestCase):
 	def test_a_record_is_read_by_its_label(self):
 		with (
