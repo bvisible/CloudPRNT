@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: CloudPRNT\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-07 03:00+0000\n"
+"POT-Creation-Date: 2026-11-09 03:00+0000\n"
 "PO-Revision-Date: 2024-12-20 12:00+0000\n"
 "Last-Translator: \n"
 "Language-Team: French\n"
@@ -963,7 +963,7 @@ msgstr "Signalé par l'imprimante"
 
 #: cloudprnt/provisional_ticket.py:361
 msgid "Restaurant Table"
-msgstr ""
+msgstr "Table de restaurant"
 
 #. Label of a Select field in DocType 'Cash Drawer Opening'
 #: cloudprnt/cloudprnt/doctype/cash_drawer_opening/cash_drawer_opening.json:100
