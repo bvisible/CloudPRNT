@@ -14,7 +14,7 @@ from frappe.tests.utils import FrappeTestCase
 from cloudprnt import api, devices, drawer
 from cloudprnt import print_queue_manager as jobs
 from cloudprnt.cloudprnt.doctype.cloudprnt_settings import cloudprnt_settings
-from cloudprnt.printers import SETTINGS, get_printer
+from cloudprnt.printers import SETTINGS, get_printer, update_printer
 
 SHIFT = "_Test CloudPRNT shift of the cashier"
 OTHER_SHIFT = "_Test CloudPRNT shift of another cashier"
@@ -88,7 +88,9 @@ class TestReceiptAtTheTill(FrappeTestCase):
 	def setUpClass(cls):
 		super().setUpClass()
 		frappe.set_user("Administrator")
-		cls.sale = frappe.db.get_value("Sales Invoice", {"is_pos": 1, "docstatus": 1}, "name", order_by="creation desc")
+		cls.sale = frappe.db.get_value(
+			"Sales Invoice", {"is_pos": 1, "docstatus": 1, "pos_profile": ("is", "set")}, "name", order_by="creation desc"
+		)
 
 	def test_a_cashier_prints_a_receipt(self):
 		if not self.sale:
@@ -97,6 +99,8 @@ class TestReceiptAtTheTill(FrappeTestCase):
 			credentials = cloudprnt_settings.pair_printer(label="_Test CloudPRNT receipt & co")
 		row = credentials["printer"]
 		try:
+			# A printer a caller names is the one set for the till the sale was made at (maintenance#2381).
+			update_printer(row, {"pos_profile": frappe.db.get_value("Sales Invoice", self.sale, "pos_profile")})
 			with as_role("cashier"):
 				answer = api.print_receipt("Sales Invoice", self.sale, printer=row)
 			self.assertTrue(answer["success"])
@@ -105,6 +109,10 @@ class TestReceiptAtTheTill(FrappeTestCase):
 			self.assertEqual((job.printer, job.reference_name), (get_printer(row).name, self.sale))
 			with as_role("cashier"), self.assertRaises(frappe.FrappeTypeError):
 				api.print_receipt("Sales Invoice", {"docstatus": 1})
+			# The same printer, set for another till, gets no receipt of this sale.
+			update_printer(row, {"pos_profile": "_Test CloudPRNT another till"})
+			with as_role("cashier"), self.assertRaises(frappe.PermissionError):
+				api.print_receipt("Sales Invoice", self.sale, printer=row)
 		finally:
 			frappe.set_user("Administrator")
 			settings = frappe.get_doc(SETTINGS)

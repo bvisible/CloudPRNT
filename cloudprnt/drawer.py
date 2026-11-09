@@ -135,15 +135,33 @@ def till_printer(pos_profile):
 	return None
 
 
+def may_open(row):
+	"""Whether the caller may open, without a sale, the drawer wired to printer `row` (maintenance#2381): a cashier
+	at the till the printer is set for, with an open till session there where POS Next keeps them (as
+	`open_from_till`), or a System Manager (the settings form's button, which tests a drawer on any printer).
+	"Desk User" holds write on the printer settings, so that permission says nothing of which till is the caller's."""
+	if "System Manager" in frappe.get_roles():
+		return True
+	profile = row.get("pos_profile")
+	if not profile:
+		return False
+	return not frappe.db.exists("DocType", "POS Opening Shift") or bool(_open_shift(profile))
+
+
+def _open_shift(pos_profile, pos_opening_shift=None):
+	"""The name of the caller's open till session on `pos_profile` (POS Next's POS Opening Shift), or None."""
+	filters = {"user": frappe.session.user, "pos_profile": pos_profile, "status": "Open", "docstatus": 1}
+	if pos_opening_shift:
+		filters["name"] = pos_opening_shift
+	return frappe.db.get_value("POS Opening Shift", filters, "name")
+
+
 def _open_session(pos_profile, pos_opening_shift):
 	"""The caller's open till session on `pos_profile` (POS Next's POS Opening Shift). Without POS Next, the
 	permission to sell is the only gate."""
 	if not frappe.db.exists("DocType", "POS Opening Shift"):
 		return pos_opening_shift or ""
-	filters = {"user": frappe.session.user, "pos_profile": pos_profile, "status": "Open", "docstatus": 1}
-	if pos_opening_shift:
-		filters["name"] = pos_opening_shift
-	shift = frappe.db.get_value("POS Opening Shift", filters, "name")
+	shift = _open_shift(pos_profile, pos_opening_shift)
 	if not shift:
 		frappe.throw(_("Open a till session first"), frappe.PermissionError)
 	return shift

@@ -54,6 +54,9 @@ Security reports: see `SECURITY.md`.
 - From code: `cloudprnt.api.print_receipt(doctype, name, printer=None)`,
   `cloudprnt.api.open_cash_drawer(printer=None)`, and `cloudprnt.print_queue_manager.enqueue(printer, markup,
   open_drawer="start"|"end")` for any Star Document Markup.
+- A printer named in a call from the desk or the POS must be one the caller may use: for a receipt, the printer set
+  for the till the sale was made at; for the drawer, the printer of a till where the caller has an open session (a
+  System Manager may open any); for a kitchen ticket, the printer set for the station or for the till of the order.
 
 ## Tests
 

@@ -18,7 +18,8 @@ DRAWER_ALWAYS = "Always"
 @frappe.whitelist()
 def print_receipt(doctype: str, name: str, printer: str | None = None):
 	"""Print the till receipt of `doctype` `name` on `printer`, else on the printer of its till (POS Profile),
-	else on the default printer. The cash drawer opens as that printer is set to."""
+	else on the default printer. The cash drawer opens as that printer is set to. A `printer` the caller names
+	must be the one set for the till the sale was made at (see `_may_print_on`)."""
 	if doctype not in RECEIPT_DOCTYPES:
 		frappe.throw(_("Receipts are printed for {0} only").format(", ".join(_(d) for d in RECEIPT_DOCTYPES)))
 	# A receipt prints at the till: whoever makes sales there (a customer reading their own invoice does not).
@@ -28,6 +29,8 @@ def print_receipt(doctype: str, name: str, printer: str | None = None):
 	guards.require(doctype, "read", name)
 	doc = frappe.get_doc(doctype, name)
 	row = find_printer(printer) if printer else (_printer_for_profile(doc.get("pos_profile")) or find_printer())
+	if printer and not _may_print_on(row, doc):
+		frappe.throw(_("Not permitted"), frappe.PermissionError)
 	return _queue_receipt(doc, row)
 
 
@@ -40,9 +43,12 @@ def print_pos_invoice(invoice_name: str, printer: str | None = None, use_mqtt=Fa
 
 @frappe.whitelist()
 def open_cash_drawer(printer: str | None = None):
-	"""Open the cash drawer wired to `printer` (the default printer when none), without printing."""
+	"""Open the cash drawer wired to `printer` (the default printer when none), without printing. The printer must
+	be one the caller may open the drawer of (see `drawer.may_open`)."""
 	guards.require("Sales Invoice", "create")
 	row = find_printer(printer)
+	if not drawer.may_open(row):
+		frappe.throw(_("Not permitted"), frappe.PermissionError)
 	result = jobs.enqueue(
 		row,
 		"",
@@ -105,6 +111,26 @@ def _queue_receipt(doc, row):
 		"printer": row.label,
 		**result,
 	}
+
+
+def _may_print_on(row, doc):
+	"""Whether the receipt of `doc` may go to printer `row` when the caller names the printer: the printer set for the
+	till (POS Profile) the sale was made at, and no other. A sale made at no till has no printer to name
+	(maintenance#2381, as the kitchen tickets of #2079)."""
+	profile = doc.get("pos_profile")
+	if not profile:
+		return False
+	return row.get("pos_profile") == profile or row.get("name") == _profile_printer(profile)
+
+
+def _profile_printer(profile):
+	"""The name of the printer row that POS Profile `profile` itself names (the `cloudprnt_printer_name` custom field,
+	which the desk's own point of sale reads), or None where the profile has no such field or has it unticked."""
+	meta = frappe.get_meta("POS Profile")
+	if not (meta.has_field("cloudprnt_printer") and meta.has_field("cloudprnt_printer_name")):
+		return None
+	values = frappe.db.get_value("POS Profile", profile, ["cloudprnt_printer", "cloudprnt_printer_name"], as_dict=True)
+	return values.cloudprnt_printer_name if values and values.cloudprnt_printer else None
 
 
 def _printer_for_profile(profile):
