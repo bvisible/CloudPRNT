@@ -30,7 +30,9 @@ scheduler_events = {
 	"daily": ["cloudprnt.print_queue_manager.delete_old_jobs"],
 }
 
-after_migrate = ["cloudprnt.devices.ensure_role"]
+# Star's cputil is fetched from Star and pinned by sha256: this public repository does not ship it (cputil_install.py).
+after_install = ["cloudprnt.cputil_install.install"]
+after_migrate = ["cloudprnt.devices.ensure_role", "cloudprnt.cputil_install.install"]
 
 # A printer able to use MQTT asks for "cloudprnt-setting.json" beside its CloudPRNT URL when it starts: under
 # /api/method/ that is a method name, routed to the protocol's answer.

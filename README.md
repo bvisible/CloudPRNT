@@ -18,7 +18,12 @@ https://<site>/api/method/cloudprnt.protocol.serve
 
 The protocol is served by the site itself (`cloudprnt/protocol.py`): no server beside the bench, no nginx rule.
 Jobs are queued as Star Document Markup (`CloudPRNT Print Queue`) and rendered when fetched by Star's own
-converter, `cputil` (`cloudprnt/bin/cputil`, v2.0.1 for linux x86-64), for the printer's paper width.
+converter, `cputil` (v2.0.1 for linux x86-64), for the printer's paper width.
+
+`cputil` is not in this repository: Star's licence does not allow redistributing it. The app downloads it from
+Star at install and at every migrate (`cloudprnt/cputil_install.py`), checks the archive and the binary against
+pinned sha256 sums, and puts it in `cloudprnt/bin/` (ignored by git). Without it, the printers receive the formats
+they render themselves.
 
 ## Security
 
@@ -65,3 +70,8 @@ bench --site <a clone of the site> run-tests --app cloudprnt
 ```
 
 Never on a live site: the suite creates printers, accounts and jobs.
+
+## Licence
+
+This app is under the MIT licence (`license.txt`). `cputil` is Star Micronics' software, under Star's own
+licence, downloaded from Star by each server: it is not covered by this repository's licence.

@@ -4,3 +4,5 @@ __pycache__/
 *.pyo
 nginx.conf
 CLAUDE.md
+# Star's cputil, downloaded from Star at install and migrate (cloudprnt/cputil_install.py): never committed.
+cloudprnt/bin/
