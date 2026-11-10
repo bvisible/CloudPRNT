@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: CloudPRNT\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-09 03:00+0000\n"
+"POT-Creation-Date: 2026-11-10 23:34+0000\n"
 "PO-Revision-Date: 2024-12-20 12:00+0000\n"
 "Last-Translator: \n"
 "Language-Team: French\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 "Generated-By: Babel 2.18.0\n"
 
-#: cloudprnt/kitchen_ticket.py:93
+#: cloudprnt/kitchen_ticket.py:94
 msgid "(none)"
 msgstr ""
 
@@ -59,7 +59,7 @@ msgstr "Ajouter une imprimante"
 msgid "Add a printer first."
 msgstr "Ajoutez d'abord une imprimante."
 
-#: cloudprnt/kitchen_ticket.py:397
+#: cloudprnt/kitchen_ticket.py:400
 msgid "Addition"
 msgstr "Ajout"
 
@@ -121,12 +121,12 @@ msgstr "Connexion au broker"
 msgid "Buzzer Rings"
 msgstr "Nombre de bips du buzzer"
 
-#: cloudprnt/kitchen_ticket.py:173
+#: cloudprnt/kitchen_ticket.py:176
 #, python-brace-format
 msgid "CANCELLED {0}"
 msgstr "ANNULÉ {0}"
 
-#: cloudprnt/kitchen_ticket.py:236
+#: cloudprnt/kitchen_ticket.py:239
 #, python-brace-format
 msgid "COPY {0}"
 msgstr "COPIE {0}"
@@ -151,7 +151,7 @@ msgstr "Tiroir-caisse ouvert"
 msgid "Cash Drawer Opening"
 msgstr "Ouverture du tiroir-caisse"
 
-#: cloudprnt/api.py:57
+#: cloudprnt/api.py:63
 #, python-brace-format
 msgid "Cash drawer opening sent to {0}"
 msgstr "Ouverture du tiroir-caisse envoyée à {0}"
@@ -293,7 +293,7 @@ msgstr ""
 msgid "Desk User"
 msgstr "Utilisateur Desk"
 
-#: cloudprnt/kitchen_ticket.py:497
+#: cloudprnt/kitchen_ticket.py:500
 msgid "Desserts"
 msgstr ""
 
@@ -329,7 +329,7 @@ msgstr ""
 msgid "Drawer Pulse Sent"
 msgstr "Impulsion d'ouverture envoyée"
 
-#: cloudprnt/kitchen_ticket.py:494
+#: cloudprnt/kitchen_ticket.py:497
 msgid "Drinks"
 msgstr "Boissons"
 
@@ -490,7 +490,7 @@ msgstr "Jeton de tâche"
 msgid "Kitchen Lines"
 msgstr "Lignes de cuisine"
 
-#: cloudprnt/kitchen_ticket.py:99
+#: cloudprnt/kitchen_ticket.py:102
 msgid "Kitchen ticket sent"
 msgstr "Ticket cuisine envoyé"
 
@@ -517,7 +517,7 @@ msgstr "Reste à payer"
 msgid "MAC Address"
 msgstr "Adresse MAC"
 
-#: cloudprnt/kitchen_ticket.py:496
+#: cloudprnt/kitchen_ticket.py:499
 msgid "Mains"
 msgstr "Plats"
 
@@ -567,7 +567,7 @@ msgstr ""
 msgid "No CloudPRNT printer is set for this till"
 msgstr "Aucune imprimante CloudPRNT n'est définie pour cette caisse"
 
-#: cloudprnt/kitchen_ticket.py:93
+#: cloudprnt/kitchen_ticket.py:94
 #, python-brace-format
 msgid "No CloudPRNT printer prints for the station {0}"
 msgstr "Aucune imprimante CloudPRNT n'imprime pour le poste {0}"
@@ -600,7 +600,8 @@ msgstr ""
 msgid "Not opened"
 msgstr "Non ouvert"
 
-#: cloudprnt/guards.py:15 cloudprnt/guards.py:25
+#: cloudprnt/api.py:33 cloudprnt/api.py:51 cloudprnt/guards.py:15
+#: cloudprnt/guards.py:25 cloudprnt/kitchen_ticket.py:96
 #: cloudprnt/provisional_ticket.py:342
 msgid "Not permitted"
 msgstr ""
@@ -625,7 +626,7 @@ msgstr "Pas imprimée à temps"
 msgid "Note"
 msgstr "Remarque"
 
-#: cloudprnt/kitchen_ticket.py:98
+#: cloudprnt/kitchen_ticket.py:101
 msgid "Nothing to send to the kitchen for this order"
 msgstr "Rien à envoyer en cuisine pour cette commande"
 
@@ -657,7 +658,7 @@ msgstr "Seule une commande de table ou à emporter a un ticket provisoire"
 msgid "Open"
 msgstr ""
 
-#: cloudprnt/drawer.py:148
+#: cloudprnt/drawer.py:166
 msgid "Open a till session first"
 msgstr "Ouvrez d'abord une session de caisse"
 
@@ -683,7 +684,7 @@ msgstr ""
 msgid "Opened At"
 msgstr "Ouvert à"
 
-#: cloudprnt/api.py:55
+#: cloudprnt/api.py:61
 msgid "Opened from the CloudPRNT settings"
 msgstr "Ouvert depuis les réglages CloudPRNT"
 
@@ -702,7 +703,7 @@ msgstr ""
 
 #. Option for the 'Reason' (Select) field in DocType 'Cash Drawer Opening'
 #: cloudprnt/cloudprnt/doctype/cash_drawer_opening/cash_drawer_opening.json:67
-#: cloudprnt/kitchen_ticket.py:498
+#: cloudprnt/kitchen_ticket.py:501
 msgid "Other"
 msgstr ""
 
@@ -924,12 +925,12 @@ msgstr ""
 msgid "Receipt Logos"
 msgstr "Logos des tickets"
 
-#: cloudprnt/api.py:104
+#: cloudprnt/api.py:110
 #, python-brace-format
 msgid "Receipt {0} sent to {1}"
 msgstr "Ticket {0} envoyé à {1}"
 
-#: cloudprnt/api.py:23
+#: cloudprnt/api.py:24
 #, python-brace-format
 msgid "Receipts are printed for {0} only"
 msgstr "Les tickets ne sont imprimés que pour {0}"
@@ -1007,7 +1008,7 @@ msgstr "Les lignes {0} et {1} ont la même adresse MAC"
 msgid "Sale"
 msgstr "Vente"
 
-#: cloudprnt/kitchen_ticket.py:82 cloudprnt/provisional_ticket.py:405
+#: cloudprnt/kitchen_ticket.py:83 cloudprnt/provisional_ticket.py:405
 #: cloudprnt/provisional_ticket.py:411
 msgid "Sales Invoice"
 msgstr ""
@@ -1025,7 +1026,7 @@ msgstr "Indiquez la raison de l'ouverture du tiroir-caisse"
 msgid "Scan to order"
 msgstr "Scannez pour commander"
 
-#: cloudprnt/kitchen_ticket.py:409
+#: cloudprnt/kitchen_ticket.py:412
 #, python-brace-format
 msgid "Send no. {0}"
 msgstr "Envoi n° {0}"
@@ -1043,7 +1044,7 @@ msgstr "Numéro de série"
 msgid "Server URL"
 msgstr "URL du serveur"
 
-#: cloudprnt/kitchen_ticket.py:495
+#: cloudprnt/kitchen_ticket.py:498
 msgid "Starters"
 msgstr "Entrées"
 
@@ -1080,7 +1081,7 @@ msgstr "System Manager"
 msgid "THIS IS NOT A RECEIPT"
 msgstr "CECI N'EST PAS UN TICKET DE CAISSE"
 
-#: cloudprnt/kitchen_ticket.py:574
+#: cloudprnt/kitchen_ticket.py:587
 #: cloudprnt/tests/test_provisional_ticket.py:248
 #: cloudprnt/tests/test_provisional_ticket.py:259
 #: cloudprnt/tests/test_provisional_ticket.py:1179
@@ -1216,7 +1217,7 @@ msgstr "Cette caisse ne dessert pas cette table"
 msgid "Till Session"
 msgstr "Session de caisse"
 
-#: cloudprnt/kitchen_ticket.py:452
+#: cloudprnt/kitchen_ticket.py:455
 msgid "To do"
 msgstr ""
 
@@ -1279,11 +1280,11 @@ msgstr ""
 msgid "Voltage Error"
 msgstr "Erreur de tension"
 
-#: cloudprnt/kitchen_ticket.py:452
+#: cloudprnt/kitchen_ticket.py:455
 msgid "Wait for the next course"
 msgstr "ATTENDRE LA SUITE"
 
-#: cloudprnt/kitchen_ticket.py:406
+#: cloudprnt/kitchen_ticket.py:409
 msgid "Waiter"
 msgstr "Serveur"
 
@@ -1337,12 +1338,12 @@ msgstr "{0} n'est pas la commande de cette table"
 msgid "{0} must start with http:// or https://"
 msgstr "{0} doit commencer par http:// ou https://"
 
-#: cloudprnt/kitchen_ticket.py:400
+#: cloudprnt/kitchen_ticket.py:403
 #, python-brace-format
 msgid "{0} people"
 msgstr ""
 
-#: cloudprnt/api.py:27 cloudprnt/drawer.py:59 cloudprnt/kitchen_ticket.py:82
+#: cloudprnt/api.py:28 cloudprnt/drawer.py:59 cloudprnt/kitchen_ticket.py:83
 #: cloudprnt/provisional_ticket.py:176 cloudprnt/provisional_ticket.py:180
 #: cloudprnt/provisional_ticket.py:361 cloudprnt/provisional_ticket.py:405
 #: cloudprnt/provisional_ticket.py:411
