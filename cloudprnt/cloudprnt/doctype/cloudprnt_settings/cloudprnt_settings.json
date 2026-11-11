@@ -83,7 +83,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-11-06 18:00:00.000000",
+ "modified": "2026-11-11 15:00:00.000000",
  "modified_by": "Administrator",
  "module": "CloudPRNT",
  "name": "CloudPRNT Settings",
@@ -100,13 +100,29 @@
    "write": 1
   },
   {
-   "create": 1,
-   "delete": 1,
-   "email": 1,
    "print": 1,
    "read": 1,
-   "role": "Desk User",
-   "share": 1,
+   "role": "Desk User"
+  },
+  {
+   "create": 1,
+   "print": 1,
+   "read": 1,
+   "role": "Admin",
+   "write": 1
+  },
+  {
+   "create": 1,
+   "print": 1,
+   "read": 1,
+   "role": "POSNext Manager",
+   "write": 1
+  },
+  {
+   "create": 1,
+   "print": 1,
+   "read": 1,
+   "role": "Restaurant Manager",
    "write": 1
   }
  ],
