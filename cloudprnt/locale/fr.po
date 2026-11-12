@@ -4,17 +4,17 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: CloudPRNT\n"
+"Project-Id-Version:  CloudPRNT\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-10 23:34+0000\n"
+"POT-Creation-Date: 2026-11-12 03:01+0000\n"
 "PO-Revision-Date: 2024-12-20 12:00+0000\n"
 "Last-Translator: \n"
-"Language-Team: French\n"
 "Language: fr\n"
+"Language-Team: French\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=2; plural=(n > 1);\n"
 "Generated-By: Babel 2.18.0\n"
 
 #: cloudprnt/kitchen_ticket.py:94
@@ -65,6 +65,7 @@ msgstr "Ajout"
 
 #. Name of a role
 #: cloudprnt/cloudprnt/doctype/cash_drawer_opening/cash_drawer_opening.json:148
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.json:111
 msgid "Admin"
 msgstr "Administrateur"
 
@@ -288,8 +289,8 @@ msgid "Delivery"
 msgstr ""
 
 #. Name of a role
-#: cloudprnt/cloudprnt/doctype/cloudprnt_logs/cloudprnt_logs.json:59
-#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.json:108
+#: cloudprnt/cloudprnt/doctype/cloudprnt_logs/cloudprnt_logs.json:56
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.json:105
 msgid "Desk User"
 msgstr "Utilisateur Desk"
 
@@ -335,12 +336,8 @@ msgstr "Boissons"
 
 #. Description of a DocType
 #: cloudprnt/cloudprnt/doctype/cash_drawer_opening/cash_drawer_opening.json:8
-msgid ""
-"Every opening of a cash drawer wired to a CloudPRNT printer: with a sale, or"
-" alone with a reason. Kept, never deleted."
-msgstr ""
-"Chaque ouverture d'un tiroir-caisse relié à une imprimante CloudPRNT : avec "
-"une vente, ou seule avec une raison. Conservée, jamais supprimée."
+msgid "Every opening of a cash drawer wired to a CloudPRNT printer: with a sale, or alone with a reason. Kept, never deleted."
+msgstr "Chaque ouverture d'un tiroir-caisse relié à une imprimante CloudPRNT : avec une vente, ou seule avec une raison. Conservée, jamais supprimée."
 
 #. Option for the 'Status' (Select) field in DocType 'CloudPRNT Print Queue'
 #: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:46
@@ -398,13 +395,8 @@ msgid "Formats It Prints"
 msgstr "Formats imprimés"
 
 #: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:109
-msgid ""
-"From a computer on the same network as the printer, run this command. It "
-"finds the printer, asks for its administrator password and configures it:"
-msgstr ""
-"Depuis un ordinateur du même réseau que l'imprimante, exécutez cette "
-"commande. Elle trouve l'imprimante, demande son mot de passe administrateur "
-"et la configure :"
+msgid "From a computer on the same network as the printer, run this command. It finds the printer, asks for its administrator password and configures it:"
+msgstr "Depuis un ordinateur du même réseau que l'imprimante, exécutez cette commande. Elle trouve l'imprimante, demande son mot de passe administrateur et la configure :"
 
 #: cloudprnt/receipt_markup.py:68
 msgid "Gift card with a value of"
@@ -559,9 +551,7 @@ msgstr ""
 
 #: cloudprnt/printers.py:97
 msgid "No CloudPRNT printer given and no default printer configured"
-msgstr ""
-"Aucune imprimante CloudPRNT indiquée et aucune imprimante par défaut "
-"configurée"
+msgstr "Aucune imprimante CloudPRNT indiquée et aucune imprimante par défaut configurée"
 
 #: cloudprnt/drawer.py:41
 msgid "No CloudPRNT printer is set for this till"
@@ -587,9 +577,7 @@ msgstr "Aucun identifiant"
 
 #: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:148
 msgid "No printer reached this site without credentials in the last day."
-msgstr ""
-"Aucune imprimante n'a atteint ce site sans identifiants au cours des "
-"dernières 24 heures."
+msgstr "Aucune imprimante n'a atteint ce site sans identifiants au cours des dernières 24 heures."
 
 #: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:157
 msgid "Not configured"
@@ -606,16 +594,11 @@ msgstr "Non ouvert"
 msgid "Not permitted"
 msgstr ""
 
-#. Description of the 'Expires At' (Datetime) field in DocType 'CloudPRNT
-#. Print
+#. Description of the 'Expires At' (Datetime) field in DocType 'CloudPRNT Print
 #. Queue'
 #: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:165
-msgid ""
-"Not printed by then (printer off or offline), the job expires instead of "
-"printing late"
-msgstr ""
-"Si l'imprimante ne la prend pas à temps (éteinte ou hors ligne), la tâche "
-"expire au lieu de sortir en retard."
+msgid "Not printed by then (printer off or offline), the job expires instead of printing late"
+msgstr "Si l'imprimante ne la prend pas à temps (éteinte ou hors ligne), la tâche expire au lieu de sortir en retard."
 
 #: cloudprnt/print_queue_manager.py:191
 msgid "Not printed in time"
@@ -693,13 +676,8 @@ msgid "Optional: the URL of an image to print"
 msgstr "Facultatif : l'adresse (URL) d'une image à imprimer"
 
 #: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:116
-msgid ""
-"Or open the printer's web page (its IP address in a browser), sign in, open "
-"CloudPRNT and enter these three values, then Save and restart the printer:"
-msgstr ""
-"Ou ouvrez la page web de l'imprimante (son adresse IP dans un navigateur), "
-"connectez-vous, ouvrez CloudPRNT et saisissez ces trois valeurs, puis "
-"enregistrez et redémarrez l'imprimante :"
+msgid "Or open the printer's web page (its IP address in a browser), sign in, open CloudPRNT and enter these three values, then Save and restart the printer:"
+msgstr "Ou ouvrez la page web de l'imprimante (son adresse IP dans un navigateur), connectez-vous, ouvrez CloudPRNT et saisissez ces trois valeurs, puis enregistrez et redémarrez l'imprimante :"
 
 #. Option for the 'Reason' (Select) field in DocType 'Cash Drawer Opening'
 #: cloudprnt/cloudprnt/doctype/cash_drawer_opening/cash_drawer_opening.json:67
@@ -718,6 +696,11 @@ msgstr "Surchauffe"
 #: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json:70
 msgid "POS Profile"
 msgstr ""
+
+#. Name of a role
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.json:118
+msgid "POSNext Manager"
+msgstr "Gestionnaire POSNext"
 
 #: cloudprnt/provisional_ticket.py:542
 #: cloudprnt/tests/test_provisional_ticket.py:185
@@ -874,27 +857,14 @@ msgid "Printers"
 msgstr "Imprimantes"
 
 #: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:9
-msgid ""
-"Printers are configured with their own credentials: use Add a printer, then "
-"follow the steps it shows."
-msgstr ""
-"Chaque imprimante est configurée avec ses propres identifiants : utilisez "
-"Ajouter une imprimante, puis suivez les étapes affichées."
+msgid "Printers are configured with their own credentials: use Add a printer, then follow the steps it shows."
+msgstr "Chaque imprimante est configurée avec ses propres identifiants : utilisez Ajouter une imprimante, puis suivez les étapes affichées."
 
 #. Description of the 'Instant Printing' (Check) field in DocType 'CloudPRNT
 #. Settings'
 #: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.json:37
-msgid ""
-"Printers that can (Star mC-Print3 CI/CBI, TSP100IV) are told the moment a "
-"job is queued, through the hosting platform's broker, instead of asking the "
-"site every few seconds. Takes effect when a printer restarts or within an "
-"hour. Other printers keep asking as before."
-msgstr ""
-"Les imprimantes qui le permettent (Star mC-Print3 CI/CBI, TSP100IV) sont "
-"averties dès qu'un travail est mis en file, par le broker de la plateforme "
-"d'hébergement, au lieu d'interroger le site toutes les quelques secondes. Le"
-" changement prend effet au redémarrage d'une imprimante ou dans l'heure. Les"
-" autres imprimantes continuent d'interroger le site comme avant."
+msgid "Printers that can (Star mC-Print3 CI/CBI, TSP100IV) are told the moment a job is queued, through the hosting platform's broker, instead of asking the site every few seconds. Takes effect when a printer restarts or within an hour. Other printers keep asking as before."
+msgstr "Les imprimantes qui le permettent (Star mC-Print3 CI/CBI, TSP100IV) sont averties dès qu'un travail est mis en file, par le broker de la plateforme d'hébergement, au lieu d'interroger le site toutes les quelques secondes. Le changement prend effet au redémarrage d'une imprimante ou dans l'heure. Les autres imprimantes continuent d'interroger le site comme avant."
 
 #. Label of a Check field in DocType 'CloudPRNT Printers'
 #: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json:213
@@ -961,6 +931,11 @@ msgstr ""
 #: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json:155
 msgid "Reported by the Printer"
 msgstr "Signalé par l'imprimante"
+
+#. Name of a role
+#: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.json:125
+msgid "Restaurant Manager"
+msgstr "Gestionnaire de restaurant"
 
 #: cloudprnt/provisional_ticket.py:361
 msgid "Restaurant Table"
@@ -1106,11 +1081,8 @@ msgstr ""
 #. Description of the 'Printer Account' (Link) field in DocType 'CloudPRNT
 #. Printers'
 #: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json:129
-msgid ""
-"The account the printer signs in with (Add a printer or Printer credentials)"
-msgstr ""
-"Le compte avec lequel l'imprimante se connecte (Ajouter une imprimante ou "
-"Identifiants de l'imprimante)"
+msgid "The account the printer signs in with (Add a printer or Printer credentials)"
+msgstr "Le compte avec lequel l'imprimante se connecte (Ajouter une imprimante ou Identifiants de l'imprimante)"
 
 #: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.py:119
 msgid "The image link must start with http:// or https://"
@@ -1134,43 +1106,24 @@ msgid "The ordering link of this table is not a web address"
 msgstr "Le lien de commande de cette table n'est pas une adresse web"
 
 #: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:125
-msgid ""
-"The password is shown only now. Once the printer signs in, it prints a "
-"ticket saying it is connected, and its model and paper width appear here by "
-"themselves."
-msgstr ""
-"Le mot de passe n'est affiché qu'une seule fois. Dès que l'imprimante se "
-"connecte, elle imprime un ticket confirmant la connexion, et son modèle "
-"ainsi que sa largeur de papier apparaissent ici automatiquement."
+msgid "The password is shown only now. Once the printer signs in, it prints a ticket saying it is connected, and its model and paper width appear here by themselves."
+msgstr "Le mot de passe n'est affiché qu'une seule fois. Dès que l'imprimante se connecte, elle imprime un ticket confirmant la connexion, et son modèle ainsi que sa largeur de papier apparaissent ici automatiquement."
 
-#. Description of the 'Can Print Instantly' (Check) field in DocType
-#. 'CloudPRNT
+#. Description of the 'Can Print Instantly' (Check) field in DocType 'CloudPRNT
 #. Printers'
 #: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json:136
-msgid ""
-"The printer asked for cloudprnt-setting.json: it can be told of a job at "
-"once (CloudPRNT Version MQTT)"
-msgstr ""
-"L'imprimante a demandé cloudprnt-setting.json : elle peut être avertie d'un "
-"travail immédiatement (CloudPRNT Version MQTT)"
+msgid "The printer asked for cloudprnt-setting.json: it can be told of a job at once (CloudPRNT Version MQTT)"
+msgstr "L'imprimante a demandé cloudprnt-setting.json : elle peut être avertie d'un travail immédiatement (CloudPRNT Version MQTT)"
 
 #: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:85
-msgid ""
-"The printer stops printing until it is configured with the new credentials."
-msgstr ""
-"L'imprimante cesse d'imprimer tant qu'elle n'est pas configurée avec les "
-"nouveaux identifiants."
+msgid "The printer stops printing until it is configured with the new credentials."
+msgstr "L'imprimante cesse d'imprimer tant qu'elle n'est pas configurée avec les nouveaux identifiants."
 
-#. Description of the 'Preparation Stations' (Data) field in DocType
-#. 'CloudPRNT
+#. Description of the 'Preparation Stations' (Data) field in DocType 'CloudPRNT
 #. Printers'
 #: cloudprnt/cloudprnt/doctype/cloudprnt_printers/cloudprnt_printers.json
-msgid ""
-"The stations whose kitchen tickets this printer prints, separated by commas "
-"(in the POS restaurant: Kitchen, Bar…)"
-msgstr ""
-"Les stations dont cette imprimante imprime les tickets de cuisine, séparées "
-"par des virgules (dans le restaurant du POS : Cuisine, Bar…)"
+msgid "The stations whose kitchen tickets this printer prints, separated by commas (in the POS restaurant: Kitchen, Bar…)"
+msgstr "Les stations dont cette imprimante imprime les tickets de cuisine, séparées par des virgules (dans le restaurant du POS : Cuisine, Bar…)"
 
 #: cloudprnt/provisional_ticket.py:294
 msgid "The till of this order is not known"
@@ -1187,13 +1140,8 @@ msgid "Thermal receipt"
 msgstr "Ticket thermique"
 
 #: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:166
-msgid ""
-"These printers poll this site without valid credentials. Add a printer, or "
-"issue its credentials again, then configure it with them."
-msgstr ""
-"Ces imprimantes interrogent ce site sans identifiants valables. Ajoutez une "
-"imprimante ou générez à nouveau ses identifiants, puis configurez-la avec "
-"ceux-ci."
+msgid "These printers poll this site without valid credentials. Add a printer, or issue its credentials again, then configure it with them."
+msgstr "Ces imprimantes interrogent ce site sans identifiants valables. Ajoutez une imprimante ou générez à nouveau ses identifiants, puis configurez-la avec ceux-ci."
 
 #: cloudprnt/provisional_ticket.py:203
 msgid "This order has no lines: there is nothing to print"
@@ -1223,9 +1171,7 @@ msgstr ""
 
 #: cloudprnt/provisional_ticket.py:165
 msgid "Too many tickets in a minute: wait a moment before printing another"
-msgstr ""
-"Trop de tickets en une minute : patientez un instant avant d'en imprimer un "
-"autre"
+msgstr "Trop de tickets en une minute : patientez un instant avant d'en imprimer un autre"
 
 #: cloudprnt/provisional_ticket.py:572
 #: cloudprnt/tests/test_provisional_ticket.py:202
@@ -1250,9 +1196,7 @@ msgstr "Utilisée tant qu'une imprimante ne transmet pas la sienne"
 #. Settings'
 #: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.json:49
 msgid "Used when a print names no printer and its till has none"
-msgstr ""
-"Utilisée lorsqu'une impression ne désigne aucune imprimante et que sa caisse"
-" n'en a pas"
+msgstr "Utilisée lorsqu'une impression ne désigne aucune imprimante et que sa caisse n'en a pas"
 
 #. Label of a Link field in DocType 'Cash Drawer Opening'
 #: cloudprnt/cloudprnt/doctype/cash_drawer_opening/cash_drawer_opening.json:47
@@ -1291,12 +1235,8 @@ msgstr "Serveur"
 #. Description of the 'Kitchen Lines' (Small Text) field in DocType 'CloudPRNT
 #. Print Queue'
 #: cloudprnt/cloudprnt/doctype/cloudprnt_print_queue/cloudprnt_print_queue.json:81
-msgid ""
-"What this kitchen ticket printed, as quantity per dish: a dish at the "
-"kitchen is printed once"
-msgstr ""
-"Quantité par plat imprimée sur ce ticket de cuisine : un plat en cuisine "
-"n'est imprimé qu'une fois"
+msgid "What this kitchen ticket printed, as quantity per dish: a dish at the kitchen is printed once"
+msgstr "Quantité par plat imprimée sur ce ticket de cuisine : un plat en cuisine n'est imprimé qu'une fois"
 
 #: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:158
 msgid "Wrong credentials"
@@ -1350,6 +1290,7 @@ msgstr ""
 #, python-brace-format
 msgid "{0} {1} not found"
 msgstr ""
+
 
 #: cloudprnt/cloudprnt/doctype/cloudprnt_settings/cloudprnt_settings.js:57
 msgid "Add"
