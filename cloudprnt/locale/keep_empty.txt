@@ -1,0 +1,3 @@
+# The same words in French: msgstr left empty on purpose. The nightly translation (bvisible/neoffice-ci,
+# translate_po.py) leaves a msgid listed here empty instead of filling it. One msgid per line, `#` starts a comment.
+Desserts
